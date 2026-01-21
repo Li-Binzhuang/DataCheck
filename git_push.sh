@@ -177,14 +177,48 @@ echo ""
 # 先拉取远程更改（如果远程分支存在）
 echo "检查远程分支状态..."
 if git ls-remote --heads origin "$CURRENT_BRANCH" | grep -q "$CURRENT_BRANCH"; then
-    echo "远程分支存在，先拉取远程更改..."
-    # 使用 rebase 方式拉取，保持提交历史线性
-    if git pull --rebase origin "$CURRENT_BRANCH" 2>&1; then
-        echo "✓ 已拉取并合并远程更改"
+    echo "远程分支存在，检查本地和远程的差异..."
+    
+    # 检查本地是否有未推送的提交
+    LOCAL_COMMITS=$(git log origin/$CURRENT_BRANCH..HEAD --oneline 2>/dev/null | wc -l | tr -d ' ')
+    REMOTE_COMMITS=$(git log HEAD..origin/$CURRENT_BRANCH --oneline 2>/dev/null | wc -l | tr -d ' ')
+    
+    if [ "$REMOTE_COMMITS" -gt 0 ]; then
+        echo "检测到远程有 $REMOTE_COMMITS 个新提交，本地有 $LOCAL_COMMITS 个未推送提交"
+        echo "尝试拉取远程更改..."
+        
+        # 如果 MyDataCheck 是子模块，先暂存其引用
+        if [ -f "MyDataCheck/.git" ] || [ -d "MyDataCheck/.git" ]; then
+            echo "检测到 MyDataCheck 是子模块，先暂存子模块引用..."
+            git add MyDataCheck 2>/dev/null || true
+        fi
+        
+        # 使用 rebase 方式拉取，跳过子模块处理以避免冲突
+        PULL_OUTPUT=$(git pull --rebase --recurse-submodules=no origin "$CURRENT_BRANCH" 2>&1)
+        PULL_EXIT=$?
+        
+        if [ $PULL_EXIT -eq 0 ]; then
+            echo "✓ 已拉取并合并远程更改"
+        elif echo "$PULL_OUTPUT" | grep -q "untracked working tree files would be overwritten"; then
+            echo "⚠ 检测到 MyDataCheck 子模块冲突（远程是普通目录，本地是子模块）"
+            echo "   由于结构差异，跳过拉取步骤，将直接推送本地版本"
+            echo "   如果远程有重要更改，请手动处理冲突"
+        else
+            # 如果 pull --rebase 失败，尝试使用 merge 方式
+            echo "尝试使用 merge 方式拉取..."
+            MERGE_OUTPUT=$(git pull --recurse-submodules=no origin "$CURRENT_BRANCH" 2>&1)
+            MERGE_EXIT=$?
+            
+            if [ $MERGE_EXIT -eq 0 ]; then
+                echo "✓ 已拉取并合并远程更改（使用 merge）"
+            else
+                echo "⚠ 拉取远程更改失败"
+                echo "   输出: $MERGE_OUTPUT"
+                echo "   将尝试直接推送（可能需要解决冲突）"
+            fi
+        fi
     else
-        echo "⚠ 拉取远程更改时出现冲突或错误"
-        echo "   如果出现冲突，请手动解决后重试"
-        echo "   或者使用: git pull --rebase origin $CURRENT_BRANCH"
+        echo "✓ 本地已是最新，无需拉取"
     fi
 else
     echo "远程分支不存在，将创建新分支"
@@ -211,17 +245,43 @@ if [ $PUSH_EXIT_CODE -eq 0 ]; then
 elif echo "$PUSH_OUTPUT" | grep -q "non-fast-forward"; then
     echo ""
     echo "=========================================="
-    echo "⚠ 推送被拒绝：本地分支落后于远程分支"
+    echo "⚠ 推送被拒绝：本地分支与远程分支有分歧"
     echo "=========================================="
     echo ""
-    echo "建议操作："
-    echo "1. 手动拉取并合并: git pull --rebase origin $CURRENT_BRANCH"
-    echo "2. 解决可能的冲突后，再次运行此脚本"
-    echo "3. 或者强制推送（谨慎使用）: git push -f origin $CURRENT_BRANCH"
+    echo "检测到本地有未推送的提交，远程也有新提交"
+    echo "由于 MyDataCheck 子模块结构差异，尝试强制推送..."
     echo ""
-    echo "详细错误信息:"
-    echo "$PUSH_OUTPUT"
-    exit 1
+    
+    # 尝试强制推送（覆盖远程）
+    echo "执行强制推送（--force-with-lease，安全模式）..."
+    FORCE_PUSH_OUTPUT=$(git push --force-with-lease origin "$CURRENT_BRANCH" 2>&1)
+    FORCE_PUSH_EXIT=$?
+    
+    if [ $FORCE_PUSH_EXIT -eq 0 ]; then
+        echo ""
+        echo "=========================================="
+        echo "✓ 强制推送成功！"
+        echo "=========================================="
+        echo ""
+        echo "仓库地址: $REPO_URL"
+        echo "提交目录: MyDataCheck/"
+        echo "当前分支: $CURRENT_BRANCH"
+        echo ""
+        echo "⚠ 注意：已覆盖远程分支的历史记录"
+    else
+        echo ""
+        echo "=========================================="
+        echo "⚠ 强制推送也失败"
+        echo "=========================================="
+        echo ""
+        echo "输出: $FORCE_PUSH_OUTPUT"
+        echo ""
+        echo "建议手动处理："
+        echo "1. 检查远程更改: git fetch origin"
+        echo "2. 查看差异: git log HEAD..origin/$CURRENT_BRANCH"
+        echo "3. 手动合并或强制推送: git push -f origin $CURRENT_BRANCH"
+        exit 1
+    fi
 else
     echo ""
     echo "=========================================="

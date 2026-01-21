@@ -185,36 +185,40 @@ if git ls-remote --heads origin "$CURRENT_BRANCH" | grep -q "$CURRENT_BRANCH"; t
     
     if [ "$REMOTE_COMMITS" -gt 0 ]; then
         echo "检测到远程有 $REMOTE_COMMITS 个新提交，本地有 $LOCAL_COMMITS 个未推送提交"
-        echo "尝试拉取远程更改..."
         
-        # 如果 MyDataCheck 是子模块，先暂存其引用
+        # 如果 MyDataCheck 是子模块，检测到结构差异时直接跳过拉取
         if [ -f "MyDataCheck/.git" ] || [ -d "MyDataCheck/.git" ]; then
-            echo "检测到 MyDataCheck 是子模块，先暂存子模块引用..."
-            git add MyDataCheck 2>/dev/null || true
-        fi
-        
-        # 使用 rebase 方式拉取，跳过子模块处理以避免冲突
-        PULL_OUTPUT=$(git pull --rebase --recurse-submodules=no origin "$CURRENT_BRANCH" 2>&1)
-        PULL_EXIT=$?
-        
-        if [ $PULL_EXIT -eq 0 ]; then
-            echo "✓ 已拉取并合并远程更改"
-        elif echo "$PULL_OUTPUT" | grep -q "untracked working tree files would be overwritten"; then
-            echo "⚠ 检测到 MyDataCheck 子模块冲突（远程是普通目录，本地是子模块）"
-            echo "   由于结构差异，跳过拉取步骤，将直接推送本地版本"
-            echo "   如果远程有重要更改，请手动处理冲突"
-        else
-            # 如果 pull --rebase 失败，尝试使用 merge 方式
-            echo "尝试使用 merge 方式拉取..."
-            MERGE_OUTPUT=$(git pull --recurse-submodules=no origin "$CURRENT_BRANCH" 2>&1)
-            MERGE_EXIT=$?
-            
-            if [ $MERGE_EXIT -eq 0 ]; then
-                echo "✓ 已拉取并合并远程更改（使用 merge）"
+            echo "检测到 MyDataCheck 是子模块"
+            # 检查远程 MyDataCheck 是否是普通目录（会导致冲突）
+            REMOTE_MYDATACHECK_TYPE=$(git ls-tree origin/$CURRENT_BRANCH MyDataCheck 2>/dev/null | awk '{print $2}' || echo "")
+            if [ "$REMOTE_MYDATACHECK_TYPE" = "tree" ]; then
+                echo "⚠ 检测到结构差异：远程 MyDataCheck 是普通目录，本地是子模块"
+                echo "   跳过拉取步骤以避免冲突，将直接推送本地版本"
             else
-                echo "⚠ 拉取远程更改失败"
-                echo "   输出: $MERGE_OUTPUT"
-                echo "   将尝试直接推送（可能需要解决冲突）"
+                echo "尝试拉取远程更改..."
+                # 先暂存子模块引用
+                git add MyDataCheck 2>/dev/null || true
+                # 尝试拉取
+                PULL_OUTPUT=$(git pull --rebase --recurse-submodules=no origin "$CURRENT_BRANCH" 2>&1)
+                PULL_EXIT=$?
+                
+                if [ $PULL_EXIT -eq 0 ]; then
+                    echo "✓ 已拉取并合并远程更改"
+                elif echo "$PULL_OUTPUT" | grep -q "untracked working tree files would be overwritten"; then
+                    echo "⚠ 拉取时检测到文件冲突，跳过拉取步骤，直接推送"
+                else
+                    echo "⚠ 拉取失败，将直接尝试推送"
+                fi
+            fi
+        else
+            echo "尝试拉取远程更改..."
+            PULL_OUTPUT=$(git pull --rebase origin "$CURRENT_BRANCH" 2>&1)
+            PULL_EXIT=$?
+            
+            if [ $PULL_EXIT -eq 0 ]; then
+                echo "✓ 已拉取并合并远程更改"
+            else
+                echo "⚠ 拉取失败，将直接尝试推送"
             fi
         fi
     else

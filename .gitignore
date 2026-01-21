@@ -1,0 +1,35 @@
+# 临时文件
+*.tmp
+*.bak
+*~
+.DS_Store
+.~*
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志文件
+*.log
+logs/
+
+# 大型数据文件（可选，根据需要调整）
+# *.csv
+# *.xlsx

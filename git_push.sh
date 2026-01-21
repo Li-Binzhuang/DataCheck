@@ -1,0 +1,191 @@
+#!/bin/bash
+# 将 MyDataCheck 项目提交并推送到 Git 仓库
+# 已配置访问令牌，一键提交
+
+set -e
+
+# 仓库地址
+REPO_URL="https://codeup.aliyun.com/674eeae32855ba207e1c86c8/daizhonhuankuan_part1/zlfjob.git"
+
+# 访问凭据（已配置）
+GIT_USERNAME="zhanglifeng703"
+GIT_TOKEN="zhang0324"
+
+# 获取脚本所在目录
+SCRIPT_DIR="$(dirname "$0")"
+cd "$SCRIPT_DIR"
+
+echo "=========================================="
+echo "准备提交 MyDataCheck 项目到 Git 仓库"
+echo "=========================================="
+echo "仓库结构: daizhonghuankuan_part1/"
+echo "  └── MyDataCheck/"
+echo ""
+
+# 检查 MyDataCheck 目录是否存在
+if [ ! -d "MyDataCheck" ]; then
+    echo "错误: MyDataCheck 目录不存在！"
+    exit 1
+fi
+
+echo "注意: 只提交 MyDataCheck 目录内容到远程仓库"
+echo ""
+
+# 修复 macOS SSL 证书问题
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    git config --global http.sslVerify false 2>/dev/null || true
+fi
+
+# 初始化 Git 仓库（如果还没有）
+if [ ! -d ".git" ]; then
+    echo "初始化 Git 仓库..."
+    git init
+fi
+
+# 构建带凭据的 URL
+BASE_URL=$(echo "$REPO_URL" | sed -E 's|https://||')
+AUTH_URL="https://${GIT_USERNAME}:${GIT_TOKEN}@${BASE_URL}"
+
+# 添加远程仓库（如果还没有）
+if ! git remote | grep -q "origin"; then
+    echo "添加远程仓库（已配置访问令牌）..."
+    git remote add origin "$AUTH_URL"
+else
+    echo "更新远程仓库地址（已配置访问令牌）..."
+    git remote set-url origin "$AUTH_URL"
+fi
+
+# 创建 .gitignore 文件（忽略临时文件和系统文件）
+if [ ! -f ".gitignore" ]; then
+    cat > .gitignore << EOF
+# 临时文件
+*.tmp
+*.bak
+*~
+.DS_Store
+.~*
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志文件
+*.log
+logs/
+
+# 大型数据文件（可选，根据需要调整）
+# *.csv
+# *.xlsx
+EOF
+    echo "已创建 .gitignore 文件"
+fi
+
+# 检查 MyDataCheck 是否是子模块
+if [ -f "MyDataCheck/.git" ] || [ -d "MyDataCheck/.git" ]; then
+    echo "检测到 MyDataCheck 是 Git 子模块"
+    echo "先提交子模块内的变更..."
+    
+    # 进入子模块并提交变更
+    cd MyDataCheck
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "子模块内有未提交的变更，正在提交..."
+        git add -A
+        git commit -m "chore: 更新 MyDataCheck 子模块内容
+
+- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')" || echo "子模块提交完成或无需提交"
+    else
+        echo "子模块内无变更"
+    fi
+    cd ..
+    
+    # 更新父仓库中的子模块引用
+    echo "更新父仓库中的子模块引用..."
+    git add MyDataCheck
+else
+    # 如果不是子模块，按普通目录处理
+    echo "添加 MyDataCheck 目录到 Git..."
+    git add MyDataCheck/
+fi
+
+# 添加其他未跟踪的文件（如果需要）
+if [ -f ".gitignore" ]; then
+    echo "添加 .gitignore 文件..."
+    git add .gitignore
+fi
+
+if [ -f "git_push.sh" ]; then
+    echo "添加 git_push.sh 脚本..."
+    git add git_push.sh
+fi
+
+# 检查是否有变更
+if git diff --staged --quiet && [ -z "$(git status --porcelain)" ]; then
+    echo "没有变更需要提交"
+    # 即使没有变更，也尝试推送（可能远程有更新）
+else
+    # 提交
+    echo "提交变更..."
+    COMMIT_MSG="feat: 提交 MyDataCheck 项目
+
+- 包含 MyDataCheck 项目的所有文件
+- MyDataCheck 位于 daizhonghuankuan_part1/MyDataCheck/
+- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
+    
+    git commit -m "$COMMIT_MSG"
+    echo "✓ 已提交更改"
+fi
+
+# 获取当前分支
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
+
+echo ""
+echo "=========================================="
+echo "推送到远程仓库..."
+echo "=========================================="
+echo "分支: $CURRENT_BRANCH"
+echo ""
+
+# 直接推送（已配置访问令牌）
+echo "推送到远程仓库（已配置访问令牌）..."
+if git push -u origin "$CURRENT_BRANCH" 2>&1; then
+    echo ""
+    echo "=========================================="
+    echo "✓ 推送成功！"
+    echo "=========================================="
+    echo ""
+    echo "仓库地址: $REPO_URL"
+    echo "提交目录: MyDataCheck/"
+    echo "当前分支: $CURRENT_BRANCH"
+    echo ""
+    echo "查看远程仓库状态:"
+    git remote -v | sed 's|://[^@]*@|://***:***@|g'
+else
+    echo ""
+    echo "=========================================="
+    echo "✗ 推送失败"
+    echo "=========================================="
+    echo ""
+    echo "请检查："
+    echo "1. 网络连接是否正常"
+    echo "2. 访问令牌是否正确"
+    echo "3. 仓库地址是否正确"
+    echo "4. 是否有仓库访问权限"
+    exit 1
+fi

@@ -210,7 +210,7 @@ else
 fi
 
 # 获取当前分支
-CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "master")
 
 echo ""
 echo "=========================================="

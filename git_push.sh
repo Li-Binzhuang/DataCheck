@@ -276,8 +276,10 @@ fi
 echo ""
 # 推送（已配置访问令牌）
 echo "推送到远程仓库（已配置访问令牌）..."
+echo "正在推送，请稍候..."
 PUSH_OUTPUT=$(git push -u origin "$CURRENT_BRANCH" 2>&1)
 PUSH_EXIT_CODE=$?
+echo "$PUSH_OUTPUT"
 
 if [ $PUSH_EXIT_CODE -eq 0 ]; then
     echo ""

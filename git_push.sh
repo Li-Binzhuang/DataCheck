@@ -16,10 +16,11 @@ SCRIPT_DIR="$(dirname "$0")"
 cd "$SCRIPT_DIR"
 
 echo "=========================================="
-echo "准备提交 MyDataCheck 项目到 Git 仓库"
+echo "准备提交项目到 Git 仓库"
 echo "=========================================="
 echo "仓库结构: daizhonghuankuan_part1/"
-echo "  └── MyDataCheck/"
+echo "  ├── MyDataCheck/"
+echo "  └── Mytest/"
 echo ""
 
 # 检查 MyDataCheck 目录是否存在
@@ -28,7 +29,12 @@ if [ ! -d "MyDataCheck" ]; then
     exit 1
 fi
 
-echo "注意: 只提交 MyDataCheck 目录内容到远程仓库"
+# 检查 Mytest 目录是否存在
+if [ ! -d "Mytest" ]; then
+    echo "警告: Mytest 目录不存在，将只提交 MyDataCheck"
+else
+    echo "将提交 MyDataCheck 和 Mytest 目录内容到远程仓库"
+fi
 echo ""
 
 # 修复 macOS SSL 证书问题
@@ -124,6 +130,35 @@ else
     git add MyDataCheck/
 fi
 
+# 添加 Mytest 目录（如果存在且不是子模块）
+if [ -d "Mytest" ]; then
+    if [ -f "Mytest/.git" ] || [ -d "Mytest/.git" ]; then
+        echo "检测到 Mytest 是 Git 子模块"
+        echo "先提交子模块内的变更..."
+        
+        # 进入子模块并提交变更
+        cd Mytest
+        if [ -n "$(git status --porcelain)" ]; then
+            echo "Mytest 子模块内有未提交的变更，正在提交..."
+            git add -A
+            git commit -m "chore: 更新 Mytest 子模块内容
+
+- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')" || echo "Mytest 子模块提交完成或无需提交"
+        else
+            echo "Mytest 子模块内无变更"
+        fi
+        cd ..
+        
+        # 更新父仓库中的子模块引用
+        echo "更新父仓库中的 Mytest 子模块引用..."
+        git add Mytest
+    else
+        # 如果不是子模块，按普通目录处理
+        echo "添加 Mytest 目录到 Git..."
+        git add Mytest/
+    fi
+fi
+
 # 添加其他文件（未跟踪的或已修改的）
 if [ -f ".gitignore" ]; then
     # 检查文件是否未跟踪或已修改
@@ -145,18 +180,28 @@ fi
 if ! git diff --staged --quiet 2>/dev/null; then
     # 有暂存的文件，执行提交
     echo "提交变更..."
-    COMMIT_MSG="feat: 提交 MyDataCheck 项目
+    if [ -d "Mytest" ]; then
+        COMMIT_MSG="feat: 提交 MyDataCheck 和 Mytest 项目
+
+- 包含 MyDataCheck 项目的所有文件
+- 包含 Mytest 项目的所有文件
+- MyDataCheck 位于 daizhonghuankuan_part1/MyDataCheck/
+- Mytest 位于 daizhonghuankuan_part1/Mytest/
+- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
+    else
+        COMMIT_MSG="feat: 提交 MyDataCheck 项目
 
 - 包含 MyDataCheck 项目的所有文件
 - MyDataCheck 位于 daizhonghuankuan_part1/MyDataCheck/
 - 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
+    fi
     
     git commit -m "$COMMIT_MSG"
     echo "✓ 已提交更改"
 else
     # 检查是否有未提交的变更
     if [ -n "$(git status --porcelain)" ]; then
-        echo "⚠ 检测到未跟踪的文件（如 Mytest/），但这些文件未被添加到暂存区"
+        echo "⚠ 检测到未跟踪的文件，但这些文件未被添加到暂存区"
         echo "   如需提交这些文件，请手动运行: git add <文件>"
     else
         echo "✓ 工作区干净，没有需要提交的变更"
@@ -241,7 +286,11 @@ if [ $PUSH_EXIT_CODE -eq 0 ]; then
     echo "=========================================="
     echo ""
     echo "仓库地址: $REPO_URL"
-    echo "提交目录: MyDataCheck/"
+    if [ -d "Mytest" ]; then
+        echo "提交目录: MyDataCheck/, Mytest/"
+    else
+        echo "提交目录: MyDataCheck/"
+    fi
     echo "当前分支: $CURRENT_BRANCH"
     echo ""
     echo "查看远程仓库状态:"
@@ -268,7 +317,11 @@ elif echo "$PUSH_OUTPUT" | grep -q "non-fast-forward"; then
         echo "=========================================="
         echo ""
         echo "仓库地址: $REPO_URL"
-        echo "提交目录: MyDataCheck/"
+        if [ -d "Mytest" ]; then
+            echo "提交目录: MyDataCheck/, Mytest/"
+        else
+            echo "提交目录: MyDataCheck/"
+        fi
         echo "当前分支: $CURRENT_BRANCH"
         echo ""
         echo "⚠ 注意：已覆盖远程分支的历史记录"

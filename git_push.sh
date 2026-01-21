@@ -124,23 +124,26 @@ else
     git add MyDataCheck/
 fi
 
-# 添加其他未跟踪的文件（如果需要）
+# 添加其他文件（未跟踪的或已修改的）
 if [ -f ".gitignore" ]; then
-    echo "添加 .gitignore 文件..."
-    git add .gitignore
+    # 检查文件是否未跟踪或已修改
+    if ! git ls-files --error-unmatch .gitignore >/dev/null 2>&1 || ! git diff --quiet .gitignore 2>/dev/null; then
+        echo "添加 .gitignore 文件..."
+        git add .gitignore
+    fi
 fi
 
 if [ -f "git_push.sh" ]; then
-    echo "添加 git_push.sh 脚本..."
-    git add git_push.sh
+    # 检查文件是否未跟踪或已修改
+    if ! git ls-files --error-unmatch git_push.sh >/dev/null 2>&1 || ! git diff --quiet git_push.sh 2>/dev/null; then
+        echo "添加 git_push.sh 脚本..."
+        git add git_push.sh
+    fi
 fi
 
-# 检查是否有变更
-if git diff --staged --quiet && [ -z "$(git status --porcelain)" ]; then
-    echo "没有变更需要提交"
-    # 即使没有变更，也尝试推送（可能远程有更新）
-else
-    # 提交
+# 检查是否有变更需要提交（检查暂存区）
+if ! git diff --staged --quiet 2>/dev/null; then
+    # 有暂存的文件，执行提交
     echo "提交变更..."
     COMMIT_MSG="feat: 提交 MyDataCheck 项目
 
@@ -150,6 +153,15 @@ else
     
     git commit -m "$COMMIT_MSG"
     echo "✓ 已提交更改"
+else
+    # 检查是否有未提交的变更
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "⚠ 检测到未跟踪的文件（如 Mytest/），但这些文件未被添加到暂存区"
+        echo "   如需提交这些文件，请手动运行: git add <文件>"
+    else
+        echo "✓ 工作区干净，没有需要提交的变更"
+    fi
+    echo "跳过提交步骤"
 fi
 
 # 获取当前分支

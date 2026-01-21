@@ -1,0 +1,44 @@
+{
+  "scenarios": [
+    {
+      "name": "接口校对",
+      "enabled": true,
+      "description": "bz_99test",
+      "input_csv_file": "1219.csv",
+      "output_file_prefix": "bz_en_99_0911",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/feature/MidLoanOrderInfoFeatures",
+      "thread_count": 150,
+      "timeout": 60,
+      "convert_feature_to_number": true,
+      "add_one_second": true,
+      "column_config": {
+        "cust_no_column": 0,
+        "use_create_time_column": 2,
+        "feature_start_column": 3
+      }
+    },
+    {
+      "name": "未命名场景",
+      "enabled": true,
+      "description": "",
+      "input_csv_file": "",
+      "output_file_prefix": "",
+      "api_url": "",
+      "thread_count": 150,
+      "timeout": 60,
+      "convert_feature_to_number": true,
+      "add_one_second": false,
+      "column_config": {
+        "cust_no_column": 0,
+        "use_create_time_column": 2,
+        "feature_start_column": 3
+      }
+    }
+  ],
+  "global_config": {
+    "default_thread_count": 150,
+    "default_timeout": 60,
+    "default_convert_feature_to_number": true,
+    "default_add_one_second": true
+  }
+}

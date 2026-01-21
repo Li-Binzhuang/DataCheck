@@ -1,0 +1,21 @@
+{
+  "python.defaultInterpreterPath": "/Library/Frameworks/Python.framework/Versions/3.15/bin/python3",
+  "python.terminal.executeInFileDir": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.languageServer": "JediLSP",
+  "python.jediEnabled": true,
+  "files.associations": {
+    "*.py": "python"
+  },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
+  "python.formatting.provider": "black",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.nosetestsEnabled": false,
+  "terminal.integrated.cwd": "${workspaceFolder}"
+}

@@ -1,0 +1,108 @@
+{
+  "scenarios": [
+    {
+      "name": "双参数接口示例 (custNo + baseTime)",
+      "enabled": true,
+      "description": "标准的双参数接口，包含客户号和时间",
+      "input_csv_file": "test_data.csv",
+      "output_file_prefix": "double_param_test",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/feature/MidLoanOrderInfoFeatures",
+      "thread_count": 150,
+      "timeout": 60,
+      "convert_feature_to_number": true,
+      "add_one_second": true,
+      "api_params": [
+        {
+          "param_name": "custNo",
+          "column_index": 0,
+          "is_time_field": false
+        },
+        {
+          "param_name": "baseTime",
+          "column_index": 2,
+          "is_time_field": true
+        }
+      ],
+      "column_config": {
+        "feature_start_column": 3
+      }
+    },
+    {
+      "name": "单参数接口示例 (只有 applyId)",
+      "enabled": true,
+      "description": "只需要一个申请ID参数的接口",
+      "input_csv_file": "single_param_data.csv",
+      "output_file_prefix": "single_param_test",
+      "api_url": "http://example.com/api/getFeaturesByApplyId",
+      "thread_count": 100,
+      "timeout": 30,
+      "convert_feature_to_number": true,
+      "add_one_second": false,
+      "api_params": [
+        {
+          "param_name": "applyId",
+          "column_index": 1,
+          "is_time_field": false
+        }
+      ],
+      "column_config": {
+        "feature_start_column": 2
+      }
+    },
+    {
+      "name": "三参数接口示例 (custNo + applyId + baseTime)",
+      "enabled": false,
+      "description": "需要三个参数的复杂接口",
+      "input_csv_file": "triple_param_data.csv",
+      "output_file_prefix": "triple_param_test",
+      "api_url": "http://example.com/api/getComplexFeatures",
+      "thread_count": 150,
+      "timeout": 60,
+      "convert_feature_to_number": true,
+      "add_one_second": false,
+      "api_params": [
+        {
+          "param_name": "custNo",
+          "column_index": 0,
+          "is_time_field": false
+        },
+        {
+          "param_name": "applyId",
+          "column_index": 1,
+          "is_time_field": false
+        },
+        {
+          "param_name": "baseTime",
+          "column_index": 3,
+          "is_time_field": true
+        }
+      ],
+      "column_config": {
+        "feature_start_column": 4
+      }
+    },
+    {
+      "name": "旧格式兼容示例 (使用 column_config)",
+      "enabled": false,
+      "description": "使用旧的column_config格式，系统会自动转换",
+      "input_csv_file": "old_format_data.csv",
+      "output_file_prefix": "old_format_test",
+      "api_url": "http://example.com/api/oldFormat",
+      "thread_count": 150,
+      "timeout": 60,
+      "convert_feature_to_number": true,
+      "add_one_second": true,
+      "column_config": {
+        "cust_no_column": 0,
+        "use_create_time_column": 2,
+        "feature_start_column": 3
+      }
+    }
+  ],
+  "global_config": {
+    "default_thread_count": 150,
+    "default_timeout": 60,
+    "default_convert_feature_to_number": true,
+    "default_add_one_second": true
+  }
+}

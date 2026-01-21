@@ -1,0 +1,64 @@
+{
+  "说明": {
+    "配置文件说明": "此配置文件支持多场景配置，可以同时配置多个不同的数据文件和接口进行对比",
+    "使用方式": "将 CONFIG_JSON_FILE 设置为 '执行配置.json'，或直接使用此模板文件",
+    "场景配置说明": {
+      "name": "场景名称（用于日志显示）",
+      "enabled": "是否启用此场景（true/false）",
+      "input_csv_file": "输入CSV文件名（相对于脚本目录）",
+      "output_file_prefix": "输出文件名前缀（例如：'qx_0108'），如果为空字符串则不添加前缀",
+      "api_url": "接口URL地址",
+      "thread_count": "并发线程数（可选，如果不设置则使用全局默认值）",
+      "timeout": "请求超时时间，单位：秒（可选，如果不设置则使用全局默认值）",
+      "auto_detect_columns": "是否自动检测列索引（true/false，可选，如果不设置则使用全局默认值）",
+      "column_config": {
+        "cust_no_column": "cust_no所在列索引（从0开始，仅在auto_detect_columns=false时使用）",
+        "use_create_time_column": "时间字段所在列索引（从0开始，仅在auto_detect_columns=false时使用）",
+        "feature_start_column": "特征开始列索引（从0开始，仅在auto_detect_columns=false时使用）"
+      }
+    },
+    "全局配置说明": {
+      "default_thread_count": "默认并发线程数（场景中未指定时使用）",
+      "default_timeout": "默认超时时间（场景中未指定时使用）",
+      "default_auto_detect_columns": "默认是否自动检测列索引（场景中未指定时使用）"
+    }
+  },
+  "scenarios": [
+    {
+      "name": "接口数据对比",
+      "enabled": true,
+      "description": "bz_en_99数据对比",
+      "input_csv_file": "bz_ez_1219.csv",
+      "output_file_prefix": "bz_en_99",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/feature/MidLoanOrderInfoFeatures",
+      "thread_count": 150,
+      "timeout": 60,
+      "column_config": {
+        "cust_no_column": 0,
+        "use_create_time_column": 2,
+        "feature_start_column": 3
+      }
+    },
+    {
+      "name": "场景2示例",
+      "enabled": false,
+      "description": "另一个数据文件的对比示例",
+      "input_csv_file": "another_file.csv",
+      "output_file_prefix": "test_001",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/feature/order/uncomplete",
+      "thread_count": 100,
+      "timeout": 60,
+      "auto_detect_columns": false,
+      "column_config": {
+        "cust_no_column": 0,
+        "use_create_time_column": 2,
+        "feature_start_column": 5
+      }
+    }
+  ],
+  "global_config": {
+    "default_thread_count": 150,
+    "default_timeout": 60,
+    "default_auto_detect_columns": true
+  }
+}

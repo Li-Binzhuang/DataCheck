@@ -1,0 +1,18 @@
+{
+  "scenarios": [
+    {
+      "name": "对比数据",
+      "enabled": true,
+      "description": "local_olduser_uncomplete_interface",
+      "output_prefix": "qx_6",
+      "online_file": "a009eacf-6f20-4d80-be18-4f4a498f2404-1.csv",
+      "offline_file": "qx_6_20sql.csv",
+      "json_column": "local_olduser_uncomplete_interface",
+      "online_key_column": 0,
+      "offline_key_column": 0,
+      "online_feature_start_column": 3,
+      "offline_feature_start_column": 3,
+      "convert_string_to_number": false
+    }
+  ]
+}

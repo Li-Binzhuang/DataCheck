@@ -1,0 +1,31 @@
+{
+  "scenarios": [
+    {
+      "name": "测试",
+      "enabled": true,
+      "description": "bz_l",
+      "input_csv_file": "e9b47732-23cc-4e0a-8c0f-da8fc1549fb3-1.csv",
+      "output_file_prefix": "bz_l",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/feature/repeatLoanFeatures",
+      "thread_count": 200,
+      "timeout": 60,
+      "convert_feature_to_number": false,
+      "add_one_second": false,
+      "column_config": {
+        "feature_start_column": 2
+      },
+      "api_params": [
+        {
+          "param_name": "useApplyId",
+          "column_index": 0,
+          "is_time_field": false
+        }
+      ]
+    }
+  ],
+  "global_config": {
+    "default_thread_count": 200,
+    "default_timeout": 60,
+    "default_convert_feature_to_number": true
+  }
+}

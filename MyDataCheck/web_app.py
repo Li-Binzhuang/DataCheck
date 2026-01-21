@@ -790,7 +790,7 @@ def index():
 @app.route('/api/config/load', methods=['GET'])
 def load_config():
     """加载默认配置（接口数据对比）"""
-    config_file_path = os.path.join(script_dir, "config.json")
+    config_file_path = os.path.join(script_dir, "api_comparison", "config.json")
     try:
         if os.path.exists(config_file_path):
             with open(config_file_path, 'r', encoding='utf-8') as f:
@@ -859,7 +859,7 @@ def save_config():
         # 验证JSON格式
         json.dumps(config_data)
         
-        config_file_path = os.path.join(script_dir, "config.json")
+        config_file_path = os.path.join(script_dir, "api_comparison", "config.json")
         with open(config_file_path, 'w', encoding='utf-8') as f:
             json.dump(config_data, f, ensure_ascii=False, indent=2)
         

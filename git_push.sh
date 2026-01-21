@@ -174,9 +174,29 @@ echo "=========================================="
 echo "分支: $CURRENT_BRANCH"
 echo ""
 
-# 直接推送（已配置访问令牌）
+# 先拉取远程更改（如果远程分支存在）
+echo "检查远程分支状态..."
+if git ls-remote --heads origin "$CURRENT_BRANCH" | grep -q "$CURRENT_BRANCH"; then
+    echo "远程分支存在，先拉取远程更改..."
+    # 使用 rebase 方式拉取，保持提交历史线性
+    if git pull --rebase origin "$CURRENT_BRANCH" 2>&1; then
+        echo "✓ 已拉取并合并远程更改"
+    else
+        echo "⚠ 拉取远程更改时出现冲突或错误"
+        echo "   如果出现冲突，请手动解决后重试"
+        echo "   或者使用: git pull --rebase origin $CURRENT_BRANCH"
+    fi
+else
+    echo "远程分支不存在，将创建新分支"
+fi
+
+echo ""
+# 推送（已配置访问令牌）
 echo "推送到远程仓库（已配置访问令牌）..."
-if git push -u origin "$CURRENT_BRANCH" 2>&1; then
+PUSH_OUTPUT=$(git push -u origin "$CURRENT_BRANCH" 2>&1)
+PUSH_EXIT_CODE=$?
+
+if [ $PUSH_EXIT_CODE -eq 0 ]; then
     echo ""
     echo "=========================================="
     echo "✓ 推送成功！"
@@ -188,6 +208,20 @@ if git push -u origin "$CURRENT_BRANCH" 2>&1; then
     echo ""
     echo "查看远程仓库状态:"
     git remote -v | sed 's|://[^@]*@|://***:***@|g'
+elif echo "$PUSH_OUTPUT" | grep -q "non-fast-forward"; then
+    echo ""
+    echo "=========================================="
+    echo "⚠ 推送被拒绝：本地分支落后于远程分支"
+    echo "=========================================="
+    echo ""
+    echo "建议操作："
+    echo "1. 手动拉取并合并: git pull --rebase origin $CURRENT_BRANCH"
+    echo "2. 解决可能的冲突后，再次运行此脚本"
+    echo "3. 或者强制推送（谨慎使用）: git push -f origin $CURRENT_BRANCH"
+    echo ""
+    echo "详细错误信息:"
+    echo "$PUSH_OUTPUT"
+    exit 1
 else
     echo ""
     echo "=========================================="
@@ -199,5 +233,8 @@ else
     echo "2. 访问令牌是否正确"
     echo "3. 仓库地址是否正确"
     echo "4. 是否有仓库访问权限"
+    echo ""
+    echo "详细错误信息:"
+    echo "$PUSH_OUTPUT"
     exit 1
 fi

@@ -922,8 +922,20 @@
                                     </div>
                                     <div class="form-group" style="flex: 1;">
                                         <label style="display: flex; align-items: center;">
-                                            <input type="checkbox" class="param-is-time" ${param.is_time_field ? 'checked' : ''} style="margin-right: 5px;">
+                                            <input type="checkbox" class="param-is-time" ${param.is_time_field ? 'checked' : ''} style="margin-right: 5px;" onchange="toggleTSeparator('${scenarioId}', ${index})">
                                             时间字段
+                                        </label>
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label style="display: flex; align-items: center;">
+                                            <input type="checkbox" class="param-add-t-separator" ${param.add_t_separator !== false ? 'checked' : ''} ${param.is_time_field ? '' : 'disabled'} style="margin-right: 5px;">
+                                            加T分隔符
+                                        </label>
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label style="display: flex; align-items: center;">
+                                            <input type="checkbox" class="param-convert-date-to-time" ${param.convert_date_to_time !== false ? 'checked' : ''} ${param.is_time_field ? '' : 'disabled'} style="margin-right: 5px;">
+                                            日期转时间
                                         </label>
                                     </div>
                                     <div class="form-group" style="flex: 0.5;">
@@ -944,8 +956,20 @@
                                     </div>
                                     <div class="form-group" style="flex: 1;">
                                         <label style="display: flex; align-items: center;">
-                                            <input type="checkbox" class="param-is-time" style="margin-right: 5px;">
+                                            <input type="checkbox" class="param-is-time" style="margin-right: 5px;" onchange="toggleTSeparator('${scenarioId}', 0)">
                                             时间字段
+                                        </label>
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label style="display: flex; align-items: center;">
+                                            <input type="checkbox" class="param-add-t-separator" checked disabled style="margin-right: 5px;">
+                                            加T分隔符
+                                        </label>
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label style="display: flex; align-items: center;">
+                                            <input type="checkbox" class="param-convert-date-to-time" checked disabled style="margin-right: 5px;">
+                                            日期转时间
                                         </label>
                                     </div>
                                     <div class="form-group" style="flex: 0.5;">
@@ -965,8 +989,20 @@
                                     </div>
                                     <div class="form-group" style="flex: 1;">
                                         <label style="display: flex; align-items: center;">
-                                            <input type="checkbox" class="param-is-time" checked style="margin-right: 5px;">
+                                            <input type="checkbox" class="param-is-time" checked style="margin-right: 5px;" onchange="toggleTSeparator('${scenarioId}', 1)">
                                             时间字段
+                                        </label>
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label style="display: flex; align-items: center;">
+                                            <input type="checkbox" class="param-add-t-separator" checked style="margin-right: 5px;">
+                                            加T分隔符
+                                        </label>
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label style="display: flex; align-items: center;">
+                                            <input type="checkbox" class="param-convert-date-to-time" checked style="margin-right: 5px;">
+                                            日期转时间
                                         </label>
                                     </div>
                                     <div class="form-group" style="flex: 0.5;">
@@ -977,7 +1013,7 @@
                         `}
                     </div>
                     <p style="color: #666; font-size: 11px; margin-top: 8px;">
-                        💡 提示: 参数名称对应接口入参字段名，列索引指定从CSV文件的哪一列读取该参数的值。<strong>列索引留空则该参数不作为入参传递。</strong>勾选"时间字段"会对该参数进行时间格式标准化处理。
+                        💡 提示: 参数名称对应接口入参字段名，列索引指定从CSV文件的哪一列读取该参数的值。<strong>列索引留空则该参数不作为入参传递。</strong>勾选"时间字段"会对该参数进行时间格式标准化处理。"日期转时间"选项控制是否将日期格式（如：2025-01-01、2025/01/01、20250101）自动转换为时间格式（添加00:00:00.000）。"加T分隔符"选项控制时间格式中日期和时间之间是否使用T分隔符（如：2025-01-01T12:00:00.000 或 2025-01-01 12:00:00.000）。
                     </p>
                 </div>
 
@@ -1047,8 +1083,20 @@
                         </div>
                         <div class="form-group" style="flex: 1;">
                             <label style="display: flex; align-items: center;">
-                                <input type="checkbox" class="param-is-time" style="margin-right: 5px;">
+                                <input type="checkbox" class="param-is-time" style="margin-right: 5px;" onchange="toggleTSeparator('${scenarioId}', ${newIndex})">
                                 时间字段
+                            </label>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label style="display: flex; align-items: center;">
+                                <input type="checkbox" class="param-add-t-separator" checked disabled style="margin-right: 5px;">
+                                加T分隔符
+                            </label>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label style="display: flex; align-items: center;">
+                                <input type="checkbox" class="param-convert-date-to-time" checked disabled style="margin-right: 5px;">
+                                日期转时间
                             </label>
                         </div>
                         <div class="form-group" style="flex: 0.5;">
@@ -1062,6 +1110,45 @@
         }
         
         // 删除接口参数
+        // 切换T分隔符和日期转换复选框的启用/禁用状态
+        function toggleTSeparator(scenarioId, paramIndex) {
+            const container = document.getElementById(`api-params-${scenarioId}`);
+            if (!container) return;
+            
+            const paramItem = container.querySelector(`[data-param-index="${paramIndex}"]`);
+            if (!paramItem) return;
+            
+            const isTimeField = paramItem.querySelector('.param-is-time')?.checked || false;
+            const tSeparatorCheckbox = paramItem.querySelector('.param-add-t-separator');
+            const convertDateCheckbox = paramItem.querySelector('.param-convert-date-to-time');
+            
+            if (tSeparatorCheckbox) {
+                // 如果时间字段被勾选，启用T分隔符复选框；否则禁用
+                tSeparatorCheckbox.disabled = !isTimeField;
+                // 如果禁用，保持当前值；如果启用且之前未设置，默认勾选
+                if (!isTimeField) {
+                    // 禁用时，保持当前值不变
+                } else if (!tSeparatorCheckbox.hasAttribute('data-initialized')) {
+                    // 首次启用时，默认勾选
+                    tSeparatorCheckbox.checked = true;
+                    tSeparatorCheckbox.setAttribute('data-initialized', 'true');
+                }
+            }
+            
+            if (convertDateCheckbox) {
+                // 如果时间字段被勾选，启用日期转换复选框；否则禁用
+                convertDateCheckbox.disabled = !isTimeField;
+                // 如果禁用，保持当前值；如果启用且之前未设置，默认勾选
+                if (!isTimeField) {
+                    // 禁用时，保持当前值不变
+                } else if (!convertDateCheckbox.hasAttribute('data-initialized')) {
+                    // 首次启用时，默认勾选
+                    convertDateCheckbox.checked = true;
+                    convertDateCheckbox.setAttribute('data-initialized', 'true');
+                }
+            }
+        }
+        
         function removeApiParam(scenarioId, paramIndex) {
             const container = document.getElementById(`api-params-${scenarioId}`);
             if (!container) return;
@@ -1085,6 +1172,11 @@
                     const deleteBtn = item.querySelector('.btn-danger');
                     if (deleteBtn) {
                         deleteBtn.setAttribute('onclick', `removeApiParam('${scenarioId}', ${index})`);
+                    }
+                    // 更新 toggleTSeparator 的调用
+                    const timeCheckbox = item.querySelector('.param-is-time');
+                    if (timeCheckbox) {
+                        timeCheckbox.setAttribute('onchange', `toggleTSeparator('${scenarioId}', ${index})`);
                     }
                 });
             }
@@ -1298,6 +1390,8 @@
                         const columnInput = item.querySelector('.param-column');
                         const columnValue = columnInput?.value?.trim();
                         const isTimeField = item.querySelector('.param-is-time')?.checked || false;
+                        const addTSeparator = item.querySelector('.param-add-t-separator')?.checked !== false; // 默认true
+                        const convertDateToTime = item.querySelector('.param-convert-date-to-time')?.checked !== false; // 默认true
                         
                         // 只有参数名不为空才添加
                         if (paramName) {
@@ -1305,11 +1399,17 @@
                             if (columnValue !== '' && columnValue !== null && columnValue !== undefined) {
                                 const columnIndex = parseInt(columnValue);
                                 if (!isNaN(columnIndex) && columnIndex >= 0) {
-                                    apiParams.push({
+                                    const paramObj = {
                                         param_name: paramName,
                                         column_index: columnIndex,
                                         is_time_field: isTimeField
-                                    });
+                                    };
+                                    // 如果是时间字段，添加T分隔符和日期转换配置
+                                    if (isTimeField) {
+                                        paramObj.add_t_separator = addTSeparator;
+                                        paramObj.convert_date_to_time = convertDateToTime;
+                                    }
+                                    apiParams.push(paramObj);
                                 }
                             }
                         }

@@ -8,6 +8,7 @@
 import csv
 import json
 import os
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -115,7 +116,13 @@ class ApiDataFetcher:
 
     def _find_feature_value_in_api_response(self, api_data: Dict[str, Any], csv_header: str) -> Any:
         """
-        在API响应中查找特征值（支持多种查找策略，与check_ttt.py一致）
+        在API响应中查找特征值（支持多种查找策略，兼容不同的data结构）
+        
+        支持的接口返回结构：
+        1. 特征字段在顶层: {"field": "value", ...}
+        2. 特征字段在data中: {"data": {"field": "value"}, ...}
+        3. 特征字段在data的嵌套结构中: {"data": {"result": {"field": "value"}}, ...}
+        4. data字段为空: {"data": {}, ...} - 会在顶层查找
         
         Args:
             api_data: API响应数据
@@ -126,31 +133,96 @@ class ApiDataFetcher:
         """
         api_value_raw = None
         
-        # 1. 先在顶层查找（精确匹配）
-        if csv_header in api_data:
-            api_value_raw = api_data[csv_header]
-        # 2. 如果找不到，尝试在data字段下查找（精确匹配）
-        elif "data" in api_data and isinstance(api_data["data"], dict):
-            if csv_header in api_data["data"]:
-                api_value_raw = api_data["data"][csv_header]
-        
-        # 3. 如果还找不到，尝试大小写不敏感匹配
-        if api_value_raw is None:
-            csv_header_lower = csv_header.lower()
-            # 在顶层查找（大小写不敏感）
-            for key, value in api_data.items():
-                if isinstance(value, (str, int, float, bool, type(None))) and key.lower() == csv_header_lower:
-                    api_value_raw = value
-                    break
+        # 辅助函数：递归搜索字典中的字段
+        def _recursive_search(data: Any, target_key: str, case_sensitive: bool = True) -> Any:
+            """递归搜索字典中的字段"""
+            if not isinstance(data, dict):
+                return None
             
-            # 在data字段下查找（大小写不敏感）
-            if api_value_raw is None and "data" in api_data and isinstance(api_data["data"], dict):
-                for key, value in api_data["data"].items():
-                    if key.lower() == csv_header_lower:
-                        api_value_raw = value
-                        break
+            target_key_lower = target_key.lower() if not case_sensitive else None
+            
+            for key, value in data.items():
+                # 精确匹配
+                if case_sensitive and key == target_key:
+                    # 如果值是叶子节点（非字典或空字典），直接返回
+                    if not isinstance(value, dict) or not value:
+                        return value
+                    # 如果值是字典，继续递归搜索（兼容嵌套结构）
+                    nested_result = _recursive_search(value, target_key, case_sensitive)
+                    if nested_result is not None:
+                        return nested_result
+                # 大小写不敏感匹配
+                elif not case_sensitive and key.lower() == target_key_lower:
+                    if not isinstance(value, dict) or not value:
+                        return value
+                    nested_result = _recursive_search(value, target_key, case_sensitive)
+                    if nested_result is not None:
+                        return nested_result
+                
+                # 递归搜索嵌套字典
+                if isinstance(value, dict) and value:
+                    nested_result = _recursive_search(value, target_key, case_sensitive)
+                    if nested_result is not None:
+                        return nested_result
+            
+            return None
         
-        # 4. 如果还找不到，尝试使用点号分隔的嵌套路径
+        # 策略1: 优先在data字段中查找（如果data字段存在且非空）
+        if "data" in api_data and isinstance(api_data["data"], dict):
+            data_field = api_data["data"]
+            # 如果data字段非空，优先在data中查找
+            if data_field:
+                # 优先在 data.features 中查找（新结构：data.features 包含特征字段）
+                if "features" in data_field and isinstance(data_field["features"], dict):
+                    features_field = data_field["features"]
+                    # 精确匹配
+                    if csv_header in features_field:
+                        api_value_raw = features_field[csv_header]
+                    # 大小写不敏感匹配
+                    if api_value_raw is None:
+                        csv_header_lower = csv_header.lower()
+                        for key, value in features_field.items():
+                            if key.lower() == csv_header_lower:
+                                api_value_raw = value
+                                break
+                
+                # 如果 features 中未找到，在 data 中递归查找（兼容旧结构和嵌套结构）
+                if api_value_raw is None:
+                    # 精确匹配
+                    api_value_raw = _recursive_search(data_field, csv_header, case_sensitive=True)
+                    # 大小写不敏感匹配
+                    if api_value_raw is None:
+                        api_value_raw = _recursive_search(data_field, csv_header, case_sensitive=False)
+        
+        # 策略2: 如果data字段为空或未找到，在顶层查找
+        if api_value_raw is None:
+            # 精确匹配
+            if csv_header in api_data:
+                value = api_data[csv_header]
+                # 跳过系统字段（retCode, retMsg, success, timestamp等）
+                if csv_header not in ["retCode", "retMsg", "success", "timestamp", "data"]:
+                    if not isinstance(value, dict) or not value:
+                        api_value_raw = value
+            
+            # 大小写不敏感匹配
+            if api_value_raw is None:
+                csv_header_lower = csv_header.lower()
+                for key, value in api_data.items():
+                    # 跳过系统字段
+                    if key.lower() in ["retcode", "retmsg", "success", "timestamp", "data"]:
+                        continue
+                    if key.lower() == csv_header_lower:
+                        if not isinstance(value, dict) or not value:
+                            api_value_raw = value
+                            break
+        
+        # 策略3: 递归搜索整个响应（包括顶层和data字段）
+        if api_value_raw is None:
+            api_value_raw = _recursive_search(api_data, csv_header, case_sensitive=True)
+            if api_value_raw is None:
+                api_value_raw = _recursive_search(api_data, csv_header, case_sensitive=False)
+        
+        # 策略4: 尝试使用点号分隔的嵌套路径
         if api_value_raw is None:
             api_value_raw = self._get_nested_value(api_data, csv_header)
         
@@ -181,37 +253,84 @@ class ApiDataFetcher:
         
         return current
 
-    def normalize_timestamp(self, time_str: str) -> str:
+    def normalize_timestamp(self, time_str: str, add_t_separator: bool = True, convert_date_to_time: bool = True) -> str:
         """
         标准化时间戳格式，确保毫秒精度一致
         
+        如果输入是日期格式（只有日期，没有时间部分），且 convert_date_to_time=True，则自动添加 00:00:00.000
+        
         Args:
             time_str: 原始时间字符串
+            add_t_separator: 是否在日期和时间之间加 T 分隔符（默认True）
+            convert_date_to_time: 是否将日期格式转换为时间格式（默认True）
             
         Returns:
-            标准化后的时间字符串 (YYYY-MM-DDTHH:MM:SS.SSS)
+            标准化后的时间字符串 
+            - 如果 add_t_separator=True: YYYY-MM-DDTHH:MM:SS.SSS
+            - 如果 add_t_separator=False: YYYY-MM-DD HH:MM:SS.SSS
         """
         if not time_str or not time_str.strip():
             return time_str
             
         time_str = time_str.strip()
         
-        # 如果已经包含T，处理现有格式
-        if 'T' in time_str:
-            if '.' not in time_str:
+        # 确定分隔符
+        separator = "T" if add_t_separator else " "
+        
+        # 检测是否为纯日期格式（只有日期，没有时间部分）
+        # 支持的日期格式：YYYY-MM-DD, YYYY/MM/DD, YYYYMMDD
+        date_patterns = [
+            r'^\d{4}-\d{2}-\d{2}$',  # YYYY-MM-DD
+            r'^\d{4}/\d{2}/\d{2}$',  # YYYY/MM/DD
+            r'^\d{8}$',               # YYYYMMDD
+        ]
+        
+        is_date_only = False
+        normalized_date = None
+        
+        for pattern in date_patterns:
+            if re.match(pattern, time_str):
+                is_date_only = True
+                # 统一转换为 YYYY-MM-DD 格式
+                if '/' in time_str:
+                    normalized_date = time_str.replace('/', '-')
+                elif len(time_str) == 8:
+                    # YYYYMMDD -> YYYY-MM-DD
+                    normalized_date = f"{time_str[0:4]}-{time_str[4:6]}-{time_str[6:8]}"
+                else:
+                    normalized_date = time_str
+                break
+        
+        # 如果是纯日期格式，且启用了日期转换功能，添加时间部分 00:00:00.000
+        if is_date_only and convert_date_to_time:
+            return f"{normalized_date}{separator}00:00:00.000"
+        
+        # 如果是纯日期格式，但未启用日期转换功能，直接返回原值
+        if is_date_only and not convert_date_to_time:
+            return time_str
+        
+        # 如果已经包含T或空格，处理现有格式
+        if 'T' in time_str or ' ' in time_str:
+            # 统一处理，先转换为标准格式
+            if 'T' in time_str:
+                time_str_normalized = time_str.replace('T', separator)
+            else:
+                time_str_normalized = time_str.replace(' ', separator)
+            
+            if '.' not in time_str_normalized:
                 # 没有毫秒，添加.000
-                return time_str + ".000"
+                return time_str_normalized + ".000"
             else:
                 # 有毫秒，标准化为3位
-                parts = time_str.split('.')
+                parts = time_str_normalized.split('.')
                 if len(parts) == 2:
                     milliseconds = parts[1][:3].ljust(3, '0')  # 取前3位，不足补0
                     return f"{parts[0]}.{milliseconds}"
-                return time_str
+                return time_str_normalized
         else:
-            # 空格分隔格式，转换为T格式
+            # 空格分隔格式，转换为指定格式
             if len(time_str) >= 19:
-                base_part = time_str[0:10] + "T" + time_str[11:19]  # YYYY-MM-DDTHH:MM:SS
+                base_part = time_str[0:10] + separator + time_str[11:19]  # YYYY-MM-DD[T/ ]HH:MM:SS
                 
                 if '.' in time_str and len(time_str) > 19:
                     # 有毫秒部分
@@ -339,8 +458,14 @@ class ApiDataFetcher:
                 if 'a' in param_value or 'A' in param_value:
                     param_value = param_value.replace('a', '').replace('A', '')
                 
+                # 获取是否加T分隔符的配置（默认True，保持向后兼容）
+                add_t_separator = param_config.get("add_t_separator", True)
+                
+                # 获取是否将日期转换为时间格式的配置（默认True，保持向后兼容）
+                convert_date_to_time = param_config.get("convert_date_to_time", True)
+                
                 # 标准化时间格式
-                param_value = self.normalize_timestamp(param_value)
+                param_value = self.normalize_timestamp(param_value, add_t_separator=add_t_separator, convert_date_to_time=convert_date_to_time)
                 
                 # 根据配置决定是否加1秒
                 if self.add_one_second:
@@ -443,7 +568,11 @@ class ApiDataFetcher:
                 if is_time_field:
                     if 'a' in param_value or 'A' in param_value:
                         param_value = param_value.replace('a', '').replace('A', '')
-                    param_value = self.normalize_timestamp(param_value)
+                    # 获取是否加T分隔符的配置（默认True，保持向后兼容）
+                    add_t_separator = param_config.get("add_t_separator", True)
+                    # 获取是否将日期转换为时间格式的配置（默认True，保持向后兼容）
+                    convert_date_to_time = param_config.get("convert_date_to_time", True)
+                    param_value = self.normalize_timestamp(param_value, add_t_separator=add_t_separator, convert_date_to_time=convert_date_to_time)
                     if self.add_one_second:
                         param_value = self._add_one_second(param_value)
                 
@@ -512,18 +641,56 @@ class ApiDataFetcher:
         print(f"成功: {len(results)}, 失败: {len(errors)}")
 
         # 递归收集所有接口返回的原始字段名（只收集叶子节点，使用原始字段名，不添加路径前缀）
-        def collect_leaf_field_names(data: Any) -> set:
+        def collect_leaf_field_names(data: Any, skip_system_fields: bool = True) -> set:
             """
             递归收集所有叶子节点的字段名，保持接口返回的原始字段名
             如果接口返回的是扁平结构，直接使用字段名
             如果接口返回的是嵌套结构，只使用叶子节点的字段名，不添加路径前缀
+            
+            兼容不同的接口返回结构：
+            1. 特征字段在顶层: {"field": "value", ...}
+            2. 特征字段在data中: {"data": {"field": "value"}, ...}
+            3. 特征字段在data的嵌套结构中: {"data": {"result": {"field": "value"}}, ...}
+            4. 特征字段在data.features中: {"data": {"features": {"field": "value"}, ...}}  # 新结构
+            
+            Args:
+                data: 要收集字段的数据
+                skip_system_fields: 是否跳过系统字段（retCode, retMsg, success, timestamp等）
             """
             fields = set()
             if isinstance(data, dict):
+                # 系统字段列表（不收集这些字段作为特征字段）
+                system_fields = {"retCode", "retMsg", "success", "timestamp", "data"} if skip_system_fields else set()
+                
                 for key, value in data.items():
+                    # 跳过系统字段，但如果data字段非空，需要递归收集data内部的字段
+                    if skip_system_fields and key in system_fields:
+                        if key == "data" and isinstance(value, dict) and value:
+                            # data字段非空，优先从 data.features 中收集特征字段（新结构）
+                            if "features" in value and isinstance(value["features"], dict):
+                                # 优先收集 features 中的字段
+                                features_fields = collect_leaf_field_names(value["features"], skip_system_fields=False)
+                                fields.update(features_fields)
+                                # 同时也要收集 data 中其他字段（兼容混合结构：data中既有features又有其他字段）
+                                # 但是要排除 features 字段本身，避免重复
+                                for k, v in value.items():
+                                    if k != "features":
+                                        if isinstance(v, dict) and v:
+                                            # 递归收集其他嵌套字段
+                                            nested_fields = collect_leaf_field_names(v, skip_system_fields=False)
+                                            fields.update(nested_fields)
+                                        else:
+                                            # 叶子节点，直接添加
+                                            fields.add(k)
+                            else:
+                                # 如果没有 features，递归收集 data 内部的字段（兼容旧结构）
+                                nested_fields = collect_leaf_field_names(value, skip_system_fields=False)
+                                fields.update(nested_fields)
+                        continue
+                    
                     if isinstance(value, dict) and value:
                         # 如果值是字典且非空，递归收集
-                        nested_fields = collect_leaf_field_names(value)
+                        nested_fields = collect_leaf_field_names(value, skip_system_fields=False)
                         fields.update(nested_fields)
                     else:
                         # 叶子节点，直接使用原始字段名（不添加路径前缀）
@@ -531,14 +698,57 @@ class ApiDataFetcher:
             return fields
         
         # 收集所有字段名和路径映射（用于数据访问）
-        def collect_field_paths(data: Any, path: str = "") -> Dict[str, str]:
-            """收集字段名和访问路径的映射"""
+        def collect_field_paths(data: Any, path: str = "", skip_system_fields: bool = True) -> Dict[str, str]:
+            """
+            收集字段名和访问路径的映射
+            
+            兼容不同的接口返回结构，正确处理data字段的嵌套结构
+            优先处理 data.features 结构（新结构）
+            
+            Args:
+                data: 要收集路径的数据
+                path: 当前路径前缀
+                skip_system_fields: 是否跳过系统字段（retCode, retMsg, success, timestamp等）
+            """
             field_paths = {}
             if isinstance(data, dict):
+                # 系统字段列表
+                system_fields = {"retCode", "retMsg", "success", "timestamp", "data"} if skip_system_fields else set()
+                
                 for key, value in data.items():
+                    # 跳过系统字段，但如果data字段非空，需要递归收集data内部的字段路径
+                    if skip_system_fields and key in system_fields:
+                        if key == "data" and isinstance(value, dict) and value:
+                            # data字段非空，优先从 data.features 中收集特征字段路径（新结构）
+                            if "features" in value and isinstance(value["features"], dict):
+                                # 优先收集 features 中的字段路径
+                                features_paths = collect_field_paths(value["features"], "data.features", skip_system_fields=False)
+                                field_paths.update(features_paths)
+                                # 同时也要收集 data 中其他字段的路径（兼容混合结构：data中既有features又有其他字段）
+                                # 但是要排除 features 字段本身，避免重复
+                                for k, v in value.items():
+                                    if k != "features":
+                                        current_path = f"data.{k}"
+                                        if isinstance(v, dict) and v:
+                                            # 递归收集其他嵌套字段路径
+                                            nested_paths = collect_field_paths(v, current_path, skip_system_fields=False)
+                                            field_paths.update(nested_paths)
+                                        else:
+                                            # 叶子节点，使用原始字段名作为key
+                                            if k not in field_paths:
+                                                field_paths[k] = current_path
+                                            else:
+                                                # 字段名冲突，使用完整路径
+                                                field_paths[current_path] = current_path
+                            else:
+                                # 如果没有 features，递归收集 data 内部的字段路径（兼容旧结构）
+                                nested_paths = collect_field_paths(value, "data", skip_system_fields=False)
+                                field_paths.update(nested_paths)
+                        continue
+                    
                     current_path = f"{path}.{key}" if path else key
                     if isinstance(value, dict) and value:
-                        nested_paths = collect_field_paths(value, current_path)
+                        nested_paths = collect_field_paths(value, current_path, skip_system_fields=False)
                         field_paths.update(nested_paths)
                     else:
                         # 叶子节点，使用原始字段名作为key
@@ -558,11 +768,11 @@ class ApiDataFetcher:
             api_data = result.get("api_data", {})
             if isinstance(api_data, dict):
                 # 收集叶子节点的字段名（用于CSV列名）
-                fields = collect_leaf_field_names(api_data)
+                fields = collect_leaf_field_names(api_data, skip_system_fields=True)
                 all_api_fields.update(fields)
                 
                 # 收集字段路径映射（用于数据访问）
-                field_paths = collect_field_paths(api_data)
+                field_paths = collect_field_paths(api_data, skip_system_fields=True)
                 for field_name, path in field_paths.items():
                     if field_name in all_field_paths and all_field_paths[field_name] != path:
                         # 字段名冲突，使用完整路径

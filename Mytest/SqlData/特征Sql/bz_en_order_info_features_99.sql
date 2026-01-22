@@ -9,9 +9,9 @@ customer_observation_date AS (
     SELECT 
         cust_no,
         MAX(create_time) AS observation_date  -- 各客户的最新use_credit.create_time作为观察日期
-    FROM hive_idc.oversea.ods_mx_aprv_approve_use_credit_apply_df
-    WHERE pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')  -- 使用昨天的分区
-    -- and cust_no = '800000004097'  
+    FROM hive_idc.hello_prd.ods_mx_aprv_approve_use_credit_apply_df
+    WHERE pt = DATE_SUB(CURRENT_DATE(), 2)  -- 使用昨天的分区
+    -- and cust_no = '800000003371'
     GROUP BY cust_no
 ),
 
@@ -54,7 +54,7 @@ base_loan_data_light AS (
             OR (repay_plan.settled_time IS NULL 
                 AND datediff(cod.observation_date, date(repay_plan.loan_end_date)) > 0)
             OR (repay_plan.settled_time IS NOT NULL 
-                AND repay_plan.settled_time > cod.observation_date  -- 修复：对于未来结清的账单，如果观察日期已超过到期日，也算逾期 zlf DATE(repay_plan.settled_time) 去掉 Date()
+                AND date(repay_plan.settled_time) > cod.observation_date  -- 修复：对于未来结清的账单，如果观察日期已超过到期日，也算逾期
                 AND datediff(cod.observation_date, date(repay_plan.loan_end_date)) > 0)
             THEN 1 
             ELSE 0 
@@ -89,7 +89,7 @@ base_loan_data_light AS (
                 AND datediff(date(repay_plan.settled_time), date(repay_plan.loan_end_date)) > 0 
             THEN datediff(date(repay_plan.settled_time), date(repay_plan.loan_end_date))
             WHEN (repay_plan.settled_time IS NULL 
-                OR repay_plan.settled_time >= cod.observation_date)  -- 修复：未结清或未来结清的账单，用观察日期计算 zlf  DATE(repay_plan.settled_time) 去掉 Date()
+                OR date(repay_plan.settled_time) > cod.observation_date)  -- 修复：未结清或未来结清的账单，用观察日期计算
                 AND datediff(cod.observation_date, date(repay_plan.loan_end_date)) > 0
             THEN datediff(cod.observation_date, date(repay_plan.loan_end_date))
             ELSE 0 
@@ -101,23 +101,23 @@ base_loan_data_light AS (
             ELSE 0 
         END AS is_weekend_order
     FROM customer_observation_date cod
-    INNER JOIN hive_idc.oversea.ods_mx_aprv_approve_use_credit_apply_df use_credit
+    INNER JOIN hive_idc.hello_prd.ods_mx_aprv_approve_use_credit_apply_df use_credit
         ON use_credit.cust_no = cod.cust_no
-        AND use_credit.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-    LEFT JOIN hive_idc.oversea.ods_mx_aprv_approve_credit_apply_df credit_apply 
+        AND use_credit.pt = DATE_SUB(CURRENT_DATE(), 2)
+    LEFT JOIN hive_idc.hello_prd.ods_mx_aprv_approve_credit_apply_df credit_apply 
         ON credit_apply.id = CAST(use_credit.credit_apply_id AS STRING)
-        AND credit_apply.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-    LEFT JOIN hive_idc.oversea.ods_mx_ast_asset_loan_apply_df loan_apply 
+        AND credit_apply.pt = DATE_SUB(CURRENT_DATE(), 2)
+    LEFT JOIN hive_idc.hello_prd.ods_mx_ast_asset_loan_apply_df loan_apply 
         ON loan_apply.seq_no = use_credit.asset_id
-        AND loan_apply.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-    LEFT JOIN hive_idc.oversea.ods_mx_ast_asset_loan_info_df loan_info 
+        AND loan_apply.pt = DATE_SUB(CURRENT_DATE(), 2)
+    LEFT JOIN hive_idc.hello_prd.ods_mx_ast_asset_loan_info_df loan_info 
         ON loan_info.loan_apply_no = loan_apply.loan_apply_no 
         AND loan_info.loan_status IN (1,2,3,5)
-        AND loan_info.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-    LEFT JOIN hive_idc.oversea.ods_mx_ast_asset_repay_plan_df repay_plan 
+        AND loan_info.pt = DATE_SUB(CURRENT_DATE(), 2)
+    LEFT JOIN hive_idc.hello_prd.ods_mx_ast_asset_repay_plan_df repay_plan 
         ON repay_plan.loan_no = loan_info.loan_no 
         AND repay_plan.repay_plan_status IN (1,2,3,5)
-        AND repay_plan.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
+        AND repay_plan.pt = DATE_SUB(CURRENT_DATE(), 2)
     LEFT JOIN (
         -- 【子查询】获取每个订单对应的额度测算记录（最接近订单创建时间的额度测算）
         -- 业务逻辑：订单创建在前，额度测算在后，需要取订单创建之后最接近的额度测算记录
@@ -130,12 +130,12 @@ base_loan_data_light AS (
                 ORDER BY credit_limit.create_time ASC
             ) AS rn
         FROM customer_observation_date cod_inner
-        INNER JOIN hive_idc.oversea.ods_mx_aprv_cust_credit_limit_df credit_limit
+        INNER JOIN hive_idc.hello_prd.ods_mx_aprv_cust_credit_limit_df credit_limit
             ON credit_limit.cust_no = cod_inner.cust_no
-            AND credit_limit.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-        INNER JOIN hive_idc.oversea.ods_mx_aprv_approve_use_credit_apply_df use_credit_inner
+            AND credit_limit.pt = DATE_SUB(CURRENT_DATE(), 2)
+        INNER JOIN hive_idc.hello_prd.ods_mx_aprv_approve_use_credit_apply_df use_credit_inner
             ON credit_limit.cust_no = use_credit_inner.cust_no
-            AND use_credit_inner.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
+            AND use_credit_inner.pt = DATE_SUB(CURRENT_DATE(), 2)
             AND credit_limit.create_time >= use_credit_inner.create_time  -- 修正：额度测算时间 >= 订单创建时间（先用信申请，再到额度测算）
             AND credit_limit.create_time <= cod_inner.observation_date  -- 只使用观察时点及之前的额度测算记录，避免时间穿越
     ) credit_limit 
@@ -313,9 +313,7 @@ order_level_stats AS (
         -- 注意：在贷账单数不在订单维度聚合，而是在客户维度直接从账单维度统计
         -- 订单额度测算间隔（原逻辑，保留用于其他用途）
         AVG(bld.calc_credit_gap) AS calc_credit_gap,
-        AVG(bld.calc_credit_gap) AS calc_credit_gap_mean,
-        -- 用信申请ID（一个订单对应一个用信申请，使用MAX或MIN均可）
-        MAX(bld.id) AS use_credit_id
+        AVG(bld.calc_credit_gap) AS calc_credit_gap_mean
     FROM base_loan_data_light bld
     LEFT JOIN order_max_periods omp 
         ON bld.cust_no = omp.cust_no 
@@ -323,97 +321,91 @@ order_level_stats AS (
     GROUP BY bld.cust_no, bld.loan_no
 ),
 
--- ===================== 2.1 新客授信时间（用于计算第一笔订单的额度测算间隔） =====================
--- 说明：找到每个订单在credit_apply表中user_type=1且audit_status='PASS'的记录（成功授信的新客记录）
--- 逻辑：通过use_credit.credit_apply_id = credit_apply.id进行匹配（对应use_credit.credit_apply_no = credit_apply.id），
---       取匹配上的记录的create_time作为新客授信时间，只有匹配上的新客授信时间才进入计算逻辑
-order_new_credit_time AS (
+-- ===================== 2.1 所有观察日期前的参考时间点（settled_time和credit_apply.create_time） =====================
+-- 说明：收集所有观察日期前的repay_plan.settled_time和匹配上use_credit的credit_apply.create_time
+-- 逻辑：
+--   1. 从base_loan_data_light中获取所有观察日期前的settled_time
+--   2. 从credit_apply表中获取所有匹配上use_credit的create_time（通过use_credit.credit_apply_id = credit_apply.id）
+--   3. 合并这两类时间点作为参考时间点
+all_reference_times AS (
+    -- 所有观察日期前的settled_time
     SELECT 
-        use_credit.cust_no,
-        use_credit.id AS use_credit_id,
-        use_credit.create_time AS order_create_time,
-        credit_apply.create_time AS new_credit_time  -- 新客授信时间（只取匹配上的）
-    FROM hive_idc.oversea.ods_mx_aprv_approve_use_credit_apply_df use_credit
-    INNER JOIN hive_idc.oversea.ods_mx_aprv_approve_credit_apply_df credit_apply 
-        ON credit_apply.id = CAST(use_credit.credit_apply_id AS STRING)  -- 匹配条件：use_credit.credit_apply_id = credit_apply.id（对应use_credit.credit_apply_no = credit_apply.id）
-        AND credit_apply.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-    INNER JOIN hive_idc.oversea.ods_mx_ast_asset_loan_apply_df loan_apply 
-        ON loan_apply.seq_no = use_credit.asset_id  -- 匹配条件：use_credit.asset_id = loan_apply.seq_no（确保能够关联到订单）
-        AND loan_apply.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-    INNER JOIN hive_idc.oversea.ods_mx_ast_asset_loan_info_df loan_info 
-        ON loan_info.loan_apply_no = loan_apply.loan_apply_no  -- 确保能够关联到loan_info
-        AND loan_info.loan_status IN (1,2,3,5)
-        AND loan_info.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-    WHERE use_credit.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-        AND credit_apply.user_type = 1  -- 新客
-        AND credit_apply.audit_status = 'PASS'  -- 成功授信
+        cod.cust_no,
+        bld.settled_time AS reference_time,
+        cod.observation_date
+    FROM customer_observation_date cod
+    INNER JOIN base_loan_data_light bld 
+        ON cod.cust_no = bld.cust_no
+        AND bld.settled_time IS NOT NULL
+        AND bld.settled_time <= cod.observation_date  -- 只使用观察日期及之前的settled_time
+    
+    UNION ALL
+    
+    -- 所有匹配上use_credit的credit_apply.create_time（观察日期前）
+    SELECT 
+        cod.cust_no,
+        credit_apply.create_time AS reference_time,
+        cod.observation_date
+    FROM customer_observation_date cod
+    INNER JOIN hive_idc.hello_prd.ods_mx_aprv_approve_use_credit_apply_df use_credit
+        ON use_credit.cust_no = cod.cust_no
+        AND use_credit.pt = DATE_SUB(CURRENT_DATE(), 2)
+    INNER JOIN hive_idc.hello_prd.ods_mx_aprv_approve_credit_apply_df credit_apply 
+        ON credit_apply.id = CAST(use_credit.credit_apply_id AS STRING)
+        AND credit_apply.pt = DATE_SUB(CURRENT_DATE(), 2)
+        AND credit_apply.create_time <= cod.observation_date  -- 只使用观察日期及之前的credit_apply.create_time
 ),
 
--- ===================== 2.2 每个订单创建时间往前最近的settled_time（精确到秒） =====================
--- 说明：对于每个use_credit.create_time，找到该客户所有repay_plan表中往前最近的一个settled_time记录
--- 逻辑：精确到秒进行匹配，找到小于use_credit.create_time的最大settled_time
--- 注意：settled_time是账单级别的字段，需要从base_loan_data_light中获取
--- 注意：需要查找该客户所有订单的所有账单的settled_time，而不仅仅是当前订单的账单
-order_prev_settled_time_precise AS (
+-- ===================== 2.2 每个订单创建时间往前最近的参考时间点（settled_time或credit_apply.create_time） =====================
+-- 说明：对于每个use_credit.create_time，找到该客户所有参考时间点中往前最近的一个（无论是settled_time还是credit_apply.create_time）
+-- 逻辑：精确到秒进行匹配，找到小于use_credit.create_time的最大参考时间点
+order_prev_reference_time AS (
     SELECT 
         ols.cust_no,
         ols.loan_no,
         ols.order_create_time,
-        -- 找到该订单创建时间往前最近的settled_time（精确到秒）
-        -- 逻辑：在该客户所有账单的settled_time中，找到小于order_create_time的最大值
+        ols.observation_date,
+        -- 找到该订单创建时间往前最近的参考时间点（精确到秒）
+        -- 逻辑：在该客户所有参考时间点中，找到小于order_create_time的最大值
         MAX(CASE 
-            WHEN bld.settled_time IS NOT NULL 
-                AND bld.settled_time < ols.order_create_time  -- 精确到秒比较
-            THEN bld.settled_time 
+            WHEN art.reference_time < ols.order_create_time  -- 精确到秒比较
+            THEN art.reference_time 
             ELSE NULL 
-        END) AS prev_settled_time_precise
+        END) AS prev_reference_time
     FROM order_level_stats ols
-    LEFT JOIN base_loan_data_light bld 
-        ON ols.cust_no = bld.cust_no
-        AND bld.settled_time IS NOT NULL
-        AND bld.settled_time < ols.order_create_time  -- 只考虑该订单创建时间之前的settled_time
-    GROUP BY ols.cust_no, ols.loan_no, ols.order_create_time
+    LEFT JOIN all_reference_times art 
+        ON ols.cust_no = art.cust_no
+        AND ols.observation_date = art.observation_date
+        AND art.reference_time < ols.order_create_time  -- 只考虑该订单创建时间之前的参考时间点
+    GROUP BY ols.cust_no, ols.loan_no, ols.order_create_time, ols.observation_date
 ),
 
 -- ===================== 2.3 订单级别统计（添加新的额度测算间隔计算） =====================
 -- 说明：计算"历次下单时间距离一次风控时间的间隔"
 -- 计算逻辑：
---   1. 对于第一笔订单：
---      - 通过use_credit.credit_apply_id = credit_apply.id进行匹配，找到匹配上的新客授信时间
---      - 只有匹配上的新客授信时间才进入计算逻辑
---      - 取其create_time到use_credit表的create_time的日期差
---      - 条件：不存在往前最近的settled_time（prev_settled_time_precise IS NULL）
---   2. 对于后续订单：
---      - 找客户在use_credit表的其他申请记录的create_time
---      - 每个时间记录与repay_plan表的settled_time进行比较
---      - 找各use_credit.create_time往前最近的一个settled_time记录（精确到秒进行匹配）
---      - 两者按天数差值取日期差，作为最终的calc_credit_gap_new
---   3. 对所有订单的差值取平均值，得到"历次下单时间距离一次风控时间的平均天数间隔"
+--   1. 统计时间窗口内所有订单的use_credit.create_time
+--   2. 统计所有观察日期前的repay_plan.settled_time和匹配上use_credit的credit_apply.create_time
+--   3. 每个use_credit.create_time往前取最近的任意settled_time或credit_apply.create_time
+--   4. 取时间间隔作为calc_credit_gap_new
+--   5. 如果往前不存在settled_time或credit_apply.create_time，则为空值null
 order_level_stats_with_credit_gap AS (
     SELECT 
         ols.*,
-        onct.new_credit_time,  -- 新客授信时间（只取匹配上的）
-        opstp.prev_settled_time_precise,  -- 往前最近的settled_time（精确到秒）
+        oprt.prev_reference_time,  -- 往前最近的参考时间点（settled_time或credit_apply.create_time）
         -- 新的额度测算间隔计算逻辑
         CASE 
-            -- 第一笔订单：当前订单创建时间（use_credit.create_time） - 新客授信时间（通过use_credit.credit_apply_id = credit_apply.id匹配上的记录的create_time）
-            WHEN opstp.prev_settled_time_precise IS NULL 
-                AND onct.new_credit_time IS NOT NULL 
-            THEN GREATEST(DATEDIFF(DATE(ols.order_create_time), DATE(onct.new_credit_time)), 0)
-            -- 后续订单：当前订单创建时间（use_credit.create_time） - 往前最近的settled_time（精确到秒匹配）
-            WHEN opstp.prev_settled_time_precise IS NOT NULL 
-            THEN GREATEST(DATEDIFF(DATE(ols.order_create_time), DATE(opstp.prev_settled_time_precise)), 0)
-            -- 兜底：如果都没有，返回0
-            ELSE 0
+            -- 如果存在往前最近的参考时间点，计算时间间隔
+            WHEN oprt.prev_reference_time IS NOT NULL 
+            THEN GREATEST(DATEDIFF(DATE(ols.order_create_time), DATE(oprt.prev_reference_time)), 0)
+            -- 如果往前不存在settled_time或credit_apply.create_time，则为空值null
+            ELSE NULL
         END AS calc_credit_gap_new  -- 新的额度测算间隔（历次下单时间距离一次风控时间的间隔）
     FROM order_level_stats ols
-    LEFT JOIN order_new_credit_time onct 
-        ON ols.cust_no = onct.cust_no
-        AND ols.order_create_time = onct.order_create_time  -- 通过订单创建时间匹配
-    LEFT JOIN order_prev_settled_time_precise opstp 
-        ON ols.cust_no = opstp.cust_no 
-        AND ols.loan_no = opstp.loan_no
-        AND ols.order_create_time = opstp.order_create_time
+    LEFT JOIN order_prev_reference_time oprt 
+        ON ols.cust_no = oprt.cust_no 
+        AND ols.loan_no = oprt.loan_no
+        AND ols.order_create_time = oprt.order_create_time
+        AND ols.observation_date = oprt.observation_date
 ),
 
 -- ===================== 3. 续借订单标记 =====================
@@ -630,7 +622,7 @@ uncompleted_instal_stats AS (
                 AND bld.order_create_time < bld.observation_date
                 AND bld.loan_start_date IS NOT NULL 
                 AND DATE(bld.loan_start_date) < bld.observation_date
-                AND (bld.settled_time IS NULL OR bld.settled_time > bld.observation_date) --zlf DATE(bld.settled_time) 去掉 Date()
+                AND (bld.settled_time IS NULL OR DATE(bld.settled_time) > bld.observation_date)
             THEN 1 
             ELSE 0 
         END) AS uncompleted_instal_cnt_90d,
@@ -640,7 +632,7 @@ uncompleted_instal_stats AS (
                 AND bld.order_create_time < bld.observation_date
                 AND bld.loan_start_date IS NOT NULL 
                 AND DATE(bld.loan_start_date) < bld.observation_date
-                AND (bld.settled_time IS NULL OR bld.settled_time > bld.observation_date) --zlf DATE(bld.settled_time) 去掉 Date()
+                AND (bld.settled_time IS NULL OR DATE(bld.settled_time) > bld.observation_date)
             THEN 1 
             ELSE 0 
         END) AS uncompleted_instal_cnt_180d,
@@ -650,7 +642,7 @@ uncompleted_instal_stats AS (
                 AND bld.order_create_time < bld.observation_date
                 AND bld.loan_start_date IS NOT NULL 
                 AND DATE(bld.loan_start_date) < bld.observation_date
-                AND (bld.settled_time IS NULL OR bld.settled_time > bld.observation_date) --zlf DATE(bld.settled_time) 去掉 Date()
+                AND (bld.settled_time IS NULL OR DATE(bld.settled_time) > bld.observation_date)
             THEN 1 
             ELSE 0 
         END) AS uncompleted_instal_cnt_10000d,
@@ -893,7 +885,6 @@ stat90D_base AS (
         ols.has_order_prepay_3days,  -- 订单是否有提前>=3天结清标签（用于统计提前>=3天结清订单数量）
         ols.completed_instal_principal_sum,
         ols.calc_credit_gap_new AS calc_credit_gap,  -- 使用新的额度测算间隔计算逻辑
-        ols.use_credit_id,  -- 用信申请ID
         mlf.is_multi_loan,
         omco.max_continuous_overdue_periods,  -- 订单内连续逾期的最大期数（账单级别）
         omco.max_continuous_overdue_3days_periods,  -- 订单内连续逾期>=3天的最大期数（账单级别）
@@ -917,9 +908,12 @@ stat90D AS (
         MAX(base.order_create_time) AS order_create_time,  -- 最新订单创建时间
         -- calcCreditGapMean: 历次下单时间距离一次风控时间的平均天数间隔
         -- 计算逻辑：
-        --   1. 对于续借客户（非第一笔订单）：use_credit表的create_time - 上一笔订单的settled_time
-        --   2. 对于第一笔订单：use_credit表的create_time - credit_apply表的create_time
-        --   3. 对所有订单的差值取平均值
+        --   1. 统计时间窗口内所有订单的use_credit.create_time
+        --   2. 统计所有观察日期前的repay_plan.settled_time和匹配上use_credit的credit_apply.create_time
+        --   3. 每个use_credit.create_time往前取最近的任意settled_time或credit_apply.create_time
+        --   4. 取时间间隔作为calc_credit_gap_new
+        --   5. 如果往前不存在settled_time或credit_apply.create_time，则为空值null
+        --   6. 对所有订单的差值取平均值（NULL值会被AVG函数忽略）
         ROUND(AVG(base.calc_credit_gap), 6) AS calcCreditGapMean,
         
         -- completeMultiLoanOrderCnt: 历史结清续借订单数
@@ -1103,9 +1097,7 @@ stat90D AS (
         
         -- uncompletedInstalCnt: 在贷账单数
         -- 修复：使用预计算的在贷账单数，避免StarRocks关联子查询限制
-        COALESCE(MAX(uis.uncompleted_instal_cnt_90d), 0) AS uncompletedInstalCnt,
-        -- use_credit_id: 用信申请ID（ods_mx_aprv_approve_use_credit_apply_df表的id字段）
-        MAX(base.use_credit_id) AS use_credit_id
+        COALESCE(MAX(uis.uncompleted_instal_cnt_90d), 0) AS uncompletedInstalCnt
     FROM stat90D_base base
     LEFT JOIN uncompleted_instal_stats uis 
         ON base.cust_no = uis.cust_no 
@@ -1147,7 +1139,6 @@ stat180D_base AS (
         ols.has_order_prepay_3days,  -- 订单是否有提前>=3天结清标签（用于统计提前>=3天结清订单数量）
         ols.completed_instal_principal_sum,
         ols.calc_credit_gap_new AS calc_credit_gap,  -- 使用新的额度测算间隔计算逻辑
-        ols.use_credit_id,  -- 用信申请ID
         mlf.is_multi_loan,
         omco.max_continuous_overdue_periods,  -- 订单内连续逾期的最大期数（账单级别）
         omco.max_continuous_overdue_3days_periods,  -- 订单内连续逾期>=3天的最大期数（账单级别）
@@ -1305,9 +1296,7 @@ stat180D AS (
         SUM(base.has_order_prepay) AS prepayOrderCnt,
         -- uncompletedInstalCnt: 在贷账单数
         -- 修复：使用预计算的在贷账单数，避免StarRocks关联子查询限制
-        COALESCE(MAX(uis.uncompleted_instal_cnt_180d), 0) AS uncompletedInstalCnt,
-        -- use_credit_id: 用信申请ID（ods_mx_aprv_approve_use_credit_apply_df表的id字段）
-        MAX(base.use_credit_id) AS use_credit_id
+        COALESCE(MAX(uis.uncompleted_instal_cnt_180d), 0) AS uncompletedInstalCnt
     FROM stat180D_base base
     LEFT JOIN uncompleted_instal_stats uis 
         ON base.cust_no = uis.cust_no 
@@ -1349,7 +1338,6 @@ stat10000D_base AS (
         ols.has_order_prepay_3days,  -- 订单是否有提前>=3天结清标签（用于统计提前>=3天结清订单数量）
         ols.completed_instal_principal_sum,
         ols.calc_credit_gap_new AS calc_credit_gap,  -- 使用新的额度测算间隔计算逻辑
-        ols.use_credit_id,  -- 用信申请ID
         mlf.is_multi_loan,
         omco.max_continuous_overdue_periods,  -- 订单内连续逾期的最大期数（账单级别）
         omco.max_continuous_overdue_3days_periods,  -- 订单内连续逾期>=3天的最大期数（账单级别）
@@ -1507,9 +1495,7 @@ stat10000D AS (
         SUM(base.has_order_prepay) AS prepayOrderCnt,
         -- uncompletedInstalCnt: 在贷账单数
         -- 修复：使用预计算的在贷账单数，避免StarRocks关联子查询限制
-        COALESCE(MAX(uis.uncompleted_instal_cnt_10000d), 0) AS uncompletedInstalCnt,
-        -- use_credit_id: 用信申请ID（ods_mx_aprv_approve_use_credit_apply_df表的id字段）
-        MAX(base.use_credit_id) AS use_credit_id
+        COALESCE(MAX(uis.uncompleted_instal_cnt_10000d), 0) AS uncompletedInstalCnt
     FROM stat10000D_base base
     LEFT JOIN uncompleted_instal_stats uis 
         ON base.cust_no = uis.cust_no 
@@ -1521,7 +1507,7 @@ stat10000D AS (
 )
 
 -- ===================== 9. 最终输出：98个特征 =====================
-select * from (
+select * from(
 SELECT 
     use_credit.id AS use_credit_id,
     COALESCE(s90.cust_no, s180.cust_no, s10000.cust_no, '') AS cust_no,  -- 客户编号（确保无空值）
@@ -1578,9 +1564,12 @@ SELECT
     -- 2.1 额度测算相关（1个）
     -- 历次下单时间距离一次风控时间的平均天数间隔
     -- 计算逻辑：
-    --   1. 对于续借客户（非第一笔订单）：use_credit表的create_time - 上一笔订单的settled_time
-    --   2. 对于第一笔订单：use_credit表的create_time - credit_apply表的create_time
-    --   3. 对所有订单的差值取平均值
+    --   1. 统计时间窗口内所有订单的use_credit.create_time
+    --   2. 统计所有观察日期前的repay_plan.settled_time和匹配上use_credit的credit_apply.create_time
+    --   3. 每个use_credit.create_time往前取最近的任意settled_time或credit_apply.create_time
+    --   4. 取时间间隔作为calc_credit_gap_new
+    --   5. 如果往前不存在settled_time或credit_apply.create_time，则为空值null
+    --   6. 对所有订单的差值取平均值（NULL值会被AVG函数忽略）
     COALESCE(s180.calcCreditGapMean, 0) AS local_midloan_order_info_stat180d_calccreditgapmean_v2,
     
     -- 2.2 订单结清相关（6个）
@@ -1633,9 +1622,12 @@ SELECT
     -- 3.1 额度测算相关（1个）
     -- 历次下单时间距离一次风控时间的平均天数间隔
     -- 计算逻辑：
-    --   1. 对于续借客户（非第一笔订单）：use_credit表的create_time - 上一笔订单的settled_time
-    --   2. 对于第一笔订单：use_credit表的create_time - credit_apply表的create_time
-    --   3. 对所有订单的差值取平均值
+    --   1. 统计时间窗口内所有订单的use_credit.create_time
+    --   2. 统计所有观察日期前的repay_plan.settled_time和匹配上use_credit的credit_apply.create_time
+    --   3. 每个use_credit.create_time往前取最近的任意settled_time或credit_apply.create_time
+    --   4. 取时间间隔作为calc_credit_gap_new
+    --   5. 如果往前不存在settled_time或credit_apply.create_time，则为空值null
+    --   6. 对所有订单的差值取平均值（NULL值会被AVG函数忽略）
     COALESCE(s10000.calcCreditGapMean, 0) AS local_midloan_order_info_stat10000d_calccreditgapmean_v2,
     
     -- 3.2 订单结清相关（6个）
@@ -1683,9 +1675,6 @@ SELECT
     
     -- 3.8 在贷相关（1个）
     COALESCE(s10000.uncompletedInstalCnt, 0) AS local_midloan_order_info_stat10000d_uncompletedinstalcnt_v2  -- 在贷账单数
-    
-    -- 用信申请ID（ods_mx_aprv_approve_use_credit_apply_df表的id字段）
-    -- 直接从用信申请表中获取观察日期对应的最新订单的ID
 FROM stat90D s90
 FULL OUTER JOIN stat180D s180 
     ON s90.cust_no = s180.cust_no
@@ -1693,10 +1682,10 @@ FULL OUTER JOIN stat180D s180
 FULL OUTER JOIN stat10000D s10000 
     ON COALESCE(s90.cust_no, s180.cust_no) = s10000.cust_no
     AND COALESCE(s90.observation_date, s180.observation_date) = s10000.observation_date
-LEFT JOIN hive_idc.oversea.ods_mx_aprv_approve_use_credit_apply_df use_credit
+LEFT JOIN hive_idc.hello_prd.ods_mx_aprv_approve_use_credit_apply_df use_credit
     ON use_credit.cust_no = COALESCE(s90.cust_no, s180.cust_no, s10000.cust_no)
     AND use_credit.create_time = COALESCE(s90.observation_date, s180.observation_date, s10000.observation_date)
-    AND use_credit.pt = DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1),'%Y%m%d')
-WHERE COALESCE(s90.cust_no, s180.cust_no, s10000.cust_no) IS NOT NULL) t 
-where observation_date>='2026-01-16 05:37:00'
-Order by observation_date desc;
+    AND use_credit.pt =DATE_SUB(CURRENT_DATE(), 2)
+WHERE COALESCE(s90.cust_no, s180.cust_no, s10000.cust_no) IS NOT NULL) t
+-- where observation_date>'2026-01-21 06:08:00'
+order by observation_date desc;

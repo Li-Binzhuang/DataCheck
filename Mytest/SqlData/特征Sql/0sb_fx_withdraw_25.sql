@@ -162,4 +162,4 @@ left join (
     select cust_no, id, create_time as increase_time 
     from mid 
     where row_num = 1
-) as t6 on t5.cust_no = t6.cust_no and t5.id = t6.id) t where create_time>='2026-01-12 08:33:00' and cust_no='800001259596'order by create_time desc limit 100000;
+) as t6 on t5.cust_no = t6.cust_no and t5.id = t6.id) t where create_time>='2026-01-12 08:33:00' order by create_time desc limit 100000;

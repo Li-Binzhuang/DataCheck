@@ -16,6 +16,7 @@ __pycache__/
 .venv/
 venv/
 env/
+.venv.backup*/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -34,3 +35,4 @@ logs/
 # 大型数据文件
 *.csv
 *.xlsx
+*.pkl

@@ -20,7 +20,8 @@ echo "准备提交项目到 Git 仓库"
 echo "=========================================="
 echo "仓库结构: daizhonghuankuan_part1/"
 echo "  ├── MyDataCheck/"
-echo "  └── Mytest/"
+echo "  ├── Mytest/"
+echo "  └── CDC/"
 echo ""
 
 # 检查 MyDataCheck 目录是否存在
@@ -31,10 +32,19 @@ fi
 
 # 检查 Mytest 目录是否存在
 if [ ! -d "Mytest" ]; then
-    echo "警告: Mytest 目录不存在，将只提交 MyDataCheck"
-else
-    echo "将提交 MyDataCheck 和 Mytest 目录内容到远程仓库"
+    echo "警告: Mytest 目录不存在"
 fi
+
+# 检查 CDC 目录是否存在
+if [ ! -d "CDC" ]; then
+    echo "警告: CDC 目录不存在"
+fi
+
+# 显示将要提交的目录
+DIRS_TO_COMMIT="MyDataCheck"
+[ -d "Mytest" ] && DIRS_TO_COMMIT="$DIRS_TO_COMMIT, Mytest"
+[ -d "CDC" ] && DIRS_TO_COMMIT="$DIRS_TO_COMMIT, CDC"
+echo "将提交以下目录到远程仓库: $DIRS_TO_COMMIT"
 echo ""
 
 # 修复 macOS SSL 证书问题
@@ -159,6 +169,35 @@ if [ -d "Mytest" ]; then
     fi
 fi
 
+# 添加 CDC 目录（如果存在且不是子模块）
+if [ -d "CDC" ]; then
+    if [ -f "CDC/.git" ] || [ -d "CDC/.git" ]; then
+        echo "检测到 CDC 是 Git 子模块"
+        echo "先提交子模块内的变更..."
+        
+        # 进入子模块并提交变更
+        cd CDC
+        if [ -n "$(git status --porcelain)" ]; then
+            echo "CDC 子模块内有未提交的变更，正在提交..."
+            git add -A
+            git commit -m "chore: 更新 CDC 子模块内容
+
+- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')" || echo "CDC 子模块提交完成或无需提交"
+        else
+            echo "CDC 子模块内无变更"
+        fi
+        cd ..
+        
+        # 更新父仓库中的子模块引用
+        echo "更新父仓库中的 CDC 子模块引用..."
+        git add CDC
+    else
+        # 如果不是子模块，按普通目录处理
+        echo "添加 CDC 目录到 Git..."
+        git add CDC/
+    fi
+fi
+
 # 添加其他文件（未跟踪的或已修改的）
 if [ -f ".gitignore" ]; then
     # 检查文件是否未跟踪或已修改
@@ -180,21 +219,27 @@ fi
 if ! git diff --staged --quiet 2>/dev/null; then
     # 有暂存的文件，执行提交
     echo "提交变更..."
-    if [ -d "Mytest" ]; then
-        COMMIT_MSG="feat: 提交 MyDataCheck 和 Mytest 项目
+    
+    # 构建提交信息
+    COMMIT_MSG="feat: 提交项目更新
 
-- 包含 MyDataCheck 项目的所有文件
-- 包含 Mytest 项目的所有文件
-- MyDataCheck 位于 daizhonghuankuan_part1/MyDataCheck/
-- Mytest 位于 daizhonghuankuan_part1/Mytest/
-- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
-    else
-        COMMIT_MSG="feat: 提交 MyDataCheck 项目
-
-- 包含 MyDataCheck 项目的所有文件
-- MyDataCheck 位于 daizhonghuankuan_part1/MyDataCheck/
-- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
-    fi
+"
+    [ -d "MyDataCheck" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 MyDataCheck 项目的所有文件
+"
+    [ -d "Mytest" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 Mytest 项目的所有文件
+"
+    [ -d "CDC" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 CDC 项目的所有文件
+"
+    COMMIT_MSG="${COMMIT_MSG}
+项目位置:
+"
+    [ -d "MyDataCheck" ] && COMMIT_MSG="${COMMIT_MSG}- MyDataCheck 位于 daizhonghuankuan_part1/MyDataCheck/
+"
+    [ -d "Mytest" ] && COMMIT_MSG="${COMMIT_MSG}- Mytest 位于 daizhonghuankuan_part1/Mytest/
+"
+    [ -d "CDC" ] && COMMIT_MSG="${COMMIT_MSG}- CDC 位于 daizhonghuankuan_part1/CDC/
+"
+    COMMIT_MSG="${COMMIT_MSG}- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
     
     git commit -m "$COMMIT_MSG"
     echo "✓ 已提交更改"
@@ -288,11 +333,12 @@ if [ $PUSH_EXIT_CODE -eq 0 ]; then
     echo "=========================================="
     echo ""
     echo "仓库地址: $REPO_URL"
-    if [ -d "Mytest" ]; then
-        echo "提交目录: MyDataCheck/, Mytest/"
-    else
-        echo "提交目录: MyDataCheck/"
-    fi
+    
+    # 显示已提交的目录
+    COMMITTED_DIRS="MyDataCheck/"
+    [ -d "Mytest" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Mytest/"
+    [ -d "CDC" ] && COMMITTED_DIRS="$COMMITTED_DIRS, CDC/"
+    echo "提交目录: $COMMITTED_DIRS"
     echo "当前分支: $CURRENT_BRANCH"
     echo ""
     echo "查看远程仓库状态:"
@@ -319,11 +365,12 @@ elif echo "$PUSH_OUTPUT" | grep -q "non-fast-forward"; then
         echo "=========================================="
         echo ""
         echo "仓库地址: $REPO_URL"
-        if [ -d "Mytest" ]; then
-            echo "提交目录: MyDataCheck/, Mytest/"
-        else
-            echo "提交目录: MyDataCheck/"
-        fi
+        
+        # 显示已提交的目录
+        COMMITTED_DIRS="MyDataCheck/"
+        [ -d "Mytest" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Mytest/"
+        [ -d "CDC" ] && COMMITTED_DIRS="$COMMITTED_DIRS, CDC/"
+        echo "提交目录: $COMMITTED_DIRS"
         echo "当前分支: $CURRENT_BRANCH"
         echo ""
         echo "⚠ 注意：已覆盖远程分支的历史记录"

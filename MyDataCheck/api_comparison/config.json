@@ -3,10 +3,10 @@
     {
       "name": "测试",
       "enabled": true,
-      "description": "hd_",
-      "input_csv_file": "all_10000.csv",
-      "output_file_prefix": "hd_",
-      "api_url": "http://10.129.2.25:8082/riskanalysis/loan/order/features",
+      "description": "qx_",
+      "input_csv_file": "qx_6_sql.csv",
+      "output_file_prefix": "qx_",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/feature/order/uncomplete",
       "thread_count": 150,
       "timeout": 60,
       "convert_feature_to_number": true,
@@ -21,11 +21,9 @@
           "is_time_field": false
         },
         {
-          "param_name": "queryDateTime",
+          "param_name": "applyId",
           "column_index": 1,
-          "is_time_field": true,
-          "add_t_separator": false,
-          "convert_date_to_time": true
+          "is_time_field": false
         }
       ]
     }

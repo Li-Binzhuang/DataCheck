@@ -59,6 +59,18 @@ executor_module = importlib.util.module_from_spec(spec_executor)
 spec_executor.loader.exec_module(executor_module)
 execute_single_scenario = executor_module.execute_single_scenario
 
+# 动态导入pkl转换模块
+common_dir = os.path.join(script_dir, "common")
+pkl_converter_path = os.path.join(common_dir, "pkl_converter.py")
+spec_pkl = importlib.util.spec_from_file_location("pkl_converter", pkl_converter_path)
+pkl_converter_module = importlib.util.module_from_spec(spec_pkl)
+spec_pkl.loader.exec_module(pkl_converter_module)
+convert_pkl_to_csv = pkl_converter_module.convert_pkl_to_csv
+get_pkl_info = pkl_converter_module.get_pkl_info
+parse_pkl_file = pkl_converter_module.parse_pkl_file
+convert_pkl_to_csv_with_preview = pkl_converter_module.convert_pkl_to_csv_with_preview
+convert_pkl_to_cdcv2_csv = pkl_converter_module.convert_pkl_to_cdcv2_csv
+
 # 动态导入线上灰度落数对比模块
 if os.path.exists(online_job_dir):
     json_parser_path = os.path.join(online_job_dir, "json_parser.py")
@@ -80,6 +92,9 @@ if os.path.exists(online_job_dir):
     generate_reports = report_generator_module.generate_reports
 
 app = Flask(__name__)
+
+# 配置上传文件大小限制（1GB，支持大文件）
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB
 
 
 class OutputCapture:
@@ -902,7 +917,7 @@ def save_online_config():
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
-    """上传CSV文件（接口数据对比）"""
+    """上传CSV或PKL文件（接口数据对比）"""
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': '没有文件'})
@@ -911,28 +926,66 @@ def upload_file():
         if file.filename == '':
             return jsonify({'success': False, 'error': '文件名为空'})
         
-        if file and file.filename.endswith('.csv'):
+        # 检查文件大小（500MB限制）
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)  # 重置文件指针
+        
+        max_size = 1024 * 1024 * 1024  # 1GB
+        if file_size > max_size:
+            return jsonify({
+                'success': False, 
+                'error': f'文件过大: {file_size / 1024 / 1024:.2f} MB，最大支持 1 GB'
+            })
+        
+        # 支持CSV和PKL文件
+        if file and (file.filename.endswith('.csv') or file.filename.endswith('.pkl')):
             # 确保文件名安全
             filename = secure_filename(file.filename)
             file_path = os.path.join(api_input_dir, filename)
             
-            # 保存文件
-            file.save(file_path)
+            # 保存文件（显示进度）
+            try:
+                file.save(file_path)
+            except Exception as e:
+                return jsonify({
+                    'success': False, 
+                    'error': f'文件保存失败: {str(e)}'
+                })
             
-            return jsonify({
-                'success': True,
-                'filename': filename,
-                'message': f'文件上传成功: {filename}'
-            })
+            # 如果是pkl文件，自动转换为csv
+            if filename.endswith('.pkl'):
+                success, message, csv_path = convert_pkl_to_csv(file_path)
+                if success:
+                    csv_filename = os.path.basename(csv_path)
+                    return jsonify({
+                        'success': True,
+                        'filename': csv_filename,
+                        'original_filename': filename,
+                        'converted': True,
+                        'message': f'PKL文件已转换为CSV: {csv_filename}'
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'PKL文件转换失败: {message}'
+                    })
+            else:
+                return jsonify({
+                    'success': True,
+                    'filename': filename,
+                    'converted': False,
+                    'message': f'文件上传成功: {filename}'
+                })
         else:
-            return jsonify({'success': False, 'error': '只支持CSV文件'})
+            return jsonify({'success': False, 'error': '只支持CSV和PKL文件'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 
 @app.route('/api/upload/online', methods=['POST'])
 def upload_online_file():
-    """上传CSV文件（线上灰度落数对比）"""
+    """上传CSV或PKL文件（线上灰度落数对比）"""
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': '没有文件'})
@@ -941,7 +994,8 @@ def upload_online_file():
         if file.filename == '':
             return jsonify({'success': False, 'error': '文件名为空'})
         
-        if file and file.filename.endswith('.csv'):
+        # 支持CSV和PKL文件
+        if file and (file.filename.endswith('.csv') or file.filename.endswith('.pkl')):
             # 确保文件名安全
             filename = secure_filename(file.filename)
             file_path = os.path.join(online_input_dir, filename)
@@ -949,15 +1003,126 @@ def upload_online_file():
             # 保存文件
             file.save(file_path)
             
-            return jsonify({
-                'success': True,
-                'filename': filename,
-                'message': f'文件上传成功: {filename}'
-            })
+            # 如果是pkl文件，自动转换为csv
+            if filename.endswith('.pkl'):
+                success, message, csv_path = convert_pkl_to_csv(file_path)
+                if success:
+                    csv_filename = os.path.basename(csv_path)
+                    return jsonify({
+                        'success': True,
+                        'filename': csv_filename,
+                        'original_filename': filename,
+                        'converted': True,
+                        'message': f'PKL文件已转换为CSV: {csv_filename}'
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'PKL文件转换失败: {message}'
+                    })
+            else:
+                return jsonify({
+                    'success': True,
+                    'filename': filename,
+                    'converted': False,
+                    'message': f'文件上传成功: {filename}'
+                })
         else:
-            return jsonify({'success': False, 'error': '只支持CSV文件'})
+            return jsonify({'success': False, 'error': '只支持CSV和PKL文件'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/pkl/parse', methods=['POST'])
+def parse_pkl():
+    """解析PKL文件并返回内容预览（接口数据对比）"""
+    try:
+        data = request.json
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({'success': False, 'error': '文件名不能为空'})
+        
+        # 构建文件路径
+        file_path = os.path.join(api_input_dir, filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'success': False, 'error': f'文件不存在: {filename}'})
+        
+        if not file_path.endswith('.pkl'):
+            return jsonify({'success': False, 'error': '只支持PKL文件'})
+        
+        # 解析PKL文件
+        preview_rows = data.get('preview_rows', 10)
+        parse_result = parse_pkl_file(file_path, preview_rows=preview_rows)
+        
+        if parse_result.get('success'):
+            return jsonify({
+                'success': True,
+                'data': parse_result
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': parse_result.get('error', '解析失败'),
+                'error_detail': parse_result.get('error_detail', ''),
+                'install_command': parse_result.get('install_command', '')
+            })
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/pkl/convert', methods=['POST'])
+def convert_pkl_api():
+    """将PKL文件转换为CSV（接口数据对比）"""
+    try:
+        data = request.json
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({'success': False, 'error': '文件名不能为空'})
+        
+        # 构建文件路径
+        pkl_file_path = os.path.join(api_input_dir, filename)
+        
+        if not os.path.exists(pkl_file_path):
+            return jsonify({'success': False, 'error': f'文件不存在: {filename}'})
+        
+        if not pkl_file_path.endswith('.pkl'):
+            return jsonify({'success': False, 'error': '只支持PKL文件'})
+        
+        # 转换为CSV
+        success, message, csv_path, info = convert_pkl_to_csv_with_preview(
+            pkl_file_path, 
+            output_dir=api_output_dir
+        )
+        
+        if success:
+            csv_filename = os.path.basename(csv_path)
+            return jsonify({
+                'success': True,
+                'message': message,
+                'csv_filename': csv_filename,
+                'csv_path': csv_path,
+                'info': info
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': message,
+                'info': info,
+                'error_detail': info.get('error_detail', '') if info else '',
+                'install_command': info.get('install_command', '') if info else ''
+            })
+            
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False, 
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        })
 
 
 @app.route('/api/execute', methods=['POST'])
@@ -1106,6 +1271,43 @@ def parse_online():
         return jsonify({'success': False, 'error': str(e)})
 
 
+@app.route('/api/pkl/info', methods=['POST'])
+def get_pkl_file_info():
+    """获取PKL文件信息"""
+    try:
+        data = request.json
+        filename = data.get('filename')
+        file_type = data.get('type', 'api')  # api 或 online
+        
+        if not filename:
+            return jsonify({'success': False, 'error': '文件名为空'})
+        
+        # 确定文件路径
+        if file_type == 'online':
+            file_path = os.path.join(online_input_dir, filename)
+        else:
+            file_path = os.path.join(api_input_dir, filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'success': False, 'error': '文件不存在'})
+        
+        # 获取pkl文件信息
+        info = get_pkl_info(file_path)
+        
+        if info.get('success'):
+            return jsonify({
+                'success': True,
+                'info': info
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': info.get('error', '获取文件信息失败')
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
 @app.route('/api/execute/online', methods=['POST'])
 def execute_online():
     """执行线上灰度落数对比流程（支持单场景或多场景）"""
@@ -1202,6 +1404,68 @@ def execute_online():
         return jsonify({'success': False, 'error': f'JSON格式错误: {str(e)}'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/pkl/convert-cdcv2', methods=['POST'])
+def convert_pkl_to_cdcv2_api():
+    """将PKL文件转换为cdcV2核心CSV（接口数据对比）"""
+    try:
+        data = request.json
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({'success': False, 'error': '文件名不能为空'})
+        
+        # 构建文件路径
+        pkl_file_path = os.path.join(api_input_dir, filename)
+        
+        if not os.path.exists(pkl_file_path):
+            return jsonify({'success': False, 'error': f'文件不存在: {filename}'})
+        
+        if not pkl_file_path.endswith('.pkl'):
+            return jsonify({'success': False, 'error': '只支持PKL文件'})
+        
+        # 转换为cdcV2核心CSV
+        success, message, csv_path, info = convert_pkl_to_cdcv2_csv(
+            pkl_file_path, 
+            output_dir=api_output_dir
+        )
+        
+        if success:
+            csv_filename = os.path.basename(csv_path)
+            return jsonify({
+                'success': True,
+                'message': message,
+                'csv_filename': csv_filename,
+                'csv_path': csv_path,
+                'info': info
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': message,
+                'info': info,
+                'error_detail': info.get('error_detail', '') if info else '',
+                'install_command': info.get('install_command', '') if info else ''
+            })
+            
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False, 
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        })
+
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """处理413错误（文件过大）"""
+    return jsonify({
+        'success': False,
+        'error': '文件过大',
+        'error_detail': '上传的文件超过了服务器限制（最大1GB）。\n\n建议：\n1. 压缩文件后再上传\n2. 将大文件分割成多个小文件\n3. 使用命令行工具直接处理PKL文件'
+    }), 413
 
 
 def signal_handler(sig, frame):

@@ -3,9 +3,9 @@
     {
       "name": "测试",
       "enabled": true,
-      "description": "qx_",
+      "description": "qx_111333333",
       "input_csv_file": "qx_6_sql.csv",
-      "output_file_prefix": "qx_",
+      "output_file_prefix": "qx_33",
       "api_url": "http://10.129.2.25:8081/riskanalysis/feature/order/uncomplete",
       "thread_count": 150,
       "timeout": 60,

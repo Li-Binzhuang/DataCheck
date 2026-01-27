@@ -2,12 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 报告生成模块
-功能：生成和写入对比分析报告
+功能：生成和写入对比分析报告（优化版：使用流式写入减少内存占用）
 """
 
 import csv
 import os
+import sys
 from typing import Dict, List
+
+# 添加当前目录到路径，以便导入同目录下的模块
+sys.path.insert(0, os.path.dirname(__file__))
+from csv_tool import CSVStreamWriter
 
 
 def write_analysis_record_csv(
@@ -19,7 +24,7 @@ def write_analysis_record_csv(
     has_time_now: bool = False,
 ):
     """
-    写入分析记录文件（CSV格式）
+    写入分析记录文件（CSV格式）- 使用流式写入优化内存
     
     Args:
         output_path: 输出文件路径
@@ -29,48 +34,6 @@ def write_analysis_record_csv(
         feature_start_column: 特征开始列索引
         has_time_now: 接口数据中是否包含time_now字段
     """
-    # 收集所有异常数据
-    anomaly_records = []
-
-    for i in range(len(rows)):
-        if i in results:
-            result = results[i]
-            comparison_results = result.get("comparison_results", {})
-            cust_no = result.get("cust_no", "")
-            use_create_time = result.get("use_create_time", "")  # 使用请求接口时的baseTime值
-            # 从results中获取use_credit_apply_id（从输入文件中查找的apply_id相关字段）
-            use_credit_apply_id = result.get("use_credit_apply_id", "")
-            # 从results中获取time_now字段值（如果存在）
-            time_now_value = result.get("time_now", "")
-
-            for j in range(feature_start_column, len(headers)):
-                header = headers[j]
-                # 跳过pt列和time_now列（time_now不是特征，不进行对比）
-                if header.lower() in ["pt", "time_now"]:
-                    continue
-                feature_result = comparison_results.get(header, {})
-                is_match = feature_result.get("is_match", False)
-
-                if not is_match:
-                    csv_value = feature_result.get("csv_value", "")
-                    api_value = feature_result.get("api_value", None)
-                    api_value_str = "null" if api_value is None else str(api_value)
-                    record = {
-                        "feature_name": header,
-                        "cust_no": cust_no,
-                        "use_credit_apply_id": use_credit_apply_id,
-                        "use_create_time": use_create_time,
-                        "csv_value": csv_value,
-                        "api_value": api_value_str,
-                    }
-                    # 如果接口数据中有time_now字段，添加到记录中
-                    if has_time_now:
-                        record["time_now"] = time_now_value
-                    anomaly_records.append(record)
-
-    # 对异常记录进行排序
-    anomaly_records.sort(key=lambda x: (x["cust_no"], x["use_create_time"]))
-
     # 确保输出目录存在
     output_dir = os.path.dirname(output_path)
     if output_dir and not os.path.exists(output_dir):
@@ -79,37 +42,48 @@ def write_analysis_record_csv(
         except Exception as e:
             print(f"创建目录失败: {output_dir}, 错误: {e}")
 
-    # 写入CSV文件
-    with open(output_path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
-        
-        # 根据是否有time_now字段动态构建表头
-        if has_time_now:
-            writer.writerow(["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值", "time_now"])
-        else:
-            writer.writerow(["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值"])
-        
-        # 写入异常记录明细
-        for record in anomaly_records:
-            if has_time_now:
-                writer.writerow([
-                    record["feature_name"],
-                    record["cust_no"],
-                    record["use_credit_apply_id"],
-                    record["use_create_time"],
-                    record["csv_value"],
-                    record["api_value"],
-                    record.get("time_now", ""),
-                ])
-            else:
-                writer.writerow([
-                    record["feature_name"],
-                    record["cust_no"],
-                    record["use_credit_apply_id"],
-                    record["use_create_time"],
-                    record["csv_value"],
-                    record["api_value"],
-                ])
+    # 构建输出表头
+    if has_time_now:
+        output_headers = ["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值", "time_now"]
+    else:
+        output_headers = ["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值"]
+    
+    # 使用流式写入，逐行处理，不在内存中累积所有异常记录
+    with CSVStreamWriter(output_path, output_headers) as writer:
+        # 按顺序遍历所有行
+        for i in range(len(rows)):
+            if i not in results:
+                continue
+            
+            result = results[i]
+            comparison_results = result.get("comparison_results", {})
+            cust_no = result.get("cust_no", "")
+            use_create_time = result.get("use_create_time", "")
+            use_credit_apply_id = result.get("use_credit_apply_id", "")
+            time_now_value = result.get("time_now", "")
+
+            # 遍历所有特征
+            for j in range(feature_start_column, len(headers)):
+                header = headers[j]
+                # 跳过pt列和time_now列
+                if header.lower() in ["pt", "time_now"]:
+                    continue
+                
+                feature_result = comparison_results.get(header, {})
+                is_match = feature_result.get("is_match", False)
+
+                # 只写入不匹配的记录
+                if not is_match:
+                    csv_value = feature_result.get("csv_value", "")
+                    api_value = feature_result.get("api_value", None)
+                    api_value_str = "null" if api_value is None else str(api_value)
+                    
+                    if has_time_now:
+                        row = [header, cust_no, use_credit_apply_id, use_create_time, csv_value, api_value_str, time_now_value]
+                    else:
+                        row = [header, cust_no, use_credit_apply_id, use_create_time, csv_value, api_value_str]
+                    
+                    writer.write_row(row)
 
 
 def write_feature_stats_csv(
@@ -123,7 +97,7 @@ def write_feature_stats_csv(
     anomaly_feature_count: int = 0,
 ):
     """
-    写入特征比对数据表（CSV格式）
+    写入特征比对数据表（CSV格式）- 使用流式写入优化内存
     
     Args:
         output_path: 输出文件路径
@@ -143,65 +117,51 @@ def write_feature_stats_csv(
         except Exception as e:
             print(f"创建目录失败: {output_dir}, 错误: {e}")
     
-    # 准备所有特征数据
-    all_features_list = []
+    # 统计无异常和有异常的特征数量
+    no_anomaly_count = sum(1 for stats in feature_stats.values() if stats["mismatch"] == 0)
+    has_anomaly_count = sum(1 for stats in feature_stats.values() if stats["mismatch"] > 0)
     
-    for feature_name, stats in feature_stats.items():
-        has_anomaly = "有异常" if stats["mismatch"] > 0 else "无异常"
-        match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0
-        mismatch_ratio = stats["mismatch"] / stats["total"] * 100 if stats["total"] > 0 else 0
-        
-        all_features_list.append({
-            "feature_name": feature_name,
-            "has_anomaly": has_anomaly,
-            "total_count": stats["total"],
-            "match_count": stats["match"],
-            "mismatch_count": stats["mismatch"],
-            "match_ratio": match_ratio,
-            "mismatch_ratio": mismatch_ratio,
-        })
+    # 使用流式写入
+    output_headers = ["特征名", "是否有异常", "比对数据条数", "匹配数量", "异常数量", "匹配率(%)", "异常率(%)"]
     
-    # 按是否有异常排序，然后按异常数量降序排序
-    all_features_list.sort(key=lambda x: (x["has_anomaly"] == "无异常", -x["mismatch_count"]))
-    
-    # 统计无异常特征总数和有异常特征总数
-    no_anomaly_count = sum(1 for feature in all_features_list if feature["has_anomaly"] == "无异常")
-    has_anomaly_count = sum(1 for feature in all_features_list if feature["has_anomaly"] == "有异常")
-    
-    # 写入CSV文件
     try:
-        with open(output_path, "w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
+        with CSVStreamWriter(output_path, output_headers) as writer:
+            # 先写入汇总信息（作为特殊行）
+            writer.write_row(["特征统计", "", "", "", "", "", ""])
+            writer.write_row(["无异常特征总数", str(no_anomaly_count), "", "", "", "", ""])
+            writer.write_row(["有异常特征总数", str(has_anomaly_count), "", "", "", "", ""])
+            writer.write_row(["", "", "", "", "", "", ""])  # 空行分隔
             
-            # 写入汇总信息（两行）
-            writer.writerow(["特征统计"])
-            writer.writerow(["无异常特征总数", no_anomaly_count])
-            writer.writerow(["有异常特征总数", has_anomaly_count])
+            # 按是否有异常和异常数量排序后逐行写入
+            # 先写无异常的特征
+            for feature_name, stats in sorted(feature_stats.items()):
+                if stats["mismatch"] == 0:
+                    match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0
+                    writer.write_row([
+                        feature_name,
+                        "无异常",
+                        str(stats["total"]),
+                        str(stats["match"]),
+                        "0",
+                        f"{match_ratio:.2f}",
+                        "0.00"
+                    ])
             
-            # 写入空行分隔
-            writer.writerow([])
+            # 再写有异常的特征（按异常数量降序）
+            anomaly_features = [(name, stats) for name, stats in feature_stats.items() if stats["mismatch"] > 0]
+            anomaly_features.sort(key=lambda x: x[1]["mismatch"], reverse=True)
             
-            # 写入表头
-            writer.writerow([
-                "特征名",
-                "是否有异常",
-                "比对数据条数",
-                "匹配数量",
-                "异常数量",
-                "匹配率(%)",
-                "异常率(%)"
-            ])
-            
-            # 写入特征数据
-            for feature in all_features_list:
-                writer.writerow([
-                    feature["feature_name"],
-                    feature["has_anomaly"],
-                    feature["total_count"],
-                    feature["match_count"],
-                    feature["mismatch_count"],
-                    f"{feature['match_ratio']:.2f}",
-                    f"{feature['mismatch_ratio']:.2f}",
+            for feature_name, stats in anomaly_features:
+                match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0
+                mismatch_ratio = stats["mismatch"] / stats["total"] * 100 if stats["total"] > 0 else 0
+                writer.write_row([
+                    feature_name,
+                    "有异常",
+                    str(stats["total"]),
+                    str(stats["match"]),
+                    str(stats["mismatch"]),
+                    f"{match_ratio:.2f}",
+                    f"{mismatch_ratio:.2f}"
                 ])
     except Exception as e:
         print(f"写入特征比对数据表失败: {output_path}")

@@ -2,15 +2,19 @@
 # -*- coding: utf-8 -*-
 """
 流程执行器模块
-功能：执行接口数据获取和对比的各个步骤
+功能：执行接口数据获取和对比的各个步骤（内存优化版）
 """
 
 import os
 import sys
+import gc
 from typing import Dict
 
 # 添加父目录到路径，以便导入公共工具模块
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+
+# 导入内存管理工具
+from common.memory_manager import MemoryMonitor, cleanup_large_objects
 
 # 动态导入job模块中的其他功能模块
 import importlib.util
@@ -105,7 +109,7 @@ def compare_data_step(original_csv_path: str, api_data_csv_path: str, output_csv
 
 def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_dir: str, timestamp_suffix: str, output_dir: str = None, input_dir: str = None):
     """
-    执行单个场景的对比流程
+    执行单个场景的对比流程（内存优化版）
     
     Args:
         scenario_config: 场景配置字典
@@ -118,131 +122,142 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
     Returns:
         bool: 执行是否成功
     """
-    # 如果没有指定输出目录，使用脚本目录
-    if output_dir is None:
-        output_dir = script_dir
-    # 如果没有指定输入目录，使用脚本目录（向后兼容）
-    if input_dir is None:
-        input_dir = script_dir
-    # 从场景配置中获取参数，如果不存在则使用全局配置或默认值
-    scenario_name = scenario_config.get('name', '未命名场景')
-    input_csv_file = scenario_config.get('input_csv_file')
-    output_file_prefix = scenario_config.get('output_file_prefix', '')
-    api_url = scenario_config.get('api_url')
-    thread_count = scenario_config.get('thread_count', global_config.get('default_thread_count', 150))
-    timeout = scenario_config.get('timeout', global_config.get('default_timeout', 60))
-    convert_feature_to_number = scenario_config.get('convert_feature_to_number', 
-                                                     global_config.get('default_convert_feature_to_number', True))
-    add_one_second = scenario_config.get('add_one_second', global_config.get('default_add_one_second', True))
-    column_config = scenario_config.get('column_config', {})
-    
-    # 获取接口参数配置（新增）
-    api_params = scenario_config.get('api_params')
-    
-    print(f"\n执行场景: {scenario_name}")
-    
-    # 构建文件路径（从inputdata目录读取）
-    input_csv_path = os.path.join(input_dir, input_csv_file)
-    
-    # 检查输入文件是否存在
-    if not os.path.exists(input_csv_path):
-        print(f"  ❌ 错误: 输入文件不存在: {input_csv_path}")
-        return False
-    
-    # 构建文件名前缀部分（如果配置了前缀）
-    prefix_part = f"{output_file_prefix}_" if output_file_prefix else ""
-    
-    # 自动生成输出文件名（保存到outputdata目录）
-    api_data_output_file = f"{prefix_part}{timestamp_suffix}_api_data.csv"
-    compare_output_file = f"{prefix_part}{timestamp_suffix}_compare.csv"
-    
-    api_data_output_path = os.path.join(output_dir, api_data_output_file)
-    compare_output_path = os.path.join(output_dir, compare_output_file)
-    # 使用统一的多场景列索引配置文件
-    config_file_path = os.path.join(script_dir, "json", "column_index_config.json")
-    
-    print(f"  输入文件: {input_csv_file}")
-    print(f"  接口URL: {api_url}")
-    print(f"  输出前缀: {output_file_prefix if output_file_prefix else '(无)'}")
-    
-    # 处理列索引配置（兼容新旧配置）
-    if api_params:
-        # 使用新的参数配置
-        print(f"  接口参数配置:")
-        for param in api_params:
-            param_name = param.get('param_name')
-            column_index = param.get('column_index')
-            is_time_field = param.get('is_time_field', False)
-            time_flag = " (时间字段)" if is_time_field else ""
-            print(f"    - {param_name}: 列{column_index}{time_flag}")
+    # 使用内存监控器
+    with MemoryMonitor(f"场景执行", verbose=False) as monitor:
+        # 如果没有指定输出目录，使用脚本目录
+        if output_dir is None:
+            output_dir = script_dir
+        # 如果没有指定输入目录，使用脚本目录（向后兼容）
+        if input_dir is None:
+            input_dir = script_dir
+        # 从场景配置中获取参数，如果不存在则使用全局配置或默认值
+        scenario_name = scenario_config.get('name', '未命名场景')
+        input_csv_file = scenario_config.get('input_csv_file')
+        output_file_prefix = scenario_config.get('output_file_prefix', '')
+        api_url = scenario_config.get('api_url')
+        thread_count = scenario_config.get('thread_count', global_config.get('default_thread_count', 150))
+        timeout = scenario_config.get('timeout', global_config.get('default_timeout', 60))
+        convert_feature_to_number = scenario_config.get('convert_feature_to_number', 
+                                                         global_config.get('default_convert_feature_to_number', True))
+        add_one_second = scenario_config.get('add_one_second', global_config.get('default_add_one_second', True))
+        column_config = scenario_config.get('column_config', {})
         
-        # 为了兼容对比步骤，从api_params中提取cust_no和时间字段的列索引
-        cust_no_column = None
-        use_create_time_column = None
-        for param in api_params:
-            if param.get('param_name') == 'custNo':
-                cust_no_column = param.get('column_index')
-            if param.get('is_time_field'):
-                use_create_time_column = param.get('column_index')
+        # 获取接口参数配置（新增）
+        api_params = scenario_config.get('api_params')
         
-        feature_start_column = column_config.get('feature_start_column', 4)
-    else:
-        # 使用旧的列配置（向后兼容）
-        cust_no_column = column_config.get('cust_no_column')
-        use_create_time_column = column_config.get('use_create_time_column')
-        feature_start_column = column_config.get('feature_start_column', 4)
+        print(f"\n执行场景: {scenario_name}")
         
-        # 检查列索引是否有效（必须手动配置）
-        if cust_no_column is None or use_create_time_column is None:
-            print(f"  ❌ 错误: 列索引配置无效或缺失")
-            print(f"    请在配置文件的 column_config 中手动指定:")
-            print(f"    - cust_no_column: cust_no所在列索引")
-            print(f"    - use_create_time_column: 时间字段所在列索引")
-            print(f"    - feature_start_column: 特征开始列索引（可选，默认4）")
+        # 构建文件路径（从inputdata目录读取）
+        input_csv_path = os.path.join(input_dir, input_csv_file)
+        
+        # 检查输入文件是否存在
+        if not os.path.exists(input_csv_path):
+            print(f"  ❌ 错误: 输入文件不存在: {input_csv_path}")
             return False
         
-        print(f"  列配置: cust_no=列{cust_no_column}, 时间字段=列{use_create_time_column}, 特征开始=列{feature_start_column}")
-    
-    if add_one_second:
-        print(f"  时间处理: 请求接口时加1秒")
-    
-    try:
-        # 步骤1: 获取接口数据
-        fetch_api_data_step(
-            input_csv_path,
-            api_data_output_path,
-            api_url,
-            cust_no_column if cust_no_column is not None else 0,
-            use_create_time_column if use_create_time_column is not None else 0,
-            thread_count,
-            timeout,
-            convert_feature_to_number,
-            feature_start_column,
-            add_one_second,
-            api_params  # 传递新的参数配置
-        )
+        # 构建文件名前缀部分（如果配置了前缀）
+        prefix_part = f"{output_file_prefix}_" if output_file_prefix else ""
         
-        # 步骤2: 对比数据
-        compare_data_step(
-            input_csv_path,
-            api_data_output_path,
-            compare_output_path,
-            cust_no_column if cust_no_column is not None else 0,
-            use_create_time_column if use_create_time_column is not None else 0,
-            feature_start_column,
-            add_one_second
-        )
+        # 自动生成输出文件名（保存到outputdata目录）
+        api_data_output_file = f"{prefix_part}{timestamp_suffix}_api_data.csv"
+        compare_output_file = f"{prefix_part}{timestamp_suffix}_compare.csv"
         
-        # 完成
-        print(f"  ✅ 场景执行成功")
-        print(f"  输出文件:")
-        print(f"    - {api_data_output_file}")
-        print(f"    - {compare_output_file}")
+        api_data_output_path = os.path.join(output_dir, api_data_output_file)
+        compare_output_path = os.path.join(output_dir, compare_output_file)
+        # 使用统一的多场景列索引配置文件
+        config_file_path = os.path.join(script_dir, "json", "column_index_config.json")
         
-        return True
+        print(f"  输入文件: {input_csv_file}")
+        print(f"  接口URL: {api_url}")
+        print(f"  输出前缀: {output_file_prefix if output_file_prefix else '(无)'}")
         
-    except Exception as e:
-        print(f"  ❌ 执行失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
+        # 处理列索引配置（兼容新旧配置）
+        if api_params:
+            # 使用新的参数配置
+            print(f"  接口参数配置:")
+            for param in api_params:
+                param_name = param.get('param_name')
+                column_index = param.get('column_index')
+                is_time_field = param.get('is_time_field', False)
+                time_flag = " (时间字段)" if is_time_field else ""
+                print(f"    - {param_name}: 列{column_index}{time_flag}")
+            
+            # 为了兼容对比步骤，从api_params中提取cust_no和时间字段的列索引
+            cust_no_column = None
+            use_create_time_column = None
+            for param in api_params:
+                if param.get('param_name') == 'custNo':
+                    cust_no_column = param.get('column_index')
+                if param.get('is_time_field'):
+                    use_create_time_column = param.get('column_index')
+            
+            feature_start_column = column_config.get('feature_start_column', 4)
+        else:
+            # 使用旧的列配置（向后兼容）
+            cust_no_column = column_config.get('cust_no_column')
+            use_create_time_column = column_config.get('use_create_time_column')
+            feature_start_column = column_config.get('feature_start_column', 4)
+            
+            # 检查列索引是否有效（必须手动配置）
+            if cust_no_column is None or use_create_time_column is None:
+                print(f"  ❌ 错误: 列索引配置无效或缺失")
+                print(f"    请在配置文件的 column_config 中手动指定:")
+                print(f"    - cust_no_column: cust_no所在列索引")
+                print(f"    - use_create_time_column: 时间字段所在列索引")
+                print(f"    - feature_start_column: 特征开始列索引（可选，默认4）")
+                return False
+            
+            print(f"  列配置: cust_no=列{cust_no_column}, 时间字段=列{use_create_time_column}, 特征开始=列{feature_start_column}")
+        
+        if add_one_second:
+            print(f"  时间处理: 请求接口时加1秒")
+        
+        try:
+            # 步骤1: 获取接口数据
+            fetch_api_data_step(
+                input_csv_path,
+                api_data_output_path,
+                api_url,
+                cust_no_column if cust_no_column is not None else 0,
+                use_create_time_column if use_create_time_column is not None else 0,
+                thread_count,
+                timeout,
+                convert_feature_to_number,
+                feature_start_column,
+                add_one_second,
+                api_params  # 传递新的参数配置
+            )
+            
+            # 步骤1完成后，强制垃圾回收
+            gc.collect()
+            
+            # 步骤2: 对比数据
+            compare_data_step(
+                input_csv_path,
+                api_data_output_path,
+                compare_output_path,
+                cust_no_column if cust_no_column is not None else 0,
+                use_create_time_column if use_create_time_column is not None else 0,
+                feature_start_column,
+                add_one_second
+            )
+            
+            # 步骤2完成后，强制垃圾回收
+            gc.collect()
+            
+            # 完成
+            print(f"  ✅ 场景执行成功")
+            print(f"  输出文件:")
+            print(f"    - {api_data_output_file}")
+            print(f"    - {compare_output_file}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"  ❌ 执行失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
+        finally:
+            # 确保在任何情况下都执行内存清理
+            gc.collect()

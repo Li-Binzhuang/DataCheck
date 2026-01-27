@@ -3,33 +3,35 @@
     {
       "name": "测试",
       "enabled": true,
-      "description": "qx_6",
-      "input_csv_file": "qx_10.csv",
-      "output_file_prefix": "qx_6",
-      "api_url": "http://10.129.2.25:8081/riskanalysis/feature/order/uncomplete",
-      "thread_count": 150,
+      "description": "bz_Dh_",
+      "input_csv_file": "cdc1_features_consultas.csv",
+      "output_file_prefix": "bz_Dh_1_",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
+      "thread_count": 200,
       "timeout": 60,
       "convert_feature_to_number": true,
       "add_one_second": false,
       "column_config": {
-        "feature_start_column": 3
+        "feature_start_column": 2
       },
       "api_params": [
-        {
-          "param_name": "custNo",
-          "column_index": 1,
-          "is_time_field": false
-        },
         {
           "param_name": "applyId",
           "column_index": 0,
           "is_time_field": false
+        },
+        {
+          "param_name": "baseTime",
+          "column_index": 1,
+          "is_time_field": true,
+          "add_t_separator": true,
+          "convert_date_to_time": true
         }
       ]
     }
   ],
   "global_config": {
-    "default_thread_count": 150,
+    "default_thread_count": 200,
     "default_timeout": 60,
     "default_convert_feature_to_number": true
   }

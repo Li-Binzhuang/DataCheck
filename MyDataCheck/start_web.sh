@@ -56,8 +56,10 @@ python -c "import pandas; print('✅ pandas版本:', pandas.__version__)" || {
 
 # 启动Web服务
 echo ""
-echo "正在启动Web服务..."
-echo "提示: 如果端口5000被占用，可以使用 --port 参数指定其他端口"
-echo "例如: python web_app.py --port 8080"
+echo "=========================================="
+echo "服务器启动中..."
+echo "访问地址: http://127.0.0.1:5001"
+echo "按 Ctrl+C 停止服务器"
+echo "=========================================="
 echo ""
 python web_app.py

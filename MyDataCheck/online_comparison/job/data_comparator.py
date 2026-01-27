@@ -15,6 +15,56 @@ from csv_tool import read_csv_with_encoding
 from value_comparator import compare_values
 
 
+def _convert_string_to_number(value: Any) -> Any:
+    """
+    尝试将字符串转换为数值类型，并去除多余的引号
+    
+    Args:
+        value: 输入值
+    
+    Returns:
+        如果可以转换为数值，返回数值；否则返回去除引号后的字符串
+    """
+    if value is None or value == "":
+        return value
+    
+    # 如果已经是数值类型，直接返回
+    if isinstance(value, (int, float)):
+        return value
+    
+    # 转换为字符串并去除空格
+    str_value = str(value).strip()
+    
+    # 处理空字符串
+    if not str_value:
+        return value
+    
+    # 去除字符串两端的双引号（单引号也一并处理）
+    # 例如: "8" -> 8, '"8"' -> 8, "'8'" -> 8, "abc" -> abc
+    if len(str_value) >= 2:
+        # 去除外层的双引号或单引号
+        if (str_value[0] == '"' and str_value[-1] == '"') or \
+           (str_value[0] == "'" and str_value[-1] == "'"):
+            str_value = str_value[1:-1].strip()
+    
+    # 再次检查是否为空
+    if not str_value:
+        return value
+    
+    # 尝试转换为数值
+    try:
+        # 先尝试转换为浮点数
+        float_value = float(str_value)
+        # 如果浮点数等于其整数形式，返回整数
+        if float_value == int(float_value):
+            return int(float_value)
+        # 否则返回浮点数
+        return float_value
+    except (ValueError, TypeError):
+        # 无法转换为数值，返回去除引号后的字符串
+        return str_value
+
+
 def compare_csv_files(
     online_file_path: str,
     offline_file_path: str,
@@ -22,7 +72,8 @@ def compare_csv_files(
     offline_key_column_index: int,
     online_feature_start_column: int = 3,
     offline_feature_start_column: int = 3,
-    original_online_file_path: str = None
+    original_online_file_path: str = None,
+    convert_feature_to_number: bool = False
 ):
     """
     对比两个CSV文件，以离线文件为基准
@@ -35,6 +86,7 @@ def compare_csv_files(
         online_feature_start_column: 在线文件特征列起始索引（从0开始）
         offline_feature_start_column: 离线文件特征列起始索引（从0开始）
         original_online_file_path: 原始线上文件路径（用于获取时间字段原值，可选）
+        convert_feature_to_number: 是否转换特征值为数值类型（默认False）
     
     Returns:
         (differences_dict, matches_dict, all_features, feature_stats, matched_count,
@@ -51,6 +103,7 @@ def compare_csv_files(
     print(f"离线文件主键列索引: {offline_key_column_index}")
     print(f"在线文件特征列起始索引: {online_feature_start_column}")
     print(f"离线文件特征列起始索引: {offline_feature_start_column}")
+    print(f"转换特征值为数值: {convert_feature_to_number}")
     
     # 读取两个文件
     headers_online, rows_online = read_csv_with_encoding(online_file_path)
@@ -145,6 +198,7 @@ def compare_csv_files(
     
     # 找到cust_no和时间列的索引（用于输出）
     cust_no_idx_offline = None
+    cust_no_idx_online = None  # 新增：也在在线文件中查找cust_no
     time_idx_offline = None
     time_idx_online = None
     # 找到time_now列的索引（用于输出到差异数据明细）
@@ -153,7 +207,7 @@ def compare_csv_files(
     # 尝试查找离线文件的cust_no列和时间列
     for i, header in enumerate(headers_offline):
         header_lower = header.lower()
-        if cust_no_idx_offline is None and ("cust_no" in header_lower or "customer_no" in header_lower):
+        if cust_no_idx_offline is None and ("cust_no" in header_lower or "customer_no" in header_lower or "custno" in header_lower):
             cust_no_idx_offline = i
         # 查找时间列：包含time或date，并且（包含create/apply/use_create，或者列名以_time结尾）
         if time_idx_offline is None and ("time" in header_lower or "date" in header_lower):
@@ -161,9 +215,12 @@ def compare_csv_files(
                 header_lower.endswith("_time") or header_lower.endswith("time")):
                 time_idx_offline = i
     
-    # 尝试查找在线文件的时间列
+    # 尝试查找在线文件的cust_no列和时间列
     for i, header in enumerate(headers_online):
         header_lower = header.lower()
+        # 查找cust_no列
+        if cust_no_idx_online is None and ("cust_no" in header_lower or "customer_no" in header_lower or "custno" in header_lower):
+            cust_no_idx_online = i
         # 查找time_now列
         if time_now_idx_online is None and header_lower == "time_now":
             time_now_idx_online = i
@@ -173,10 +230,16 @@ def compare_csv_files(
                 header_lower.endswith("_time") or header_lower.endswith("time")):
                 time_idx_online = i
     
+    # 输出找到的列信息
     if cust_no_idx_offline is not None:
-        print(f"找到cust_no列: 索引{cust_no_idx_offline} ({headers_offline[cust_no_idx_offline]})")
+        print(f"找到离线文件cust_no列: 索引{cust_no_idx_offline} ({headers_offline[cust_no_idx_offline]})")
     else:
-        print(f"警告: 未找到cust_no列")
+        print(f"提示: 离线文件中未找到cust_no列")
+    
+    if cust_no_idx_online is not None:
+        print(f"找到在线文件cust_no列: 索引{cust_no_idx_online} ({headers_online[cust_no_idx_online]})")
+    else:
+        print(f"提示: 在线文件中未找到cust_no列")
     
     if time_idx_offline is not None:
         print(f"找到离线文件时间列: 索引{time_idx_offline} ({headers_offline[time_idx_offline]})")
@@ -219,22 +282,22 @@ def compare_csv_files(
         if offline_key_idx >= len(row_offline):
             continue
         
-        key_value = str(row_offline[offline_key_idx]).strip() if row_offline[offline_key_idx] is not None else ""
+        key_value_offline = str(row_offline[offline_key_idx]).strip() if row_offline[offline_key_idx] is not None else ""
         
-        if not key_value:
+        if not key_value_offline:
             unmatched_count += 1
             unmatched_rows.append(row_offline)
             continue
         
         # 在在线文件中查找匹配的记录
-        if key_value not in offline_index:
+        if key_value_offline not in offline_index:
             # 这种情况不应该发生，因为我们在遍历离线文件
             continue
         
         # 查找在线文件中对应的记录
         online_row = None
         for row_online in rows_online:
-            if online_key_idx < len(row_online) and str(row_online[online_key_idx]).strip() == key_value:
+            if online_key_idx < len(row_online) and str(row_online[online_key_idx]).strip() == key_value_offline:
                 online_row = row_online
                 break
         
@@ -244,11 +307,24 @@ def compare_csv_files(
             continue
         
         matched_count += 1
-        matched_keys.add(key_value)  # 记录匹配的key值
+        matched_keys.add(key_value_offline)  # 记录匹配的key值
         
-        # 获取cust_no和时间字段（用于输出）
+        # 获取主键值：优先从在线文件（Sql文件）获取，如果没有则从离线文件（接口文件）获取
+        key_value = ""
+        if online_row and online_key_idx < len(online_row) and online_row[online_key_idx] is not None:
+            key_value = str(online_row[online_key_idx]).strip()
+        
+        # 如果在线文件中没有主键值，使用离线文件的主键值
+        if not key_value:
+            key_value = key_value_offline
+        
+        # 获取cust_no（优先从在线文件/Sql文件获取，如果没有则从离线文件/接口文件获取）
         cust_no = ""
-        if cust_no_idx_offline is not None and cust_no_idx_offline < len(row_offline):
+        if cust_no_idx_online is not None and online_row and cust_no_idx_online < len(online_row):
+            cust_no = str(online_row[cust_no_idx_online]).strip() if online_row[cust_no_idx_online] is not None else ""
+        
+        # 如果在线文件中没有找到cust_no，尝试从离线文件获取
+        if not cust_no and cust_no_idx_offline is not None and cust_no_idx_offline < len(row_offline):
             cust_no = str(row_offline[cust_no_idx_offline]).strip() if row_offline[cust_no_idx_offline] is not None else ""
         
         # 获取离线文件的时间字段（保留原始格式，包括秒和毫秒，不做任何格式化或截断）
@@ -302,6 +378,11 @@ def compare_csv_files(
             online_value = ""
             if online_idx is not None and online_row and online_idx < len(online_row):
                 online_value = str(online_row[online_idx]).strip() if online_row[online_idx] is not None else ""
+            
+            # 如果启用了特征值转换，尝试将字符串转换为数值
+            if convert_feature_to_number:
+                offline_value = _convert_string_to_number(offline_value)
+                online_value = _convert_string_to_number(online_value)
             
             # 判断是否有差异
             has_diff = False

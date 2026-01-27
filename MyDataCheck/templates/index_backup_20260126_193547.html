@@ -15,166 +15,117 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
             background: #f5f7fa;
             min-height: 100vh;
+            padding: 15px;
             font-size: 12px;
-            overflow-x: hidden;
         }
 
-        /* 主容器 - 使用flex布局 */
-        .app-container {
-            display: flex;
-            min-height: 100vh;
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
 
-        /* 侧边栏样式 */
-        .sidebar {
-            width: 260px;
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        /* Logo区域 */
-        .sidebar-header {
-            padding: 25px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-header h1 {
-            font-size: 20px;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        .sidebar-header p {
-            font-size: 11px;
-            opacity: 0.8;
-        }
-
-        /* 菜单区域 */
-        .sidebar-menu {
-            flex: 1;
-            padding: 15px 0;
-        }
-
-        .menu-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: rgba(255,255,255,0.8);
-            border-left: 3px solid transparent;
-            font-size: 13px;
-        }
-
-        .menu-item:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-        }
-
-        .menu-item.active {
-            background: rgba(255,255,255,0.15);
-            border-left-color: white;
-            color: white;
-            font-weight: 500;
-        }
-
-        .menu-item .icon {
-            font-size: 18px;
-            width: 24px;
+            padding: 20px;
             text-align: center;
         }
 
-        /* 主内容区域 */
-        .main-content {
-            flex: 1;
-            margin-left: 260px;
-            padding: 20px;
-            background: #f5f7fa;
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 8px;
         }
 
-        /* 内容卡片 */
-        .content-section {
-            display: none;
-        }
-
-        .content-section.active {
-            display: block;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* 页面标题 */
-        .page-header {
-            background: white;
-            padding: 20px 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .page-header h2 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .page-header p {
+        .header p {
+            opacity: 0.9;
             font-size: 12px;
-            color: #666;
         }
 
-        /* 内容网格 */
-        .content-grid {
+        /* Tab样式 */
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            overflow: visible;
+        }
+
+        .tab-content.active {
+            display: block;
+            overflow: visible;
+        }
+
+        .content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 15px;
         }
 
         @media (max-width: 1400px) {
-            .content-grid {
+            .content {
                 grid-template-columns: 1fr;
             }
         }
 
-        /* 面板样式 */
         .panel {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 18px;
+            border: 1px solid #e0e0e0;
         }
 
-        .panel h3 {
+        .panel h2 {
             font-size: 16px;
             margin-bottom: 15px;
             color: #333;
             border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* 表单样式 */
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         label {
             display: block;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
             font-weight: 500;
             color: #555;
             font-size: 12px;
@@ -183,15 +134,14 @@
         input[type="text"],
         input[type="number"],
         input[type="url"],
-        input[type="file"],
         textarea,
         select {
             width: 100%;
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 12px;
-            transition: all 0.3s;
+            transition: border-color 0.3s;
             font-family: inherit;
         }
 
@@ -200,12 +150,12 @@
         select:focus {
             outline: none;
             border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         input[type="file"] {
-            padding: 10px;
+            padding: 8px;
             border: 2px dashed #667eea;
+            border-radius: 6px;
             background: #f0f4ff;
             cursor: pointer;
         }
@@ -215,8 +165,8 @@
         }
 
         input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
             accent-color: #667eea;
         }
@@ -227,15 +177,324 @@
             gap: 8px;
         }
 
-        /* 按钮样式 */
-        button {
-            padding: 10px 20px;
-            border: none;
+        .scenario-card {
+            background: white;
+            border: 2px solid #e0e0e0;
             border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .scenario-card.enabled {
+            border-color: #667eea;
+        }
+
+        .scenario-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .scenario-header:hover {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 8px;
+            margin: -8px -8px 4px -8px;
+        }
+        
+        /* 收起状态：显示场景名称、按钮和启用/禁用按钮 */
+        .scenario-card.collapsed .scenario-header {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+            justify-content: space-between;
+            min-height: auto;
+        }
+        
+        .scenario-card.collapsed .scenario-header > div:first-child {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .scenario-card.collapsed .scenario-title {
+            display: block !important;
+        }
+        
+        .scenario-card.collapsed .scenario-actions {
+            display: flex !important;
+        }
+        
+        .scenario-card.collapsed .scenario-toggle-btn {
+            margin-left: 6px;
+            width: 20px;
+            flex-shrink: 0;
+        }
+        
+        .scenario-card.collapsed {
+            padding: 8px 8px;
+        }
+        
+        .scenario-card.collapsed:hover {
+            padding: 8px 15px;
+        }
+        
+        .scenario-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            max-height: none;
+            opacity: 1;
+        }
+        
+        .scenario-content.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        
+        .scenario-toggle-btn {
+            background: #f5f7fa;
+            border: 1px solid #e1e8ed;
+            font-size: 11px;
+            cursor: pointer;
+            color: #667eea;
+            padding: 0;
+            margin-left: 6px;
+            transition: all 0.2s ease;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .scenario-toggle-btn:hover {
+            color: #5568d3;
+            background-color: #eef2ff;
+            border-color: #c7d2fe;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.15);
+        }
+        
+        .scenario-toggle-btn:active {
+            background-color: #e0e7ff;
+            border-color: #a5b4fc;
+            box-shadow: 0 1px 2px rgba(102, 126, 234, 0.2);
+            transform: scale(0.95);
+        }
+        
+        .scenario-toggle-btn.collapsed {
+        }
+
+        .scenario-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-right: 8px;
+        }
+        
+        .scenario-name-input {
+            font-weight: 600;
+            border: 1px solid #ddd;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            width: 150px;
+            font-size: 14px;
+            cursor: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        
+        .scenario-name-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+            background: #fff;
+        }
+        
+        .scenario-name-input:hover {
+            border-color: #999;
+        }
+        
+        .scenario-name-input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+        
+        .online-scenario-name-input {
+            font-weight: 600;
+            border: 1px solid #ddd;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            width: 150px;
+            font-size: 14px;
+            cursor: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        
+        .online-scenario-name-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+            background: #fff;
+        }
+        
+        .online-scenario-name-input:hover {
+            border-color: #999;
+        }
+        
+        .online-scenario-name-input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .scenario-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-icon {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .column-config {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+
+        .column-config h4 {
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 12px;
+        }
+
+        /* 接口参数配置样式 */
+        .api-params-config {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #ffc107;
+        }
+
+        .api-params-config h4 {
             font-size: 13px;
+            margin-bottom: 8px;
+            color: #856404;
+        }
+
+        .api-param-item {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-small.btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-small.btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-small.btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-small.btn-danger:hover {
+            background: #c82333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .scenario-card .button-group {
+            border-top: 1px solid #e0e0e0;
+            padding-top: 12px;
+            margin-top: 12px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s;
+            flex: 1;
+            min-width: 100px;
         }
 
         .btn-primary {
@@ -275,14 +534,23 @@
             background: #c82333;
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
+        .btn-add {
+            background: #17a2b8;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
         }
 
-        /* 输出面板 */
+        .btn-add:hover {
+            background: #138496;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         .output-panel {
             min-height: 500px;
             max-height: 800px;
@@ -290,10 +558,10 @@
             background: #1e1e1e;
             color: #d4d4d4;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 6px;
             font-family: 'Consolas', 'Monaco', monospace;
             font-size: 11px;
-            line-height: 1.6;
+            line-height: 1.5;
             white-space: pre-wrap;
             word-wrap: break-word;
         }
@@ -318,15 +586,14 @@
             color: #569cd6;
         }
 
-        /* 状态栏 */
         .status-bar {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px;
+            gap: 8px;
+            padding: 8px;
             background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            border-radius: 6px;
+            margin-bottom: 12px;
             font-size: 12px;
         }
 
@@ -355,113 +622,10 @@
             50% { opacity: 0.5; }
         }
 
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-left: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 场景卡片 */
-        .scenario-card {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-        }
-
-        .scenario-card.enabled {
-            border-color: #667eea;
-        }
-
-        .scenario-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 200px;
-            }
-            
-            .main-content {
-                margin-left: 200px;
-            }
-        }
-
-        /* 滚动条样式 */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        /* 文件信息 */
-        .file-info {
-            margin-top: 8px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            font-size: 11px;
-            color: #666;
-        }
-
-        /* 全局配置 */
-        .global-config {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .global-config h3 {
-            margin-bottom: 10px;
-            color: #856404;
-            font-size: 14px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Alert样式 */
         .alert {
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
             display: none;
             font-size: 12px;
         }
@@ -481,263 +645,259 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-info {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .global-config {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .global-config h3 {
+            margin-bottom: 8px;
+            color: #856404;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- 侧边栏 -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h1>📊 数据对比平台</h1>
-                <p>Data Comparison Platform</p>
-            </div>
-            
-            <div class="sidebar-menu">
-                <div class="menu-item active" onclick="switchPage('api')">
-                    <span class="icon">📡</span>
-                    <span>接口数据对比</span>
-                </div>
-                <div class="menu-item" onclick="switchPage('online')">
-                    <span class="icon">🌐</span>
-                    <span>线上灰度落数对比</span>
-                </div>
-                <div class="menu-item" onclick="switchPage('compare')">
-                    <span class="icon">📊</span>
-                    <span>数据对比</span>
-                </div>
-                <div class="menu-item" onclick="switchPage('pkl')">
-                    <span class="icon">📦</span>
-                    <span>PKL文件解析</span>
-                </div>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1>数据对比 - Web界面</h1>
+            <p>接口数据对比 + 线上灰度落数对比</p>
         </div>
 
-        <!-- 主内容区域 -->
-        <div class="main-content">
-            <!-- 接口数据对比页面 -->
-            <div id="page-api" class="content-section active">
-                <div class="page-header">
-                    <h2>📡 接口数据对比</h2>
-                    <p>对比接口返回数据与预期数据的差异</p>
-                </div>
-                
-                <div class="content-grid">
-                    <!-- 配置面板 -->
-                    <div class="panel">
-                        <h3>📝 执行配置</h3>
-                        <div id="alert-container-api"></div>
-                        <div id="scenarios-container"></div>
-                        <button class="btn-success" onclick="addScenario()" style="width: 100%; margin-top: 10px;">➕ 添加场景</button>
-                        
-                        <!-- 全局配置 -->
-                        <div class="global-config" style="margin-top: 20px;">
-                            <h3>⚙️ 全局默认配置</h3>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="global_thread_count">默认线程数:</label>
-                                    <input type="number" id="global_thread_count" value="150" min="1" max="1000">
-                                </div>
-                                <div class="form-group">
-                                    <label for="global_timeout">默认超时时间(秒):</label>
-                                    <input type="number" id="global_timeout" value="60" min="1">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="global_convert_feature" checked>
-                                    <label for="global_convert_feature" style="margin: 0;">默认转换特征值为数值</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Tab导航 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('api')">📡 接口数据对比</button>
+            <button class="tab" onclick="switchTab('online')">🌐 线上灰度落数对比</button>
+            <button class="tab" onclick="switchTab('compare')">📊 数据对比</button>
+        </div>
 
-                    <!-- 输出面板 -->
-                    <div class="panel">
-                        <h3>📊 执行输出</h3>
-                        <div class="status-bar">
-                            <div class="status-indicator" id="status-indicator-api"></div>
-                            <span id="status-text-api">就绪</span>
-                            <span class="loading" id="loading-spinner-api" style="display: none;"></span>
-                        </div>
-                        <div class="output-panel" id="output-panel-api">
-                            <div class="output-line info">等待执行...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Tab 1: 接口数据对比 -->
+        <div id="tab-api" class="tab-content active">
+            <div class="content">
+                <!-- 配置输入面板 -->
+                <div class="panel">
+                    <h2>📝 执行配置</h2>
+                    
+                    <div id="alert-container-api"></div>
 
-            <!-- 线上灰度落数对比页面 -->
-            <div id="page-online" class="content-section">
-                <div class="page-header">
-                    <h2>🌐 线上灰度落数对比</h2>
-                    <p>对比线上环境与灰度环境的数据差异</p>
-                </div>
-                
-                <div class="content-grid">
-                    <div class="panel">
-                        <h3>📝 执行配置</h3>
-                        <div id="alert-container-online"></div>
-                        <div id="online-scenarios-container"></div>
-                        <button class="btn-success" onclick="addOnlineScenario()" style="width: 100%; margin-top: 10px;">➕ 添加场景</button>
-                    </div>
+                    <!-- 场景列表 -->
+                    <div id="scenarios-container"></div>
 
-                    <div class="panel">
-                        <h3>📊 执行输出</h3>
-                        <div class="status-bar">
-                            <div class="status-indicator" id="status-indicator-online"></div>
-                            <span id="status-text-online">就绪</span>
-                            <span class="loading" id="loading-spinner-online" style="display: none;"></span>
-                        </div>
-                        <div class="output-panel" id="output-panel-online">
-                            <div class="output-line info">等待执行...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                    <button class="btn-add" onclick="addScenario()">➕ 添加场景</button>
 
-            <!-- 数据对比页面 -->
-            <div id="page-compare" class="content-section">
-                <div class="page-header">
-                    <h2>📊 数据对比</h2>
-                    <p>对比两个CSV/XLSX文件的数据差异</p>
-                </div>
-                
-                <div class="content-grid">
-                    <div class="panel">
-                        <h3>📝 对比配置</h3>
-                        <div id="alert-container-compare"></div>
-
-                        <div class="form-group">
-                            <label>Sql文件 (CSV/XLSX):</label>
-                            <input type="file" id="compare-file1" accept=".csv,.xlsx" onchange="handleCompareFileSelect(1, this)">
-                            <div class="file-info" id="file-info-compare-1">未选择文件</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>接口文件 (CSV/XLSX):</label>
-                            <input type="file" id="compare-file2" accept=".csv,.xlsx" onchange="handleCompareFileSelect(2, this)">
-                            <div class="file-info" id="file-info-compare-2">未选择文件</div>
-                        </div>
-
+                    <!-- 全局配置 -->
+                    <div class="global-config">
+                        <h3>⚙️ 全局默认配置</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Sql文件主键列索引 (A列=0):</label>
-                                <input type="number" id="compare-key-column-1" value="0" min="0">
+                                <label for="global_thread_count">默认线程数:</label>
+                                <input type="number" id="global_thread_count" value="150" min="1" max="1000">
                             </div>
                             <div class="form-group">
-                                <label>接口文件主键列索引 (A列=0):</label>
-                                <input type="number" id="compare-key-column-2" value="0" min="0">
+                                <label for="global_timeout">默认超时时间(秒):</label>
+                                <input type="number" id="global_timeout" value="60" min="1">
                             </div>
                         </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Sql文件特征起始列索引:</label>
-                                <input type="number" id="compare-feature-start-1" value="1" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label>接口文件特征起始列索引:</label>
-                                <input type="number" id="compare-feature-start-2" value="1" min="0">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>输出文件前缀:</label>
-                            <input type="text" id="compare-output-prefix" value="compare" placeholder="输出文件前缀">
-                        </div>
-
                         <div class="form-group">
                             <div class="checkbox-group">
-                                <input type="checkbox" id="compare-convert-feature" checked>
-                                <label for="compare-convert-feature" style="margin: 0;">转换特征值为数值</label>
+                                <input type="checkbox" id="global_convert_feature" checked>
+                                <label for="global_convert_feature" style="margin: 0;">默认转换特征值为数值</label>
                             </div>
-                            <p style="color: #666; font-size: 11px; margin-top: 5px; margin-left: 26px;">
-                                勾选后，会尝试将字符串类型的特征值转换为数值类型进行对比（如 "8" 转为 8）
-                            </p>
-                        </div>
-
-                        <div class="button-group">
-                            <button class="btn-primary" onclick="executeCompare()" id="btn-execute-compare" disabled style="flex: 1;">▶️ 执行对比</button>
-                            <button class="btn-success" onclick="saveCompareConfig()">💾 保存配置</button>
-                            <button class="btn-secondary" onclick="loadCompareConfig()">📂 加载配置</button>
-                            <button class="btn-danger" onclick="clearCompareOutput()">🗑️ 清空输出</button>
-                        </div>
-                        
-                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 11px; color: #666;">
-                            <strong>💡 提示：</strong>配置将保存到 <code>data_comparison/config.json</code>
                         </div>
                     </div>
 
-                    <div class="panel">
-                        <h3>📊 执行输出</h3>
-                        <div class="status-bar">
-                            <div class="status-indicator" id="status-indicator-compare"></div>
-                            <span id="status-text-compare">就绪</span>
-                            <span class="loading" id="loading-spinner-compare" style="display: none;"></span>
-                        </div>
-                        <div class="output-panel" id="output-panel-compare">
-                            <div class="output-line info">等待执行...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PKL文件解析页面 -->
-            <div id="page-pkl" class="content-section">
-                <div class="page-header">
-                    <h2>📦 PKL文件解析工具</h2>
-                    <p>上传PKL文件，查看内容结构，并转换为CSV格式</p>
-                </div>
-                
-                <div class="content-grid">
-                    <div class="panel">
-                        <h3>📝 文件上传</h3>
+                    <!-- PKL文件解析模块 -->
+                    <div class="pkl-parser-module" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e0e0e0;">
+                        <h3>📦 PKL文件解析工具</h3>
+                        <p style="color: #666; font-size: 12px; margin-bottom: 15px;">
+                            上传PKL文件，查看内容结构，并转换为CSV格式
+                        </p>
                         
                         <div class="form-group">
                             <label>选择PKL文件:</label>
-                            <input type="file" id="pkl-file-input" accept=".pkl">
-                            <div class="file-info" id="pkl-file-info">未选择文件</div>
+                            <input type="file" id="pkl-file-input" accept=".pkl" style="margin-top: 5px;">
+                            <div id="pkl-file-info" style="margin-top: 8px; padding: 8px; background: white; border-radius: 4px; min-height: 30px;">
+                                未选择文件
+                            </div>
                         </div>
 
-                        <div class="button-group">
+                        <div style="margin-top: 15px;">
                             <button class="btn-success" onclick="parsePklFile()" id="btn-parse-pkl" disabled>🔍 解析文件</button>
-                            <button class="btn-primary" onclick="convertPklToCsv()" id="btn-convert-pkl" disabled>💾 转换为CSV</button>
-                            <button class="btn-primary" onclick="convertPklToCdcV2Csv()" id="btn-convert-cdcv2-pkl" disabled style="background: #28a745;">📊 cdcV2核心Csv</button>
+                            <button class="btn-primary" onclick="convertPklToCsv()" id="btn-convert-pkl" disabled style="margin-left: 10px;">💾 转换为CSV</button>
+                            <button class="btn-primary" onclick="convertPklToCdcV2Csv()" id="btn-convert-cdcv2-pkl" disabled style="margin-left: 10px; background: #28a745;">📊 cdcV2核心Csv</button>
                         </div>
 
                         <!-- PKL文件内容预览 -->
                         <div id="pkl-preview-container" style="margin-top: 20px; display: none;">
                             <h4 style="margin-bottom: 10px;">📋 文件内容预览</h4>
-                            <div id="pkl-preview-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 12px;"></div>
-                            <div id="pkl-preview-data" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-size: 11px;"></div>
+                            <div id="pkl-preview-info" style="background: white; padding: 15px; border-radius: 4px; margin-bottom: 10px; font-size: 12px;"></div>
+                            <div id="pkl-preview-data" style="background: white; padding: 15px; border-radius: 4px; max-height: 400px; overflow-y: auto; font-size: 11px;"></div>
                         </div>
 
                         <!-- 转换结果 -->
                         <div id="pkl-convert-result" style="margin-top: 20px; display: none;">
                             <h4 style="margin-bottom: 10px;">✅ 转换结果</h4>
-                            <div id="pkl-convert-info" style="background: #d4edda; padding: 15px; border-radius: 8px; font-size: 12px;"></div>
+                            <div id="pkl-convert-info" style="background: white; padding: 15px; border-radius: 4px; font-size: 12px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 输出面板 -->
+                <div class="panel">
+                    <h2>📊 执行输出</h2>
+                    
+                    <div class="status-bar">
+                        <div class="status-indicator" id="status-indicator-api"></div>
+                        <span id="status-text-api">就绪</span>
+                        <span class="loading" id="loading-spinner-api" style="display: none;"></span>
+                    </div>
+
+                    <div class="output-panel" id="output-panel-api">
+                        <div class="output-line info">等待执行...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: 线上灰度落数对比 -->
+        <div id="tab-online" class="tab-content">
+            <div class="content">
+                <!-- 配置输入面板 -->
+                <div class="panel">
+                    <h2>📝 执行配置</h2>
+                    
+                    <div id="alert-container-online"></div>
+
+                    <!-- 场景列表 -->
+                    <div id="online-scenarios-container"></div>
+
+                    <button class="btn-add" onclick="addOnlineScenario()">➕ 添加场景</button>
+                </div>
+
+                <!-- 输出面板 -->
+                <div class="panel">
+                    <h2>📊 执行输出</h2>
+                    
+                    <div class="status-bar">
+                        <div class="status-indicator" id="status-indicator-online"></div>
+                        <span id="status-text-online">就绪</span>
+                        <span class="loading" id="loading-spinner-online" style="display: none;"></span>
+                    </div>
+
+                    <div class="output-panel" id="output-panel-online">
+                        <div class="output-line info">等待执行...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: 数据对比 -->
+        <div id="tab-compare" class="tab-content">
+            <div class="content">
+                <!-- 配置输入面板 -->
+                <div class="panel">
+                    <h2>📊 数据对比配置</h2>
+                    
+                    <div id="alert-container-compare"></div>
+
+                    <div class="form-group">
+                        <label>Sql文件 (CSV/XLSX):</label>
+                        <input type="file" id="compare-file1" accept=".csv,.xlsx" onchange="handleCompareFileSelect(1, this)">
+                        <div class="file-info" id="file-info-compare-1" style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                            未选择文件
                         </div>
                     </div>
 
-                    <div class="panel">
-                        <h3>📊 操作说明</h3>
-                        <div style="padding: 10px; line-height: 1.8;">
-                            <h4 style="margin-bottom: 10px; color: #667eea;">使用步骤：</h4>
-                            <ol style="padding-left: 20px; color: #666;">
-                                <li style="margin-bottom: 8px;">点击"选择PKL文件"上传文件</li>
-                                <li style="margin-bottom: 8px;">点击"🔍 解析文件"查看文件内容</li>
-                                <li style="margin-bottom: 8px;">点击"💾 转换为CSV"将PKL转换为CSV格式</li>
-                                <li style="margin-bottom: 8px;">或点击"📊 cdcV2核心Csv"转换为CDC V2格式</li>
-                            </ol>
-                            
-                            <h4 style="margin: 20px 0 10px; color: #667eea;">支持的功能：</h4>
-                            <ul style="padding-left: 20px; color: #666;">
-                                <li style="margin-bottom: 8px;">查看PKL文件结构和内容</li>
-                                <li style="margin-bottom: 8px;">转换为标准CSV格式</li>
-                                <li style="margin-bottom: 8px;">转换为CDC V2核心字段格式</li>
-                                <li style="margin-bottom: 8px;">支持大文件处理</li>
-                            </ul>
+                    <div class="form-group">
+                        <label>接口文件 (CSV/XLSX):</label>
+                        <input type="file" id="compare-file2" accept=".csv,.xlsx" onchange="handleCompareFileSelect(2, this)">
+                        <div class="file-info" id="file-info-compare-2" style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                            未选择文件
                         </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sql文件主键列索引 (A列=0):</label>
+                            <input type="number" id="compare-key-column-1" value="0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>接口文件主键列索引 (A列=0):</label>
+                            <input type="number" id="compare-key-column-2" value="0" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sql文件特征起始列索引:</label>
+                            <input type="number" id="compare-feature-start-1" value="1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>接口文件特征起始列索引:</label>
+                            <input type="number" id="compare-feature-start-2" value="1" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>输出文件前缀:</label>
+                        <input type="text" id="compare-output-prefix" value="compare" placeholder="输出文件前缀">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="compare-convert-feature" checked>
+                            <label for="compare-convert-feature" style="margin: 0;">转换特征值为数值</label>
+                        </div>
+                        <p style="color: #666; font-size: 11px; margin-top: 5px; margin-left: 28px;">
+                            勾选后，会尝试将字符串类型的特征值转换为数值类型进行对比（如 "8" 转为 8）
+                        </p>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="executeCompare()" id="btn-execute-compare" disabled>▶️ 执行对比</button>
+                        <button class="btn-danger" onclick="clearCompareOutput()">🗑️ 清空输出</button>
+                    </div>
+                </div>
+
+                <!-- 输出面板 -->
+                <div class="panel">
+                    <h2>📊 执行输出</h2>
+                    
+                    <div class="status-bar">
+                        <div class="status-indicator" id="status-indicator-compare"></div>
+                        <span id="status-text-compare">就绪</span>
+                        <span class="loading" id="loading-spinner-compare" style="display: none;"></span>
+                    </div>
+
+                    <div class="output-panel" id="output-panel-compare">
+                        <div class="output-line info">等待执行...</div>
                     </div>
                 </div>
             </div>
@@ -752,43 +912,19 @@
         let scenarioCount = 0;
         let onlineScenarioCount = 0;  // 线上灰度落数对比场景计数
 
-        // 页面切换函数（侧边栏菜单）
-        function switchPage(pageName) {
-            console.log('switchPage called with:', pageName);
-            
-            // 隐藏所有页面
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-                console.log('Hiding section:', section.id);
-            });
-            
-            // 移除所有菜单项的active状态
-            document.querySelectorAll('.menu-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // 显示选中的页面
-            const targetPage = document.getElementById(`page-${pageName}`);
-            if (targetPage) {
-                targetPage.classList.add('active');
-                console.log('Showing page:', targetPage.id);
-            } else {
-                console.error('Page not found:', `page-${pageName}`);
-            }
-            
-            // 激活对应的菜单项
-            if (typeof event !== 'undefined' && event && event.target) {
-                const menuItem = event.target.closest('.menu-item');
-                if (menuItem) {
-                    menuItem.classList.add('active');
-                    console.log('Menu item activated');
-                }
-            }
-        }
-
-        // Tab切换（保留兼容性）
+        // Tab切换
         function switchTab(tabName) {
-            switchPage(tabName);
+            // 隐藏所有Tab内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的Tab
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
         }
 
         // ========== 接口数据对比相关函数 ==========
@@ -4108,126 +4244,6 @@
             outputPanel.innerHTML = '<div class="output-line info">等待执行...</div>';
             statusIndicator.className = 'status-indicator';
             statusText.textContent = '就绪';
-        }
-
-        // 保存数据对比配置
-        async function saveCompareConfig() {
-            try {
-                const config = {
-                    scenarios: [{
-                        name: "当前配置",
-                        enabled: true,
-                        description: "通过Web界面保存的配置",
-                        sql_file: compareFile1 || "",
-                        api_file: compareFile2 || "",
-                        sql_key_column: parseInt(document.getElementById('compare-key-column-1').value) || 0,
-                        api_key_column: parseInt(document.getElementById('compare-key-column-2').value) || 0,
-                        sql_feature_start: parseInt(document.getElementById('compare-feature-start-1').value) || 1,
-                        api_feature_start: parseInt(document.getElementById('compare-feature-start-2').value) || 1,
-                        convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
-                        output_prefix: document.getElementById('compare-output-prefix').value || 'compare'
-                    }],
-                    global_config: {
-                        default_convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
-                        default_sql_key_column: parseInt(document.getElementById('compare-key-column-1').value) || 0,
-                        default_api_key_column: parseInt(document.getElementById('compare-key-column-2').value) || 0,
-                        default_sql_feature_start: parseInt(document.getElementById('compare-feature-start-1').value) || 1,
-                        default_api_feature_start: parseInt(document.getElementById('compare-feature-start-2').value) || 1
-                    }
-                };
-
-                const response = await fetch('/api/compare/config/save', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(config)
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showAlert('配置保存成功！保存到 data_comparison/config.json', 'success', 'compare');
-                } else {
-                    showAlert('配置保存失败: ' + data.error, 'error', 'compare');
-                }
-            } catch (error) {
-                showAlert('配置保存失败: ' + error.message, 'error', 'compare');
-            }
-        }
-
-        // 加载数据对比配置
-        async function loadCompareConfig() {
-            try {
-                const response = await fetch('/api/compare/config/load', {
-                    method: 'GET'
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.config) {
-                    const config = data.config;
-                    
-                    // 加载全局配置
-                    if (config.global_config) {
-                        const gc = config.global_config;
-                        document.getElementById('compare-key-column-1').value = gc.default_sql_key_column || 0;
-                        document.getElementById('compare-key-column-2').value = gc.default_api_key_column || 0;
-                        document.getElementById('compare-feature-start-1').value = gc.default_sql_feature_start || 1;
-                        document.getElementById('compare-feature-start-2').value = gc.default_api_feature_start || 1;
-                        document.getElementById('compare-convert-feature').checked = gc.default_convert_feature_to_number !== false;
-                    }
-                    
-                    // 加载第一个场景的配置（如果存在）
-                    if (config.scenarios && config.scenarios.length > 0) {
-                        const scenario = config.scenarios[0];
-                        
-                        // 更新文件信息显示
-                        if (scenario.sql_file) {
-                            compareFile1 = scenario.sql_file;
-                            document.getElementById('file-info-compare-1').textContent = `配置中的文件: ${scenario.sql_file}`;
-                            document.getElementById('file-info-compare-1').style.color = '#667eea';
-                        }
-                        
-                        if (scenario.api_file) {
-                            compareFile2 = scenario.api_file;
-                            document.getElementById('file-info-compare-2').textContent = `配置中的文件: ${scenario.api_file}`;
-                            document.getElementById('file-info-compare-2').style.color = '#667eea';
-                        }
-                        
-                        // 更新其他配置
-                        if (scenario.sql_key_column !== undefined) {
-                            document.getElementById('compare-key-column-1').value = scenario.sql_key_column;
-                        }
-                        if (scenario.api_key_column !== undefined) {
-                            document.getElementById('compare-key-column-2').value = scenario.api_key_column;
-                        }
-                        if (scenario.sql_feature_start !== undefined) {
-                            document.getElementById('compare-feature-start-1').value = scenario.sql_feature_start;
-                        }
-                        if (scenario.api_feature_start !== undefined) {
-                            document.getElementById('compare-feature-start-2').value = scenario.api_feature_start;
-                        }
-                        if (scenario.output_prefix) {
-                            document.getElementById('compare-output-prefix').value = scenario.output_prefix;
-                        }
-                        if (scenario.convert_feature_to_number !== undefined) {
-                            document.getElementById('compare-convert-feature').checked = scenario.convert_feature_to_number;
-                        }
-                        
-                        // 如果两个文件都存在，启用执行按钮
-                        if (compareFile1 && compareFile2) {
-                            document.getElementById('btn-execute-compare').disabled = false;
-                        }
-                    }
-                    
-                    showAlert('配置加载成功！', 'success', 'compare');
-                } else {
-                    showAlert('配置加载失败: ' + (data.error || '未找到配置文件'), 'error', 'compare');
-                }
-            } catch (error) {
-                showAlert('配置加载失败: ' + error.message, 'error', 'compare');
-            }
         }
     </script>
 </body>

@@ -3,9 +3,9 @@
     {
       "name": "测试",
       "enabled": true,
-      "description": "qx_111333333",
-      "input_csv_file": "qx_6_sql.csv",
-      "output_file_prefix": "qx_33",
+      "description": "qx_6",
+      "input_csv_file": "qx_10.csv",
+      "output_file_prefix": "qx_6",
       "api_url": "http://10.129.2.25:8081/riskanalysis/feature/order/uncomplete",
       "thread_count": 150,
       "timeout": 60,
@@ -17,12 +17,12 @@
       "api_params": [
         {
           "param_name": "custNo",
-          "column_index": 0,
+          "column_index": 1,
           "is_time_field": false
         },
         {
           "param_name": "applyId",
-          "column_index": 1,
+          "column_index": 0,
           "is_time_field": false
         }
       ]

@@ -68,7 +68,7 @@ function switchTab(tabName) {
 
 // 输出相关函数
 function appendOutput(tabId, message, type = 'info') {
-    const outputDiv = document.getElementById(`${tabId}-output`);
+    const outputDiv = document.getElementById(`output-panel-${tabId}`);
     if (!outputDiv) return;
     
     // 初始化计数器
@@ -122,7 +122,7 @@ function appendOutput(tabId, message, type = 'info') {
 }
 
 function clearOutput(tabId) {
-    const outputDiv = document.getElementById(`${tabId}-output`);
+    const outputDiv = document.getElementById(`output-panel-${tabId}`);
     if (outputDiv) {
         outputDiv.innerHTML = '';
         // 重置计数器

@@ -1,0 +1,41 @@
+================================================================================
+                    元素ID不匹配问题修复
+================================================================================
+
+【问题描述】
+接口数据对比执行时报错:
+"Cannot set properties of null (setting 'innerHTML')"
+
+【问题原因】
+在拆分 index.html 时，HTML 和 JavaScript 使用的元素 ID 不一致:
+- HTML 使用: api-output, online-output, compare-output
+- JavaScript 使用: output-panel-api, output-panel-online, output-panel-compare
+
+【修复内容】
+1. ✅ 修改 templates/index.html
+   - api-output → output-panel-api
+   - online-output → output-panel-online
+   - compare-output → output-panel-compare
+
+2. ✅ 修改 static/js/ui.js
+   - appendOutput 函数: ${tabId}-output → output-panel-${tabId}
+   - clearOutput 函数: ${tabId}-output → output-panel-${tabId}
+
+【修复后的ID规范】
+统一使用格式: output-panel-{模块名}
+- output-panel-api      (接口数据对比)
+- output-panel-online   (线上灰度落数对比)
+- output-panel-compare  (数据对比)
+
+【验证结果】
+✅ HTML 元素 ID 已更新
+✅ JavaScript 代码已同步
+✅ 服务已重启
+✅ 页面可以正常访问
+
+【使用说明】
+服务已重启，访问: http://localhost:5001
+现在可以正常使用接口数据对比功能了！
+
+修复时间: 2026-01-27
+================================================================================

@@ -83,42 +83,27 @@ function appendOutput(tabId, message, type = 'info') {
                         message.includes('失败') || message.includes('成功') ||
                         message.includes('进度') || message.includes('%');
     
-    // 如果是关键信息，总是显示
-    if (isKeyMessage) {
-        const line = document.createElement('div');
-        line.className = `output-line ${type}`;
-        line.textContent = message;
-        outputDiv.appendChild(line);
-        outputDiv.scrollTop = outputDiv.scrollHeight;
-        return;
-    }
+    // 显示所有日志（不再采样）
+    const line = document.createElement('div');
+    line.className = `output-line ${type}`;
+    line.textContent = message;
+    outputDiv.appendChild(line);
     
-    // 非关键信息：采样显示
-    outputCounters[tabId]++;
-    
-    // 每SAMPLE_RATE条显示一条
-    if (outputCounters[tabId] % SAMPLE_RATE === 0) {
-        const line = document.createElement('div');
-        line.className = `output-line ${type}`;
-        line.textContent = message;
-        outputDiv.appendChild(line);
-        
-        // 限制总行数
-        const lines = outputDiv.querySelectorAll('.output-line');
-        if (lines.length > MAX_OUTPUT_LINES) {
-            // 删除最旧的行（保留最新的MAX_OUTPUT_LINES行）
-            const toRemove = lines.length - MAX_OUTPUT_LINES;
-            for (let i = 0; i < toRemove; i++) {
-                lines[i].remove();
-            }
+    // 限制总行数（防止内存溢出）
+    const lines = outputDiv.querySelectorAll('.output-line');
+    if (lines.length > MAX_OUTPUT_LINES) {
+        // 删除最旧的行（保留最新的MAX_OUTPUT_LINES行）
+        const toRemove = lines.length - MAX_OUTPUT_LINES;
+        for (let i = 0; i < toRemove; i++) {
+            lines[i].remove();
         }
-        
-        // 自动滚动到底部（防抖）
-        clearTimeout(outputDiv.scrollTimeout);
-        outputDiv.scrollTimeout = setTimeout(() => {
-            outputDiv.scrollTop = outputDiv.scrollHeight;
-        }, 50);
     }
+    
+    // 自动滚动到底部（防抖）
+    clearTimeout(outputDiv.scrollTimeout);
+    outputDiv.scrollTimeout = setTimeout(() => {
+        outputDiv.scrollTop = outputDiv.scrollHeight;
+    }, 50);
 }
 
 function clearOutput(tabId) {

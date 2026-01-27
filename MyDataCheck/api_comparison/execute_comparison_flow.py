@@ -124,7 +124,7 @@ def main():
     for i, scenario in enumerate(enabled_scenarios, 1):
         print(f"[{i}/{len(enabled_scenarios)}] ", end="")
         
-        if execute_single_scenario(scenario, global_config, script_dir, timestamp_suffix):
+        if execute_single_scenario(scenario, global_config, script_dir, timestamp_suffix, None, None, json_config):
             success_count += 1
         else:
             fail_count += 1

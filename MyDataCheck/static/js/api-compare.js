@@ -219,12 +219,6 @@ function addScenario(scenarioData = null, isFirst = false) {
                 </div>
             </div>
         </div>
-
-        <div class="button-group" style="margin-top: 15px;">
-            <button class="btn-success" onclick="saveConfig()">💾 保存配置</button>
-            <button class="btn-primary" onclick="executeConfig()" id="execute-btn-${scenarioId}">▶️ 执行对比</button>
-            <button class="btn-danger" onclick="clearOutput()">🗑️ 清空输出</button>
-        </div>
         </div>
     `;
     
@@ -649,6 +643,9 @@ function collectConfig() {
             default_thread_count: globalThreadCount,
             default_timeout: globalTimeout,
             default_convert_feature_to_number: getGlobalChecked('global_convert_feature', true)
+        },
+        output_config: {
+            output_intermediate_files: getGlobalChecked('output_intermediate_files', true)
         }
     };
 }
@@ -673,6 +670,12 @@ async function loadConfig() {
             const globalConvertFeatureElem = document.getElementById('global_convert_feature');
             if (globalConvertFeatureElem) {
                 globalConvertFeatureElem.checked = config.global_config?.default_convert_feature_to_number !== false;
+            }
+            
+            // 加载输出控制配置
+            const outputIntermediateFilesElem = document.getElementById('output_intermediate_files');
+            if (outputIntermediateFilesElem) {
+                outputIntermediateFilesElem.checked = config.output_config?.output_intermediate_files !== false;
             }
             
             document.getElementById('scenarios-container').innerHTML = '';
@@ -872,62 +875,42 @@ function appendOutput(message, type = 'output', tab = 'api') {
     }
     outputCounters[tab]++;
     
-    // 判断是否为重要信息（总是显示）
-    const isImportant = message.includes('错误') || 
-                       message.includes('❌') ||
-                       message.includes('成功') || 
-                       message.includes('✅') ||
-                       message.includes('完成') ||
-                       message.includes('开始') ||
-                       message.includes('警告') ||
-                       message.includes('⚠️') ||
-                       message.includes('[') ||  // 进度信息 [1/100]
-                       message.includes('=');    // 分隔线
-    
     const outputPanel = document.getElementById(`output-panel-${tab}`);
-    const currentLines = outputPanel.querySelectorAll('.output-line').length;
     
-    // 如果输出行数超过500，开始采样
-    const shouldSample = currentLines > 500;
-    const shouldDisplay = !shouldSample || 
-                         (outputCounters[tab] % SAMPLE_RATE === 0) || 
-                         isImportant;
+    // 创建输出行
+    const line = document.createElement('div');
+    line.className = 'output-line';
     
-    if (shouldDisplay) {
-        const line = document.createElement('div');
-        line.className = 'output-line';
-        
-        // 添加类型样式
-        if (message.includes('错误') || message.includes('❌') || message.includes('失败')) {
-            line.className += ' error';
-        } else if (message.includes('成功') || message.includes('✅') || message.includes('完成')) {
-            line.className += ' success';
-        } else if (message.includes('警告') || message.includes('⚠️')) {
-            line.className += ' warning';
-        } else {
-            line.className += ' info';
-        }
-        
-        line.textContent = message;
-        outputPanel.appendChild(line);
-        
-        // 限制最大行数
-        const lines = outputPanel.querySelectorAll('.output-line');
-        if (lines.length > MAX_OUTPUT_LINES) {
-            const removeCount = lines.length - MAX_OUTPUT_LINES;
-            for (let i = 0; i < removeCount; i++) {
-                lines[i].remove();
-            }
-        }
-        
-        // 滚动到底部（防抖）
-        if (outputPanel._scrollTimeout) {
-            clearTimeout(outputPanel._scrollTimeout);
-        }
-        outputPanel._scrollTimeout = setTimeout(() => {
-            outputPanel.scrollTop = outputPanel.scrollHeight;
-        }, 50);
+    // 添加类型样式
+    if (message.includes('错误') || message.includes('❌') || message.includes('失败')) {
+        line.className += ' error';
+    } else if (message.includes('成功') || message.includes('✅') || message.includes('完成')) {
+        line.className += ' success';
+    } else if (message.includes('警告') || message.includes('⚠️')) {
+        line.className += ' warning';
+    } else {
+        line.className += ' info';
     }
+    
+    line.textContent = message;
+    outputPanel.appendChild(line);
+    
+    // 限制最大行数（防止内存溢出）
+    const lines = outputPanel.querySelectorAll('.output-line');
+    if (lines.length > MAX_OUTPUT_LINES) {
+        const removeCount = lines.length - MAX_OUTPUT_LINES;
+        for (let i = 0; i < removeCount; i++) {
+            lines[i].remove();
+        }
+    }
+    
+    // 滚动到底部（防抖）
+    if (outputPanel._scrollTimeout) {
+        clearTimeout(outputPanel._scrollTimeout);
+    }
+    outputPanel._scrollTimeout = setTimeout(() => {
+        outputPanel.scrollTop = outputPanel.scrollHeight;
+    }, 50);
 }
 
 function updateStatus(status, text, tab = 'api') {

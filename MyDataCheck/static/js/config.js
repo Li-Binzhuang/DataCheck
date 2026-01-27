@@ -1,6 +1,6 @@
 // 全局配置和常量
-const MAX_OUTPUT_LINES = 10;    // 最多保留10行
-const SAMPLE_RATE = 5;          // 采样率（每5条显示1条）
+const MAX_OUTPUT_LINES = 10000;  // 最多保留10000行（足够显示完整日志）
+const SAMPLE_RATE = 1;           // 采样率设为1，显示所有日志
 
 // 全局状态变量
 let outputCounters = {};        // 每个tab的输出计数器

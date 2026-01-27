@@ -937,3 +937,222 @@ class ApiDataFetcher:
             traceback.print_exc()
 
 
+
+    def fetch_api_data_in_memory(self, input_csv_path: str) -> Dict:
+        """
+        获取接口数据并保存在内存中，不写入文件
+        用于内存对比模式，避免中间文件I/O
+        
+        Args:
+            input_csv_path: 输入CSV文件路径
+        
+        Returns:
+            {
+                'headers': [...],      # 原始CSV表头
+                'rows': [...],         # 原始CSV数据行
+                'results': {           # 接口返回结果
+                    0: {'api_data': {...}, 'row_index': 0},
+                    1: {...},
+                    ...
+                },
+                'errors': {            # 错误记录
+                    5: 'timeout',
+                    ...
+                },
+                'api_fields': [...],   # 接口返回的所有字段名（排序后）
+                'field_path_mapping': {...}  # 字段路径映射
+            }
+        """
+        # 检查文件是否存在
+        if not os.path.exists(input_csv_path):
+            raise FileNotFoundError(f"CSV文件不存在: {input_csv_path}")
+        
+        # 读取CSV文件
+        headers, rows = read_csv_with_encoding_tool(input_csv_path)
+        
+        print(f"  读取CSV文件: {len(rows)} 行, {len(headers)} 列")
+        
+        # 准备结果数据
+        results = {}
+        errors = {}
+        
+        print(f"\n开始并发请求接口，线程数: {self.thread_count}")
+        start_time = time.time()
+        
+        # 先处理第一条数据，打印入参和出参（用于调试）
+        if rows:
+            print(f"\n{'='*80}")
+            print("第一条请求调试信息:")
+            print(f"{'='*80}")
+            first_row = rows[0]
+            
+            # 构建第一条数据的请求参数
+            first_request_params = {}
+            first_original_values = {}
+            params_valid = True
+            
+            for param_config in self.api_params:
+                param_name = param_config.get("param_name")
+                column_index = param_config.get("column_index")
+                is_time_field = param_config.get("is_time_field", False)
+                
+                # 如果列索引为 None，跳过该参数
+                if column_index is None:
+                    print(f"参数 '{param_name}' 的列索引为空，跳过该参数")
+                    continue
+                
+                if column_index < 0 or column_index >= len(first_row):
+                    print(f"参数 '{param_name}' 的列索引无效，跳过调试信息打印")
+                    params_valid = False
+                    break
+                
+                param_value = first_row[column_index].strip() if first_row[column_index] else ""
+                
+                if not param_value:
+                    print(f"参数 '{param_name}' 为空，跳过调试信息打印")
+                    params_valid = False
+                    break
+                
+                first_original_values[param_name] = param_value
+                
+                # 如果是时间字段，进行时间格式处理
+                if is_time_field:
+                    if 'a' in param_value or 'A' in param_value:
+                        param_value = param_value.replace('a', '').replace('A', '')
+                    add_t_separator = param_config.get("add_t_separator", True)
+                    convert_date_to_time = param_config.get("convert_date_to_time", True)
+                    param_value = self.normalize_timestamp(param_value, add_t_separator=add_t_separator, convert_date_to_time=convert_date_to_time)
+                    if self.add_one_second:
+                        param_value = self._add_one_second(param_value)
+                
+                first_request_params[param_name] = param_value
+            
+            if params_valid and first_request_params:
+                # 打印请求入参
+                print(f"请求入参:")
+                for param_name, original_value in first_original_values.items():
+                    print(f"  {param_name} (原始): {original_value}")
+                for param_name, request_value in first_request_params.items():
+                    if param_name in first_original_values and first_original_values[param_name] != request_value:
+                        print(f"  {param_name} (处理后): {request_value}")
+                print()
+                
+                # 发送请求并打印出参
+                print(f"发送请求...")
+                api_response = self.send_request(first_request_params)
+                
+                if api_response is not None:
+                    print(f"请求成功，响应数据:")
+                    print(f"{'-'*80}")
+                    print(json.dumps(api_response, ensure_ascii=False, indent=2))
+                    print(f"{'-'*80}")
+                    if isinstance(api_response, dict):
+                        print(f"响应字段数量: {len(api_response)}")
+                        print(f"响应字段列表: {list(api_response.keys())[:10]}{'...' if len(api_response) > 10 else ''}")
+                else:
+                    print(f"请求失败")
+                print(f"{'='*80}\n")
+            else:
+                if not first_request_params:
+                    print(f"没有有效的接口参数配置")
+                print(f"{'='*80}\n")
+        
+        # 使用线程池并发处理
+        with ThreadPoolExecutor(max_workers=self.thread_count) as executor:
+            # 提交所有任务
+            future_to_row = {
+                executor.submit(self.process_row, i, row, headers): i
+                for i, row in enumerate(rows)
+            }
+            
+            # 收集结果
+            completed = 0
+            for future in as_completed(future_to_row):
+                completed += 1
+                if completed % 1000 == 0:
+                    print(f"已完成: {completed}/{len(rows)}")
+                
+                try:
+                    result = future.result()
+                    row_index = result["row_index"]
+                    
+                    if "error" in result:
+                        errors[row_index] = result["error"]
+                    else:
+                        results[row_index] = result
+                
+                except Exception as e:
+                    row_index = future_to_row[future]
+                    errors[row_index] = f"处理异常: {str(e)}"
+        
+        elapsed_time = time.time() - start_time
+        print(f"\n所有请求完成，耗时: {elapsed_time:.2f}秒")
+        print(f"成功: {len(results)}, 失败: {len(errors)}")
+        
+        # 收集所有接口返回的字段名
+        def collect_leaf_field_names(data, skip_system_fields=True):
+            """递归收集所有叶子节点的字段名"""
+            fields = set()
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if skip_system_fields and key in ['code', 'msg', 'message', 'status']:
+                        continue
+                    if isinstance(value, dict) and value:
+                        fields.update(collect_leaf_field_names(value, skip_system_fields=False))
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                fields.update(collect_leaf_field_names(item, skip_system_fields=False))
+                    else:
+                        fields.add(key)
+            return fields
+        
+        def collect_field_paths(data, parent_path="", skip_system_fields=True):
+            """递归收集字段路径映射"""
+            field_paths = {}
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if skip_system_fields and key in ['code', 'msg', 'message', 'status']:
+                        continue
+                    current_path = f"{parent_path}.{key}" if parent_path else key
+                    if isinstance(value, dict) and value:
+                        nested_paths = collect_field_paths(value, current_path, skip_system_fields=False)
+                        field_paths.update(nested_paths)
+                    else:
+                        if key not in field_paths:
+                            field_paths[key] = current_path
+                        else:
+                            field_paths[current_path] = current_path
+            return field_paths
+        
+        # 收集所有字段
+        all_api_fields = set()
+        all_field_paths = {}
+        
+        for result in results.values():
+            api_data = result.get("api_data", {})
+            if isinstance(api_data, dict):
+                fields = collect_leaf_field_names(api_data, skip_system_fields=True)
+                all_api_fields.update(fields)
+                
+                field_paths = collect_field_paths(api_data, skip_system_fields=True)
+                for field_name, path in field_paths.items():
+                    if field_name in all_field_paths and all_field_paths[field_name] != path:
+                        all_field_paths[path] = path
+                    else:
+                        all_field_paths[field_name] = path
+        
+        # 排序字段名
+        all_api_fields_sorted = sorted(all_api_fields)
+        
+        print(f"\n接口返回的字段总数: {len(all_api_fields_sorted)}")
+        
+        # 返回内存数据
+        return {
+            'headers': headers,
+            'rows': rows,
+            'results': results,
+            'errors': errors,
+            'api_fields': all_api_fields_sorted,
+            'field_path_mapping': all_field_paths
+        }

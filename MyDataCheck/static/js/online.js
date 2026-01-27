@@ -202,12 +202,6 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
                 </div>
             </div>
         </div>
-        
-        <div class="button-group">
-            <button class="btn-success" onclick="saveOnlineConfig()" style="margin-right: 10px;">💾 保存配置</button>
-            <button class="btn-primary" onclick="executeOnlineScenario('${scenarioId}')" id="execute-btn-${scenarioId}" disabled>▶️ 执行对比</button>
-            <button class="btn-danger" onclick="clearOnlineScenarioOutput('${scenarioId}')" style="margin-left: 10px;">🗑️ 清空输出</button>
-        </div>
         </div>
     `;
     

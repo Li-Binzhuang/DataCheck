@@ -75,12 +75,24 @@
                                     <label for="global_convert_feature" style="margin: 0;">默认转换特征值为数值</label>
                                 </div>
                             </div>
+                            
+                            <!-- 输出控制配置 -->
+                            <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                                <h4 style="margin-bottom: 10px; font-size: 14px; color: #666;">📄 输出文件控制</h4>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="output_intermediate_files" checked>
+                                    <label for="output_intermediate_files" style="margin: 0;">输出中间文件（接口数据和全量合并）</label>
+                                </div>
+                                <p style="color: #666; font-size: 11px; margin-top: 5px; margin-left: 22px; line-height: 1.4;">
+                                    💡 取消勾选后，将直接在内存中对比，不写入中间文件，只输出对比报告。适合批量对比场景，可显著提升速度并节省磁盘空间。
+                                </p>
+                            </div>
                         </div>
                         
                         <div class="button-group">
-                            <button class="btn-primary" onclick="executeApiComparison()" id="btn-execute-api">▶️ 执行对比</button>
-                            <button class="btn-success" onclick="saveApiConfig()">💾 保存配置</button>
-                            <button class="btn-secondary" onclick="loadApiConfig()">📂 加载配置</button>
+                            <button class="btn-primary" onclick="executeConfig()" id="btn-execute-api">▶️ 执行对比</button>
+                            <button class="btn-success" onclick="saveConfig()">💾 保存配置</button>
+                            <button class="btn-secondary" onclick="loadConfig()">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearOutput('api')">🗑️ 清空输出</button>
                         </div>
                     </div>
@@ -115,7 +127,7 @@
                         <button class="btn-success" onclick="addOnlineScenario()" style="width: 100%; margin-top: 10px;">➕ 添加场景</button>
                         
                         <div class="button-group" style="margin-top: 15px;">
-                            <button class="btn-primary" onclick="executeOnlineComparison()" id="btn-execute-online">▶️ 执行对比</button>
+                            <button class="btn-primary" onclick="executeOnlineConfig()" id="btn-execute-online">▶️ 执行对比</button>
                             <button class="btn-success" onclick="saveOnlineConfig()">💾 保存配置</button>
                             <button class="btn-secondary" onclick="loadOnlineConfig()">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearOutput('online')">🗑️ 清空输出</button>

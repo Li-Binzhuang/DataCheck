@@ -124,6 +124,7 @@ class DataComparator:
         original_csv_path: str,
         api_data_csv_path: str,
         output_path: str,
+        output_merged_data: bool = True,
     ):
         """
         对比两个CSV文件
@@ -132,6 +133,7 @@ class DataComparator:
             original_csv_path: 原始CSV文件路径
             api_data_csv_path: 接口数据CSV文件路径
             output_path: 输出文件路径
+            output_merged_data: 是否输出全量数据合并文件
         """
         print(f"\n开始对比文件")
         print(f"原始文件: {original_csv_path}")
@@ -437,21 +439,275 @@ class DataComparator:
         )
         print(f"✅ 特征比对数据表写入完成")
         
-        # 3. 写入全量数据合并文件
-        write_merged_data_csv(
-            merged_data_path,
+        # 3. 写入全量数据合并文件（根据配置决定是否输出）
+        if output_merged_data:
+            write_merged_data_csv(
+                merged_data_path,
+                original_headers,
+                original_rows,
+                api_headers,
+                api_rows,
+                self.param1_column,  # cust_no列
+                self.param1_column,  # api文件中的cust_no列
+                suffix1="_原始",
+                suffix2="_接口",
+                key_column1_secondary=self.param2_column,  # use_create_time列
+                key_column2_secondary=self.param2_column,  # api文件中的use_create_time列
+                feature_start_column1=self.feature_start_column,
+                feature_start_column2=self.feature_start_column,
+            )
+            print(f"✅ 全量数据合并文件写入完成")
+        else:
+            print(f"⏭️  全量数据合并文件已跳过（已禁用输出）")
+
+
+
+    def compare_in_memory(self, original_csv_path: str, api_results: Dict, output_csv_path: str):
+        """
+        直接在内存中对比数据，不读取中间文件
+        用于内存对比模式，只输出对比报告，不输出中间文件
+        
+        Args:
+            original_csv_path: 原始CSV文件路径
+            api_results: 接口返回的内存数据（来自fetch_api_data_in_memory）
+            output_csv_path: 输出文件路径前缀
+        """
+        print(f"\n开始内存对比")
+        print(f"原始文件: {original_csv_path}")
+        
+        # 从api_results中提取数据
+        original_headers = api_results['headers']
+        original_rows = api_results['rows']
+        api_data_results = api_results['results']
+        api_errors = api_results['errors']
+        api_fields = api_results['api_fields']
+        field_path_mapping = api_results['field_path_mapping']
+        
+        print(f"\n原始文件: {len(original_rows)} 行, {len(original_headers)} 列")
+        print(f"接口数据: 成功 {len(api_data_results)} 条, 失败 {len(api_errors)} 条")
+        
+        # 打印列索引信息（用于调试）
+        print(f"\n列索引配置:")
+        print(f"  cust_no列={self.param1_column} ({original_headers[self.param1_column] if self.param1_column < len(original_headers) else 'N/A'})")
+        print(f"  use_create_time列={self.param2_column} ({original_headers[self.param2_column] if self.param2_column < len(original_headers) else 'N/A'})")
+        print(f"  特征开始列={self.feature_start_column}")
+        
+        # 构建接口数据索引（使用cust_no和use_create_time作为主键）
+        api_data_index = {}
+        for row_idx, result in api_data_results.items():
+            if row_idx < len(original_rows):
+                row = original_rows[row_idx]
+                if self.param1_column < len(row) and self.param2_column < len(row):
+                    cust_no = row[self.param1_column].strip() if row[self.param1_column] else ""
+                    use_create_time = row[self.param2_column].strip() if row[self.param2_column] else ""
+                    if cust_no and use_create_time:
+                        key = (cust_no, use_create_time)
+                        api_data_index[key] = result.get("api_data", {})
+        
+        print(f"接口数据索引构建完成，共 {len(api_data_index)} 条记录")
+        
+        # 获取原始文件的特征列
+        original_feature_headers = original_headers[self.feature_start_column:] if len(original_headers) > self.feature_start_column else []
+        original_feature_headers = [h for h in original_feature_headers if h.lower() not in ["pt", "time_now"]]
+        
+        # 对比数据
+        results = {}
+        errors = {}
+        feature_stats = {}
+        
+        # 初始化特征统计
+        for header in original_feature_headers:
+            feature_stats[header] = {"total": 0, "match": 0, "mismatch": 0}
+        
+        print(f"\n开始对比数据...")
+        for i, orig_row in enumerate(original_rows):
+            if i % 1000 == 0:
+                print(f"已处理: {i}/{len(original_rows)}")
+            
+            # 获取主键
+            if self.param1_column >= len(orig_row) or self.param2_column >= len(orig_row):
+                errors[i] = "主键列超出范围"
+                continue
+            
+            cust_no = orig_row[self.param1_column].strip() if orig_row[self.param1_column] else ""
+            use_create_time = orig_row[self.param2_column].strip() if orig_row[self.param2_column] else ""
+            
+            if not cust_no or not use_create_time:
+                errors[i] = "主键值为空"
+                continue
+            
+            # 计算请求接口时使用的时间（baseTime）
+            request_time = self._calculate_request_time(use_create_time)
+            
+            # 查找apply_id相关字段
+            apply_id_value = self._find_apply_id_field(original_headers, orig_row)
+            
+            key = (cust_no, use_create_time)
+            
+            # 在接口数据中查找匹配的记录
+            if key not in api_data_index:
+                errors[i] = f"在接口数据中未找到匹配记录: cust_no={cust_no}, use_create_time={use_create_time}"
+                continue
+            
+            api_data = api_data_index[key]
+            
+            # 对比特征值
+            comparison_results = {}
+            
+            for j, header in enumerate(original_feature_headers):
+                orig_col_idx = self.feature_start_column + j
+                if orig_col_idx >= len(orig_row):
+                    continue
+                
+                csv_value = orig_row[orig_col_idx] if orig_col_idx < len(orig_row) else ""
+                
+                # 从接口数据中获取对应的字段值
+                api_value = None
+                if header in api_data:
+                    api_value = api_data[header]
+                elif header in field_path_mapping:
+                    # 使用路径映射获取嵌套值
+                    path = field_path_mapping[header]
+                    api_value = self._get_nested_value_from_path(api_data, path)
+                
+                # 比较值
+                is_match = compare_values(csv_value, api_value, header)
+                
+                # 保存比较结果
+                comparison_results[header] = {
+                    "csv_value": csv_value,
+                    "api_value": api_value,
+                    "is_match": is_match,
+                }
+                
+                # 统计
+                feature_stats[header]["total"] += 1
+                if is_match:
+                    feature_stats[header]["match"] += 1
+                else:
+                    feature_stats[header]["mismatch"] += 1
+            
+            results[i] = {
+                "row_index": i,
+                "cust_no": cust_no,
+                "use_create_time": request_time,
+                "use_credit_apply_id": apply_id_value,
+                "time_now": "",  # 内存模式下没有time_now
+                "comparison_results": comparison_results,
+            }
+        
+        print(f"\n对比完成: 成功 {len(results)} 条, 失败 {len(errors)} 条")
+        
+        # 统计信息
+        total_features = 0
+        match_features = 0
+        mismatch_features = 0
+        
+        for result in results.values():
+            comparison_results = result.get("comparison_results", {})
+            for feature_result in comparison_results.values():
+                total_features += 1
+                if feature_result.get("is_match", False):
+                    match_features += 1
+                else:
+                    mismatch_features += 1
+        
+        # 统计无异常特征数量和有异常特征数量
+        all_match_feature_count = 0
+        anomaly_feature_count = 0
+        anomaly_features_list = []
+        
+        for feature_name, stats in feature_stats.items():
+            if stats["mismatch"] == 0:
+                all_match_feature_count += 1
+            else:
+                anomaly_feature_count += 1
+                match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0
+                mismatch_ratio = stats["mismatch"] / stats["total"] * 100 if stats["total"] > 0 else 0
+                anomaly_features_list.append({
+                    "feature_name": feature_name,
+                    "total": stats["total"],
+                    "match": stats["match"],
+                    "mismatch": stats["mismatch"],
+                    "match_ratio": match_ratio,
+                    "mismatch_ratio": mismatch_ratio,
+                })
+        
+        # 按异常占比排序
+        anomaly_features_list.sort(key=lambda x: x["mismatch_ratio"], reverse=True)
+        
+        # 计算总体匹配率
+        overall_match_ratio = match_features / total_features * 100 if total_features > 0 else 0
+        
+        # ========== 显示特征值校验结果统计 ==========
+        print(f"\n{'='*80}")
+        print(f"特征值校验结果统计")
+        print(f"\n总体统计:")
+        print(f"  总特征值数量: {total_features}")
+        print(f"  匹配数量: {match_features}")
+        print(f"  不匹配数量: {mismatch_features}")
+        
+        print(f"\n特征统计:")
+        print(f"  无异常特征数量: {all_match_feature_count}")
+        print(f"  有异常特征数量: {anomaly_feature_count}")
+        
+        if anomaly_feature_count > 0:
+            print(f"\n有异常特征详情（按异常占比降序）:")
+            print(f"  {'特征名':<90} {'总数量':<10} {'异常数量':<10} {'异常占比':<10}")
+            print(f"  {'-'*90} {'-'*10} {'-'*10} {'-'*10}")
+            for feature in anomaly_features_list[:10]:  # 只显示前10个
+                print(f"  {feature['feature_name']:<90} {feature['total']:<10} {feature['mismatch']:<10} {feature['mismatch_ratio']:.2f}%")
+        
+        print(f"\n{'='*80}\n")
+        
+        # 写入结果文件（仅报告，不写入中间文件）
+        base_path = output_csv_path.replace(".csv", "")
+        
+        analysis_path = f"{base_path}_analysis_report.csv"
+        feature_stats_path = f"{base_path}_feature_stats.csv"
+        
+        print(f"开始写入结果文件...")
+        print(f"1. 分析报告文件: {analysis_path}")
+        print(f"2. 特征比对数据表: {feature_stats_path}")
+        
+        # 1. 写入分析记录文件
+        write_analysis_record_csv(
+            analysis_path,
             original_headers,
             original_rows,
-            api_headers,
-            api_rows,
-            self.param1_column,  # cust_no列
-            self.param1_column,  # api文件中的cust_no列
-            suffix1="_原始",
-            suffix2="_接口",
-            key_column1_secondary=self.param2_column,  # use_create_time列
-            key_column2_secondary=self.param2_column,  # api文件中的use_create_time列
-            feature_start_column1=self.feature_start_column,
-            feature_start_column2=self.feature_start_column,
+            results,
+            self.feature_start_column,
+            has_time_now=False  # 内存模式下没有time_now
         )
-
-
+        print(f"✅ 分析报告文件写入完成")
+        
+        # 2. 写入特征比对数据表
+        write_feature_stats_csv(
+            feature_stats_path,
+            feature_stats,
+            total_features=total_features,
+            match_features=match_features,
+            mismatch_features=mismatch_features,
+            overall_match_ratio=overall_match_ratio,
+            all_match_feature_count=all_match_feature_count,
+            anomaly_feature_count=anomaly_feature_count
+        )
+        print(f"✅ 特征比对数据表写入完成")
+        
+        print(f"\n⏭️  中间文件已跳过（内存对比模式）")
+    
+    def _get_nested_value_from_path(self, data: dict, path: str):
+        """从路径获取嵌套值"""
+        if not path or not data:
+            return None
+        
+        parts = path.split('.')
+        current = data
+        
+        for part in parts:
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            else:
+                return None
+        
+        return current

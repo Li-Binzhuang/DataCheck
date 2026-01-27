@@ -97,7 +97,7 @@ def execute_comparison_flow(config_json_str: str, output_queue: Queue):
         for i, scenario in enumerate(enabled_scenarios, 1):
             print(f"[{i}/{len(enabled_scenarios)}] ", end="")
             
-            if execute_single_scenario(scenario, global_config, script_dir, timestamp_suffix, api_output_dir, api_input_dir):
+            if execute_single_scenario(scenario, global_config, script_dir, timestamp_suffix, api_output_dir, api_input_dir, config_data):
                 success_count += 1
                 print("✅ 成功")
             else:

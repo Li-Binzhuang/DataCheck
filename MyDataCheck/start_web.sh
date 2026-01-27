@@ -57,7 +57,7 @@ if ! python -c "import psutil" 2>/dev/null; then
     fi
 fi
 
-# 验证pandas安装
+# 验证依赖
 echo "验证依赖..."
 python -c "import pandas; print('✅ pandas版本:', pandas.__version__)" || {
     echo "❌ pandas验证失败"
@@ -70,6 +70,9 @@ python -c "import psutil; print('✅ psutil版本:', psutil.__version__)" || {
     exit 1
 }
 
+# 设置环境变量（隐藏Flask开发服务器警告）
+export PYTHONWARNINGS="ignore::Warning"
+
 # 启动Web服务
 echo ""
 echo "=========================================="
@@ -77,5 +80,8 @@ echo "服务器启动中..."
 echo "访问地址: http://127.0.0.1:5001"
 echo "按 Ctrl+C 停止服务器"
 echo "=========================================="
+echo ""
+echo "💡 提示: 这是开发服务器，适合本地使用"
+echo "   如需生产部署，请使用 Gunicorn 或 uWSGI"
 echo ""
 python web_app.py

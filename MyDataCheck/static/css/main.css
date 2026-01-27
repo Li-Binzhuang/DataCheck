@@ -368,6 +368,7 @@
             min-height: 500px;
             max-height: 800px;
             overflow-y: auto;
+            overflow-x: hidden;  /* 改为hidden，强制换行而不是横向滚动 */
             background: #1e1e1e;
             color: #d4d4d4;
             padding: 15px;
@@ -375,12 +376,49 @@
             font-family: 'Consolas', 'Monaco', monospace;
             font-size: 11px;
             line-height: 1.6;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+            /* 强制自动换行 */
+            white-space: pre-wrap;       /* 保留空格和换行，但允许自动换行 */
+            word-wrap: break-word;       /* 长单词换行 */
+            word-break: break-all;       /* 强制在任意字符处换行 */
+            overflow-wrap: break-word;   /* 现代浏览器的换行属性 */
+            /* 滚动条样式优化 */
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a #1e1e1e;
+        }
+
+        /* WebKit浏览器（Chrome, Safari, Edge）滚动条样式 */
+        .output-panel::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        .output-panel::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 8px;
+        }
+
+        .output-panel::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 8px;
+            border: 2px solid #1e1e1e;
+        }
+
+        .output-panel::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+
+        .output-panel::-webkit-scrollbar-corner {
+            background: #1e1e1e;
         }
 
         .output-panel .output-line {
             margin-bottom: 2px;
+            /* 确保每行也能自动换行 */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-all;
+            overflow-wrap: break-word;
+            max-width: 100%;  /* 限制最大宽度 */
         }
 
         .output-panel .error {

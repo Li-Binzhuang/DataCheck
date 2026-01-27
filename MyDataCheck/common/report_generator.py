@@ -12,7 +12,7 @@ from typing import Dict, List
 
 # 添加当前目录到路径，以便导入同目录下的模块
 sys.path.insert(0, os.path.dirname(__file__))
-from csv_tool import CSVStreamWriter
+from csv_tool import CSVStreamWriter, CSVBatchWriter
 
 
 def write_analysis_record_csv(
@@ -323,14 +323,11 @@ def write_merged_data_csv(
             merged_headers.append(f"time_now{suffix2}")
             merged_column_mapping.append((None, None))
     
-    # 写入CSV文件
+    # 使用批量写入器优化性能（启用进度显示）
+    total_rows = len(rows1) + len(rows2)  # 预估总行数
     try:
-        with open(output_path, "w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
-            
-            # 写入表头
-            writer.writerow(merged_headers)
-            
+        print(f"  准备合并数据: 文件1 {len(rows1)} 行 + 文件2 {len(rows2)} 行")
+        with CSVBatchWriter(output_path, merged_headers, batch_size=5000, show_progress=True, total_rows=len(rows1)) as writer:
             # 遍历第一个文件的所有行
             for row1 in rows1:
                 # 获取主键值
@@ -344,7 +341,7 @@ def write_merged_data_csv(
                                 merged_row.append(row1[source_idx] if row1[source_idx] is not None else '')
                             else:
                                 merged_row.append('')
-                        writer.writerow(merged_row)
+                        writer.write_row(merged_row)
                         continue
                     key1_value = str(row1[key_column1]).strip()
                     key2_value = str(row1[key_column1_secondary]).strip()
@@ -355,7 +352,7 @@ def write_merged_data_csv(
                                 merged_row.append(row1[source_idx] if row1[source_idx] is not None else '')
                             else:
                                 merged_row.append('')
-                        writer.writerow(merged_row)
+                        writer.write_row(merged_row)
                         continue
                     key_value = (key1_value, key2_value)
                 else:
@@ -366,7 +363,7 @@ def write_merged_data_csv(
                                 merged_row.append(row1[source_idx] if row1[source_idx] is not None else '')
                             else:
                                 merged_row.append('')
-                        writer.writerow(merged_row)
+                        writer.write_row(merged_row)
                         continue
                     key_value = str(row1[key_column1]).strip()
                     if not key_value:
@@ -376,7 +373,7 @@ def write_merged_data_csv(
                                 merged_row.append(row1[source_idx] if row1[source_idx] is not None else '')
                             else:
                                 merged_row.append('')
-                        writer.writerow(merged_row)
+                        writer.write_row(merged_row)
                         continue
                 
                 # 查找第二个文件中匹配的行
@@ -400,7 +397,7 @@ def write_merged_data_csv(
                     else:
                         merged_row.append('')
                 
-                writer.writerow(merged_row)
+                writer.write_row(merged_row)
             
             # 处理第二个文件中独有的记录（在第一个文件中不存在的）
             file1_keys = set()
@@ -437,7 +434,7 @@ def write_merged_data_csv(
                                             merged_row.append('')
                                     else:
                                         merged_row.append('')
-                                writer.writerow(merged_row)
+                                writer.write_row(merged_row)
                 else:
                     if key_column2 < len(row2) and row2[key_column2] is not None:
                         key_value = str(row2[key_column2]).strip()
@@ -452,7 +449,7 @@ def write_merged_data_csv(
                                         merged_row.append('')
                                 else:
                                     merged_row.append('')
-                            writer.writerow(merged_row)
+                            writer.write_row(merged_row)
         
         print(f"✅ 全量数据合并文件写入完成: {output_path}")
     except Exception as e:

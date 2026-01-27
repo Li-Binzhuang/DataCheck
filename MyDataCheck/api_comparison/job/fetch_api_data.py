@@ -832,6 +832,7 @@ class ApiDataFetcher:
                 print(f"创建目录失败: {output_dir}, 错误: {e}")
         
         try:
+            total_rows = len(rows)
             with open(output_path, "w", encoding="utf-8", newline="") as f:
                 writer = csv.writer(f)
                 
@@ -840,6 +841,10 @@ class ApiDataFetcher:
 
                 # 写入每一行的数据
                 for i in range(len(rows)):
+                    # 显示进度（每100行或最后一行）
+                    if (i + 1) % 100 == 0 or (i + 1) == total_rows:
+                        print(f"  写入进度: {i + 1}/{total_rows} 行 ({(i + 1) / total_rows * 100:.1f}%)", end='\r')
+                    
                     row_data = [""] * len(output_headers)
 
                     if i in errors:
@@ -922,6 +927,9 @@ class ApiDataFetcher:
 
                     # 写入行数据
                     writer.writerow(row_data)
+                
+                # 换行，确保进度显示完整
+                print()
         except Exception as e:
             print(f"写入文件失败: {output_path}")
             print(f"错误详情: {e}")

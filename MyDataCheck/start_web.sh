@@ -47,10 +47,26 @@ if ! python -c "import pandas" 2>/dev/null; then
     fi
 fi
 
+# 检查psutil（内存管理依赖）
+if ! python -c "import psutil" 2>/dev/null; then
+    echo "⚠️  警告: psutil未安装，正在安装..."
+    pip install psutil
+    if [ $? -ne 0 ]; then
+        echo "❌ 错误: psutil安装失败"
+        exit 1
+    fi
+fi
+
 # 验证pandas安装
 echo "验证依赖..."
 python -c "import pandas; print('✅ pandas版本:', pandas.__version__)" || {
     echo "❌ pandas验证失败"
+    exit 1
+}
+
+# 验证psutil安装
+python -c "import psutil; print('✅ psutil版本:', psutil.__version__)" || {
+    echo "❌ psutil验证失败"
     exit 1
 }
 

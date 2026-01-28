@@ -48,7 +48,7 @@ def fetch_api_data_step(csv_file_path: str, output_file_path: str, api_url: str,
                         cust_no_column: int, use_create_time_column: int,
                         thread_count: int, timeout: int, convert_feature_to_number: bool = True,
                         feature_start_column: int = 3, add_one_second: bool = False,
-                        api_params: list = None):
+                        api_params: list = None, output_error_records: bool = True):
     """
     获取接口数据（支持动态参数配置）
     
@@ -64,6 +64,7 @@ def fetch_api_data_step(csv_file_path: str, output_file_path: str, api_url: str,
         feature_start_column: 特征开始列
         add_one_second: 是否在请求接口时加1秒
         api_params: 接口参数配置列表（新增）
+        output_error_records: 是否输出请求失败的记录到单独的CSV文件（默认True）
     """
     print(f"\n{'='*80}")
     print(f"步骤1: 获取接口数据")
@@ -74,6 +75,8 @@ def fetch_api_data_step(csv_file_path: str, output_file_path: str, api_url: str,
     print(f"  超时时间: {timeout}秒")
     print(f"  输入文件: {os.path.basename(csv_file_path)}")
     print(f"  输出文件: {os.path.basename(output_file_path)}")
+    if output_error_records:
+        print(f"  错误记录: 将输出到单独的CSV文件")
     print(f"{'='*80}")
     
     # 创建数据获取器
@@ -90,7 +93,7 @@ def fetch_api_data_step(csv_file_path: str, output_file_path: str, api_url: str,
     )
     
     # 执行数据获取
-    fetcher.fetch_api_data(csv_file_path, output_file_path)
+    fetcher.fetch_api_data(csv_file_path, output_file_path, output_error_records=output_error_records)
     print(f"\n✅ 步骤1完成: 接口数据获取成功")
     print(f"{'='*80}\n")
 
@@ -285,6 +288,7 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
         if not output_config and json_config:
             output_config = json_config.get('output_config', {})
         output_intermediate_files = output_config.get('output_intermediate_files', True)  # 默认输出中间文件
+        output_error_records = output_config.get('output_error_records', True)  # 默认输出错误记录
         
         print(f"\n{'='*80}")
         print(f"执行场景: {scenario_name}")
@@ -316,6 +320,7 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
         print(f"  接口URL: {api_url}")
         print(f"  输出前缀: {output_file_prefix if output_file_prefix else '(无)'}")
         print(f"  输出模式: {'完整输出（含中间文件）' if output_intermediate_files else '仅输出对比报告'}")
+        print(f"  错误记录: {'输出到单独CSV文件' if output_error_records else '不输出'}")
         print(f"  线程数: {thread_count}, 超时: {timeout}秒")
         
         # 处理列索引配置（兼容新旧配置）
@@ -379,7 +384,8 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
                     convert_feature_to_number,
                     feature_start_column,
                     add_one_second,
-                    api_params
+                    api_params,
+                    output_error_records  # 传递错误记录输出配置
                 )
                 gc.collect()
                 

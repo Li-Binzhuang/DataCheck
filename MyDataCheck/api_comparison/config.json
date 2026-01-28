@@ -3,101 +3,14 @@
     {
       "name": "测试",
       "enabled": true,
-      "description": "bz_Dh_",
-      "input_csv_file": "cdc1_features_consultas.csv",
-      "output_file_prefix": "bz_1",
-      "api_url": "http://10.129.2.25:8080/riskanalysis/Cdc/features",
+      "description": "bz",
+      "input_csv_file": "cdc2_features_batch001_1-500.csv",
+      "output_file_prefix": "bz_2_p1",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
       "thread_count": 150,
       "timeout": 60,
       "convert_feature_to_number": true,
       "add_one_second": false,
-      "column_config": {
-        "feature_start_column": 2
-      },
-      "api_params": [
-        {
-          "param_name": "applyId",
-          "column_index": 0,
-          "is_time_field": false
-        },
-        {
-          "param_name": "baseTime",
-          "column_index": 1,
-          "is_time_field": true,
-          "add_t_separator": true,
-          "convert_date_to_time": true
-        }
-      ]
-    },
-    {
-      "name": "场景2",
-      "enabled": true,
-      "description": "bz_2",
-      "input_csv_file": "cdc2_features_creditos.csv",
-      "output_file_prefix": "bz_2",
-      "api_url": "http://10.129.2.25:8080/riskanalysis/Cdc/features",
-      "thread_count": 150,
-      "timeout": 60,
-      "convert_feature_to_number": true,
-      "add_one_second": true,
-      "column_config": {
-        "feature_start_column": 2
-      },
-      "api_params": [
-        {
-          "param_name": "applyId",
-          "column_index": 0,
-          "is_time_field": false
-        },
-        {
-          "param_name": "baseTime",
-          "column_index": 1,
-          "is_time_field": true,
-          "add_t_separator": true,
-          "convert_date_to_time": true
-        }
-      ]
-    },
-    {
-      "name": "场景3",
-      "enabled": true,
-      "description": "bz_3",
-      "input_csv_file": "cdc3_features_clave_prevencion.csv",
-      "output_file_prefix": "bz_3",
-      "api_url": "http://10.129.2.25:8080/riskanalysis/Cdc/features",
-      "thread_count": 150,
-      "timeout": 60,
-      "convert_feature_to_number": true,
-      "add_one_second": true,
-      "column_config": {
-        "feature_start_column": 2
-      },
-      "api_params": [
-        {
-          "param_name": "applyId",
-          "column_index": 0,
-          "is_time_field": false
-        },
-        {
-          "param_name": "baseTime",
-          "column_index": 1,
-          "is_time_field": true,
-          "add_t_separator": true,
-          "convert_date_to_time": true
-        }
-      ]
-    },
-    {
-      "name": "场景4",
-      "enabled": true,
-      "description": "bz_boss",
-      "input_csv_file": "cdcboss_features_full_data.csv",
-      "output_file_prefix": "bz_boss",
-      "api_url": "http://10.129.2.25:8080/riskanalysis/Cdc/features",
-      "thread_count": 150,
-      "timeout": 60,
-      "convert_feature_to_number": true,
-      "add_one_second": true,
       "column_config": {
         "feature_start_column": 2
       },
@@ -123,6 +36,6 @@
     "default_convert_feature_to_number": true
   },
   "output_config": {
-    "output_intermediate_files": true
+    "output_intermediate_files": false
   }
 }

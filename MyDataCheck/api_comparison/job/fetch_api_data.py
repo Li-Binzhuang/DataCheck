@@ -507,13 +507,14 @@ class ApiDataFetcher:
             
         return result
 
-    def fetch_api_data(self, input_csv_path: str, output_csv_path: str):
+    def fetch_api_data(self, input_csv_path: str, output_csv_path: str, output_error_records: bool = True):
         """
         从CSV文件读取数据，请求接口，输出接口全部数据
         
         Args:
             input_csv_path: 输入CSV文件路径
             output_csv_path: 输出CSV文件路径
+            output_error_records: 是否输出请求失败的记录到单独的CSV文件（默认True）
         """
         # 读取CSV文件（使用公共工具模块）
         if not os.path.exists(input_csv_path):
@@ -800,6 +801,12 @@ class ApiDataFetcher:
         print(f"\n开始写入接口数据文件: {output_csv_path}")
         self._write_api_data_csv(output_csv_path, output_headers, headers, rows, results, errors, all_api_fields_sorted, original_header_count)
         print(f"✅ 接口数据文件写入完成: {output_csv_path}")
+        
+        # 输出请求失败的记录
+        if output_error_records and errors:
+            error_csv_path = output_csv_path.replace('.csv', '_error_records.csv')
+            self._write_error_records_csv(error_csv_path, headers, rows, errors)
+            print(f"✅ 请求失败记录文件写入完成: {error_csv_path}")
 
     def _write_api_data_csv(
         self,
@@ -936,6 +943,113 @@ class ApiDataFetcher:
             import traceback
             traceback.print_exc()
 
+
+    def _write_error_records_csv(
+        self,
+        output_path: str,
+        original_headers: List[str],
+        rows: List[List[str]],
+        errors: Dict[int, str],
+    ):
+        """
+        写入请求失败的记录到CSV文件
+        
+        Args:
+            output_path: 输出文件路径
+            original_headers: 原始CSV表头
+            rows: 原始行数据
+            errors: 错误信息字典 {row_index: error_message}
+        """
+        if not errors:
+            return
+        
+        # 确保输出目录存在
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+            except Exception as e:
+                print(f"创建目录失败: {output_dir}, 错误: {e}")
+                return
+        
+        try:
+            print(f"\n开始写入请求失败记录文件: {output_path}")
+            
+            # 定义错误记录表头
+            error_headers = ['applyid', 'baseTime', '错误code']
+            
+            # 查找applyid和baseTime对应的列索引
+            applyid_column = None
+            basetime_column = None
+            
+            # 从api_params配置中查找
+            for param_config in self.api_params:
+                param_name = param_config.get("param_name", "")
+                column_index = param_config.get("column_index")
+                is_time_field = param_config.get("is_time_field", False)
+                
+                # 查找applyid相关字段（custNo, applyId, apply_id等）
+                if param_name.lower() in ['custno', 'applyid', 'apply_id', 'cust_no']:
+                    applyid_column = column_index
+                
+                # 查找时间字段（baseTime, use_create_time等）
+                if is_time_field and basetime_column is None:
+                    basetime_column = column_index
+            
+            # 如果没有找到，尝试从表头中查找
+            if applyid_column is None:
+                for idx, header in enumerate(original_headers):
+                    header_lower = header.lower()
+                    if any(keyword in header_lower for keyword in ['applyid', 'apply_id', 'custno', 'cust_no']):
+                        applyid_column = idx
+                        break
+            
+            if basetime_column is None:
+                for idx, header in enumerate(original_headers):
+                    header_lower = header.lower()
+                    if any(keyword in header_lower for keyword in ['basetime', 'base_time', 'time', 'date']):
+                        basetime_column = idx
+                        break
+            
+            # 写入CSV文件
+            with open(output_path, "w", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                
+                # 写入表头
+                writer.writerow(error_headers)
+                
+                # 写入错误记录
+                error_count = 0
+                for row_index, error_message in sorted(errors.items()):
+                    if row_index >= len(rows):
+                        continue
+                    
+                    row = rows[row_index]
+                    
+                    # 提取applyid
+                    applyid = ""
+                    if applyid_column is not None and applyid_column < len(row):
+                        applyid = row[applyid_column].strip()
+                    
+                    # 提取baseTime
+                    basetime = ""
+                    if basetime_column is not None and basetime_column < len(row):
+                        basetime = row[basetime_column].strip()
+                    
+                    # 提取错误code（从错误消息中提取）
+                    error_code = error_message
+                    
+                    # 写入一行
+                    writer.writerow([applyid, basetime, error_code])
+                    error_count += 1
+            
+            print(f"  共写入 {error_count} 条失败记录")
+            
+        except Exception as e:
+            print(f"写入错误记录文件失败: {output_path}")
+            print(f"错误详情: {e}")
+            import traceback
+            traceback.print_exc()
 
 
     def fetch_api_data_in_memory(self, input_csv_path: str) -> Dict:

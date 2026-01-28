@@ -337,9 +337,9 @@ class DataComparatorOptimized:
                         f"{match_ratio:.2f}", "0.00"
                     ])
             
-            # 再写有异常的（按异常数量降序）
+            # 再写有异常的（按异常率降序）
             anomaly_features = [(name, stats) for name, stats in feature_stats.items() if stats["mismatch"] > 0]
-            anomaly_features.sort(key=lambda x: x[1]["mismatch"], reverse=True)
+            anomaly_features.sort(key=lambda x: x[1]["mismatch"] / x[1]["total"] if x[1]["total"] > 0 else 0, reverse=True)
             
             for feature_name, stats in anomaly_features:
                 match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0

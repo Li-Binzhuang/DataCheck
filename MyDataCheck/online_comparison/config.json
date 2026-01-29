@@ -7,7 +7,7 @@
       "output_prefix": "qx_23",
       "online_file": "qx_json11.csv",
       "offline_file": "qx_6_22.csv",
-      "json_column": "local_olduser_uncomplete_interface",
+      "json_column": "local_olduser_uncomplete_interface3333",
       "online_key_column": 0,
       "offline_key_column": 0,
       "online_feature_start_column": 3,

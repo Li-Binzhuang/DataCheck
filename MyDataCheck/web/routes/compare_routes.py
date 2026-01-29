@@ -231,15 +231,23 @@ def execute_compare():
 def save_compare_config():
     """保存数据对比配置"""
     try:
+        print("[DEBUG] 收到保存配置请求")
+        
         config_data = request.json
         if not config_data:
+            print("[ERROR] 配置数据为空")
             return jsonify({'success': False, 'error': '配置数据为空'})
+        
+        print(f"[DEBUG] 配置数据: {json.dumps(config_data, ensure_ascii=False, indent=2)}")
         
         # 配置文件路径
         config_path = os.path.join(data_comparison_dir, "config.json")
+        print(f"[DEBUG] 配置文件路径: {config_path}")
         
         # 动态导入配置管理模块
         config_manager_path = os.path.join(data_comparison_job_dir, "config_manager.py")
+        print(f"[DEBUG] 配置管理模块路径: {config_manager_path}")
+        
         spec_config = importlib.util.spec_from_file_location("config_manager", config_manager_path)
         config_manager_module = importlib.util.module_from_spec(spec_config)
         spec_config.loader.exec_module(config_manager_module)
@@ -248,10 +256,18 @@ def save_compare_config():
         # 保存配置
         scenarios = config_data.get('scenarios', [])
         global_config = config_data.get('global_config', {})
+        
+        print(f"[DEBUG] 场景数量: {len(scenarios)}")
+        print(f"[DEBUG] 全局配置: {global_config}")
+        
         save_config_func(config_path, scenarios, global_config)
         
-        return jsonify({'success': True, 'message': '配置保存成功'})
+        print("[SUCCESS] 配置保存成功")
+        return jsonify({'success': True, 'message': '✅ 配置保存成功'})
     except Exception as e:
+        print(f"[ERROR] 配置保存失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 

@@ -652,46 +652,62 @@ function collectConfig() {
 
 async function loadConfig() {
     try {
+        console.log('[DEBUG] 开始加载接口数据对比配置...');
+        
         const response = await fetch('/api/config/load');
         const data = await response.json();
         
+        console.log('[DEBUG] 响应数据:', data);
+        
         if (data.success) {
             const config = data.config;
+            console.log('[DEBUG] 配置内容:', config);
             
             // 安全地设置全局配置值
             const globalThreadCountElem = document.getElementById('global_thread_count');
             if (globalThreadCountElem) {
                 globalThreadCountElem.value = config.global_config?.default_thread_count || 150;
+                console.log('[DEBUG] 设置线程数:', globalThreadCountElem.value);
             }
             const globalTimeoutElem = document.getElementById('global_timeout');
             if (globalTimeoutElem) {
                 globalTimeoutElem.value = config.global_config?.default_timeout || 60;
+                console.log('[DEBUG] 设置超时时间:', globalTimeoutElem.value);
             }
             const globalConvertFeatureElem = document.getElementById('global_convert_feature');
             if (globalConvertFeatureElem) {
                 globalConvertFeatureElem.checked = config.global_config?.default_convert_feature_to_number !== false;
+                console.log('[DEBUG] 设置特征转换:', globalConvertFeatureElem.checked);
             }
             
             // 加载输出控制配置
             const outputIntermediateFilesElem = document.getElementById('output_intermediate_files');
             if (outputIntermediateFilesElem) {
                 outputIntermediateFilesElem.checked = config.output_config?.output_intermediate_files !== false;
+                console.log('[DEBUG] 设置输出中间文件:', outputIntermediateFilesElem.checked);
             }
             
             document.getElementById('scenarios-container').innerHTML = '';
             scenarioCount = 0;
             
             if (config.scenarios && config.scenarios.length > 0) {
+                console.log('[DEBUG] 加载场景数量:', config.scenarios.length);
                 config.scenarios.forEach((scenario, index) => {
                     addScenario(scenario, index === 0);
                 });
             } else {
+                console.log('[DEBUG] 没有场景配置，添加默认场景');
                 addScenario(null, true);
             }
+            
+            console.log('[SUCCESS] 接口数据对比配置加载成功');
+            showAlert('✅ 配置加载成功！', 'success', 'api');
         } else {
+            console.warn('[WARN] 配置加载失败，使用默认配置');
             addScenario(null, true);
         }
     } catch (error) {
+        console.error('[ERROR] 配置加载异常:', error);
         addScenario(null, true);
     }
 }
@@ -943,3 +959,17 @@ function updateStatus(status, text, tab = 'api') {
     statusText.textContent = text;
 }
 
+
+
+// ========== 页面加载时自动加载配置 ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // 检查是否在接口数据对比页面
+    const apiPage = document.getElementById('page-api');
+    if (apiPage) {
+        console.log('[INFO] 页面加载完成，自动加载接口数据对比配置...');
+        // 延迟500ms加载配置，确保页面元素已完全初始化
+        setTimeout(() => {
+            loadConfig();
+        }, 500);
+    }
+});

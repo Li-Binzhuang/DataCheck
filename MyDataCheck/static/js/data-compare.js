@@ -180,6 +180,8 @@ function clearCompareOutput() {
 // 保存数据对比配置
 async function saveCompareConfig() {
     try {
+        console.log('[DEBUG] 开始保存配置...');
+        
         const config = {
             scenarios: [{
                 name: "当前配置",
@@ -203,6 +205,8 @@ async function saveCompareConfig() {
             }
         };
 
+        console.log('[DEBUG] 配置数据:', config);
+
         const response = await fetch('/api/compare/config/save', {
             method: 'POST',
             headers: {
@@ -211,33 +215,46 @@ async function saveCompareConfig() {
             body: JSON.stringify(config)
         });
 
+        console.log('[DEBUG] 响应状态:', response.status);
+
         const data = await response.json();
+        console.log('[DEBUG] 响应数据:', data);
 
         if (data.success) {
-            showAlert('配置保存成功！保存到 data_comparison/config.json', 'success', 'compare');
+            showAlert('✅ 配置保存成功！保存到 data_comparison/config.json', 'success', 'compare');
+            console.log('[SUCCESS] 配置保存成功');
         } else {
-            showAlert('配置保存失败: ' + data.error, 'error', 'compare');
+            showAlert('❌ 配置保存失败: ' + data.error, 'error', 'compare');
+            console.error('[ERROR] 配置保存失败:', data.error);
         }
     } catch (error) {
-        showAlert('配置保存失败: ' + error.message, 'error', 'compare');
+        showAlert('❌ 配置保存失败: ' + error.message, 'error', 'compare');
+        console.error('[ERROR] 配置保存异常:', error);
     }
 }
 
 // 加载数据对比配置
 async function loadCompareConfig() {
     try {
+        console.log('[DEBUG] 开始加载配置...');
+        
         const response = await fetch('/api/compare/config/load', {
             method: 'GET'
         });
 
+        console.log('[DEBUG] 响应状态:', response.status);
+
         const data = await response.json();
+        console.log('[DEBUG] 响应数据:', data);
 
         if (data.success && data.config) {
             const config = data.config;
+            console.log('[DEBUG] 配置内容:', config);
             
             // 加载全局配置
             if (config.global_config) {
                 const gc = config.global_config;
+                console.log('[DEBUG] 加载全局配置:', gc);
                 document.getElementById('compare-key-column-1').value = gc.default_sql_key_column || 0;
                 document.getElementById('compare-key-column-2').value = gc.default_api_key_column || 0;
                 document.getElementById('compare-feature-start-1').value = gc.default_sql_feature_start || 1;
@@ -248,51 +265,78 @@ async function loadCompareConfig() {
             // 加载第一个场景的配置（如果存在）
             if (config.scenarios && config.scenarios.length > 0) {
                 const scenario = config.scenarios[0];
+                console.log('[DEBUG] 加载场景配置:', scenario);
                 
                 // 更新文件信息显示
                 if (scenario.sql_file) {
                     compareFile1 = scenario.sql_file;
                     document.getElementById('file-info-compare-1').textContent = `配置中的文件: ${scenario.sql_file}`;
                     document.getElementById('file-info-compare-1').style.color = '#667eea';
+                    console.log('[DEBUG] 设置文件1:', scenario.sql_file);
                 }
                 
                 if (scenario.api_file) {
                     compareFile2 = scenario.api_file;
                     document.getElementById('file-info-compare-2').textContent = `配置中的文件: ${scenario.api_file}`;
                     document.getElementById('file-info-compare-2').style.color = '#667eea';
+                    console.log('[DEBUG] 设置文件2:', scenario.api_file);
                 }
                 
                 // 更新其他配置
                 if (scenario.sql_key_column !== undefined) {
                     document.getElementById('compare-key-column-1').value = scenario.sql_key_column;
+                    console.log('[DEBUG] 设置SQL关键列:', scenario.sql_key_column);
                 }
                 if (scenario.api_key_column !== undefined) {
                     document.getElementById('compare-key-column-2').value = scenario.api_key_column;
+                    console.log('[DEBUG] 设置API关键列:', scenario.api_key_column);
                 }
                 if (scenario.sql_feature_start !== undefined) {
                     document.getElementById('compare-feature-start-1').value = scenario.sql_feature_start;
+                    console.log('[DEBUG] 设置SQL特征起始列:', scenario.sql_feature_start);
                 }
                 if (scenario.api_feature_start !== undefined) {
                     document.getElementById('compare-feature-start-2').value = scenario.api_feature_start;
+                    console.log('[DEBUG] 设置API特征起始列:', scenario.api_feature_start);
                 }
                 if (scenario.output_prefix) {
                     document.getElementById('compare-output-prefix').value = scenario.output_prefix;
+                    console.log('[DEBUG] 设置输出前缀:', scenario.output_prefix);
                 }
                 if (scenario.convert_feature_to_number !== undefined) {
                     document.getElementById('compare-convert-feature').checked = scenario.convert_feature_to_number;
+                    console.log('[DEBUG] 设置特征转换:', scenario.convert_feature_to_number);
                 }
                 
                 // 如果两个文件都存在，启用执行按钮
                 if (compareFile1 && compareFile2) {
                     document.getElementById('btn-execute-compare').disabled = false;
+                    console.log('[DEBUG] 两个文件都存在，启用执行按钮');
                 }
             }
             
-            showAlert('配置加载成功！', 'success', 'compare');
+            console.log('[SUCCESS] 配置加载成功');
+            showAlert('✅ 配置加载成功！', 'success', 'compare');
         } else {
-            showAlert('配置加载失败: ' + (data.error || '未找到配置文件'), 'error', 'compare');
+            console.warn('[WARN] 配置加载失败或配置为空');
+            showAlert('⚠️ 配置加载失败: ' + (data.error || '未找到配置文件'), 'error', 'compare');
         }
     } catch (error) {
-        showAlert('配置加载失败: ' + error.message, 'error', 'compare');
+        console.error('[ERROR] 配置加载异常:', error);
+        showAlert('❌ 配置加载失败: ' + error.message, 'error', 'compare');
     }
 }
+
+
+// ========== 页面加载时自动加载配置 ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // 检查是否在数据对比页面
+    const comparePage = document.getElementById('page-compare');
+    if (comparePage) {
+        console.log('[INFO] 页面加载完成，自动加载数据对比配置...');
+        // 延迟500ms加载配置，确保页面元素已完全初始化
+        setTimeout(() => {
+            loadCompareConfig();
+        }, 500);
+    }
+});

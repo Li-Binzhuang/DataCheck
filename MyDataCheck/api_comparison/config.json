@@ -12,7 +12,7 @@
       "convert_feature_to_number": true,
       "add_one_second": false,
       "column_config": {
-        "feature_start_column": 2
+        "feature_start_column": 666
       },
       "api_params": [
         {

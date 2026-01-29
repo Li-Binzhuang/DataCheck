@@ -28,35 +28,6 @@
           "convert_date_to_time": true
         }
       ]
-    },
-    {
-      "name": "场景2",
-      "enabled": false,
-      "description": "bz_cdc",
-      "input_csv_file": "cdc3_features_batch001_1-500.csv",
-      "output_file_prefix": "bz_cdc3",
-      "api_url": "http://10.129.2.25:8080/riskanalysis/Cdc/features",
-      "thread_count": 150,
-      "timeout": 60,
-      "convert_feature_to_number": true,
-      "add_one_second": true,
-      "column_config": {
-        "feature_start_column": 2
-      },
-      "api_params": [
-        {
-          "param_name": "applyId",
-          "column_index": 0,
-          "is_time_field": false
-        },
-        {
-          "param_name": "baseTime",
-          "column_index": 2,
-          "is_time_field": true,
-          "add_t_separator": true,
-          "convert_date_to_time": true
-        }
-      ]
     }
   ],
   "global_config": {

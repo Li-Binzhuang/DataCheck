@@ -323,7 +323,10 @@ class StreamingComparator:
             
             # 分批处理
             for batch_idx, batch in enumerate(self._batch_rows(rows), 1):
-                print(f"处理批次 {batch_idx}: {len(batch)} 行", end='\r')
+                # 每10个批次或最后一个批次显示进度
+                if batch_idx % 10 == 0 or batch_idx == 1:
+                    total_batches = (len(rows) + self.batch_size - 1) // self.batch_size
+                    print(f"处理批次 {batch_idx}/{total_batches}: {len(batch)} 行")
                 
                 # 处理这一批数据
                 for comparison_result in self._process_batch(batch, headers, feature_headers):
@@ -470,32 +473,44 @@ class StreamingComparator:
     
     def _write_feature_stats(self, output_path: str, feature_stats: Dict[str, Dict[str, int]]):
         """写入特征统计文件"""
+        # 统计无异常和有异常的特征数量
+        no_anomaly_count = sum(1 for stats in feature_stats.values() if stats["mismatch"] == 0)
+        has_anomaly_count = sum(1 for stats in feature_stats.values() if stats["mismatch"] > 0)
+        
         with open(output_path, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
             
-            # 写入表头
+            # 第1-4行：汇总信息
+            writer.writerow(["特征统计", "", "", "", "", "", ""])
+            writer.writerow(["无异常特征总数", str(no_anomaly_count), "", "", "", "", ""])
+            writer.writerow(["有异常特征总数", str(has_anomaly_count), "", "", "", "", ""])
+            writer.writerow(["", "", "", "", "", "", ""])
+            
+            # 第5行：列名
             writer.writerow([
-                "特征名", "总数量", "匹配数量", "不匹配数量",
-                "匹配率(%)", "不匹配率(%)"
+                "特征名", "是否有异常", "比对数据条数", "匹配数量", "异常数量",
+                "匹配率(%)", "异常率(%)"
             ])
             
-            # 按不匹配率排序
+            # 按异常率降序排序（异常最多的在最上面）
             sorted_features = sorted(
                 feature_stats.items(),
                 key=lambda x: x[1]["mismatch"] / x[1]["total"] if x[1]["total"] > 0 else 0,
                 reverse=True
             )
             
-            # 写入数据
+            # 第6行开始：特征明细
             for feature_name, stats in sorted_features:
                 total = stats["total"]
                 match = stats["match"]
                 mismatch = stats["mismatch"]
                 match_ratio = match / total * 100 if total > 0 else 0
                 mismatch_ratio = mismatch / total * 100 if total > 0 else 0
+                is_anomaly = "有异常" if mismatch > 0 else "无异常"
                 
                 writer.writerow([
                     feature_name,
+                    is_anomaly,
                     total,
                     match,
                     mismatch,

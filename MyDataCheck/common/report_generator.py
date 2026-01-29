@@ -99,6 +99,11 @@ def write_feature_stats_csv(
     """
     写入特征比对数据表（CSV格式）- 使用流式写入优化内存
     
+    格式：
+    - 第1-4行：汇总信息
+    - 第5行：列名
+    - 第6行开始：特征明细（按异常率降序）
+    
     Args:
         output_path: 输出文件路径
         feature_stats: 特征统计字典
@@ -121,42 +126,37 @@ def write_feature_stats_csv(
     no_anomaly_count = sum(1 for stats in feature_stats.values() if stats["mismatch"] == 0)
     has_anomaly_count = sum(1 for stats in feature_stats.values() if stats["mismatch"] > 0)
     
-    # 使用流式写入
-    output_headers = ["特征名", "是否有异常", "比对数据条数", "匹配数量", "异常数量", "匹配率(%)", "异常率(%)"]
-    
     try:
-        with CSVStreamWriter(output_path, output_headers) as writer:
-            # 先写入汇总信息（作为特殊行）
-            writer.write_row(["特征统计", "", "", "", "", "", ""])
-            writer.write_row(["无异常特征总数", str(no_anomaly_count), "", "", "", "", ""])
-            writer.write_row(["有异常特征总数", str(has_anomaly_count), "", "", "", "", ""])
-            writer.write_row(["", "", "", "", "", "", ""])  # 空行分隔
+        # 不使用CSVStreamWriter，直接写入以便更好地控制格式
+        with open(output_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
             
-            # 按是否有异常和异常数量排序后逐行写入
-            # 先写无异常的特征
-            for feature_name, stats in sorted(feature_stats.items()):
-                if stats["mismatch"] == 0:
-                    match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0
-                    writer.write_row([
-                        feature_name,
-                        "无异常",
-                        str(stats["total"]),
-                        str(stats["match"]),
-                        "0",
-                        f"{match_ratio:.2f}",
-                        "0.00"
-                    ])
+            # 第1-4行：汇总信息
+            writer.writerow(["特征统计", "", "", "", "", "", ""])
+            writer.writerow(["无异常特征总数", str(no_anomaly_count), "", "", "", "", ""])
+            writer.writerow(["有异常特征总数", str(has_anomaly_count), "", "", "", "", ""])
+            writer.writerow(["", "", "", "", "", "", ""])
             
-            # 再写有异常的特征（按异常率降序）
-            anomaly_features = [(name, stats) for name, stats in feature_stats.items() if stats["mismatch"] > 0]
-            anomaly_features.sort(key=lambda x: x[1]["mismatch"] / x[1]["total"] if x[1]["total"] > 0 else 0, reverse=True)
+            # 第5行：列名
+            writer.writerow(["特征名", "是否有异常", "比对数据条数", "匹配数量", "异常数量", "匹配率(%)", "异常率(%)"])
             
-            for feature_name, stats in anomaly_features:
-                match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0
+            # 将所有特征按异常率降序排序（异常最多的在最上面）
+            all_features = []
+            for feature_name, stats in feature_stats.items():
                 mismatch_ratio = stats["mismatch"] / stats["total"] * 100 if stats["total"] > 0 else 0
-                writer.write_row([
+                all_features.append((feature_name, stats, mismatch_ratio))
+            
+            # 按异常率降序排序
+            all_features.sort(key=lambda x: x[2], reverse=True)
+            
+            # 第6行开始：特征明细
+            for feature_name, stats, mismatch_ratio in all_features:
+                match_ratio = stats["match"] / stats["total"] * 100 if stats["total"] > 0 else 0
+                is_anomaly = "有异常" if stats["mismatch"] > 0 else "无异常"
+                
+                writer.writerow([
                     feature_name,
-                    "有异常",
+                    is_anomaly,
                     str(stats["total"]),
                     str(stats["match"]),
                     str(stats["mismatch"]),

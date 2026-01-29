@@ -848,9 +848,9 @@ class ApiDataFetcher:
 
                 # 写入每一行的数据
                 for i in range(len(rows)):
-                    # 显示进度（每100行或最后一行）
-                    if (i + 1) % 100 == 0 or (i + 1) == total_rows:
-                        print(f"  写入进度: {i + 1}/{total_rows} 行 ({(i + 1) / total_rows * 100:.1f}%)", end='\r')
+                    # 显示进度（每20行或最后一行）
+                    if (i + 1) % 20 == 0 or (i + 1) == total_rows:
+                        print(f"  写入进度: {i + 1}/{total_rows} 行 ({(i + 1) / total_rows * 100:.1f}%)")
                     
                     row_data = [""] * len(output_headers)
 

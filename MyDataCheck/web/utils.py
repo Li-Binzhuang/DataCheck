@@ -64,7 +64,7 @@ class OutputCapture:
         处理逻辑:
             1. 将文本写入原始输出（保持控制台显示）
             2. 将文本添加到缓冲区
-            3. 遇到换行符时，将完整行发送到队列
+            3. 遇到换行符(\n)或回车符(\r)时，将完整行发送到队列
         """
         # 保存到原始输出（控制台仍然可以看到输出）
         self.original_stdout.write(text)
@@ -73,14 +73,16 @@ class OutputCapture:
         # 添加到缓冲区
         self.buffer += text
         
-        # 如果遇到换行符，发送完整行到队列
-        if '\n' in self.buffer:
-            lines = self.buffer.split('\n')
+        # 如果遇到换行符或回车符，发送完整行到队列
+        if '\n' in self.buffer or '\r' in self.buffer:
+            # 处理混合的换行符和回车符
+            lines = self.buffer.replace('\r\n', '\n').replace('\r', '\n').split('\n')
             # 保留最后不完整的行在缓冲区
             self.buffer = lines[-1]
             # 发送完整的行到队列
             for line in lines[:-1]:
-                self.output_queue.put(line)
+                if line:  # 只发送非空行
+                    self.output_queue.put(line)
     
     def flush(self):
         """

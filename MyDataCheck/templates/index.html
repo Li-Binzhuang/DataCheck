@@ -91,6 +91,7 @@
                         
                         <div class="button-group">
                             <button class="btn-primary" onclick="executeConfig()" id="btn-execute-api">▶️ 执行对比</button>
+                            <button class="btn-danger" onclick="stopCurrentTask()" id="btn-stop-task" style="display: none;">⏹️ 停止执行</button>
                             <button class="btn-success" onclick="saveConfig()">💾 保存配置</button>
                             <button class="btn-secondary" onclick="loadConfig()">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearOutput('api')">🗑️ 清空输出</button>
@@ -300,6 +301,8 @@
     <!-- 引入外部JavaScript文件 -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/stop-control.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/task-recovery.js') }}"></script>
     <script src="{{ url_for('static', filename='js/api-compare.js') }}"></script>
     <script src="{{ url_for('static', filename='js/online.js') }}"></script>
     <script src="{{ url_for('static', filename='js/data-compare.js') }}"></script>

@@ -218,13 +218,13 @@ class CSVBatchWriter:
         # 显示进度
         if self.show_progress:
             if self.total_rows:
-                # 如果知道总行数，显示百分比
-                if self.row_count % 100 == 0 or self.row_count == self.total_rows:
-                    print(f"  写入进度: {self.row_count}/{self.total_rows} 行 ({self.row_count / self.total_rows * 100:.1f}%)", end='\r')
+                # 如果知道总行数，显示百分比（每20行显示一次）
+                if self.row_count % 20 == 0 or self.row_count == self.total_rows:
+                    print(f"  写入进度: {self.row_count}/{self.total_rows} 行 ({self.row_count / self.total_rows * 100:.1f}%)")
             else:
-                # 如果不知道总行数，只显示已写入行数
-                if self.row_count % 1000 == 0:
-                    print(f"  已写入: {self.row_count} 行", end='\r')
+                # 如果不知道总行数，只显示已写入行数（每100行显示一次）
+                if self.row_count % 100 == 0:
+                    print(f"  已写入: {self.row_count} 行")
         
         # 缓冲区满了，批量写入
         if len(self.buffer) >= self.batch_size:

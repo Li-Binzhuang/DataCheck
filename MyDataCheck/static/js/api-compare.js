@@ -820,12 +820,20 @@ function executeConfig() {
                         const data = JSON.parse(line.substring(6));
                         if (data.type === 'start') {
                             appendOutput(data.message, 'info', tab);
+                            // 保存task_id并显示停止按钮
+                            if (data.task_id && typeof setCurrentTaskId === 'function') {
+                                setCurrentTaskId(data.task_id);
+                            }
                         } else if (data.type === 'output') {
                             appendOutput(data.message, 'output', tab);
                         } else if (data.type === 'error') {
                             appendOutput(data.message, 'error', tab);
                         } else if (data.type === 'end') {
                             appendOutput(data.message, 'success', tab);
+                            // 清除task_id并隐藏停止按钮
+                            if (typeof clearCurrentTaskId === 'function') {
+                                clearCurrentTaskId();
+                            }
                         }
                     } catch (e) {
                         // 忽略解析错误
@@ -881,8 +889,22 @@ function appendOutput(message, type = 'output', tab = 'api') {
     const line = document.createElement('div');
     line.className = 'output-line';
     
+    // 检测完成标记
+    const isCompletion = message.includes('🎉') || message.includes('任务执行完成');
+    
     // 添加类型样式
-    if (message.includes('错误') || message.includes('❌') || message.includes('失败')) {
+    if (isCompletion) {
+        // 完成消息特殊样式
+        line.className += ' completion';
+        line.style.fontSize = '16px';
+        line.style.fontWeight = 'bold';
+        line.style.padding = '12px';
+        line.style.margin = '8px 0';
+        line.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        line.style.color = 'white';
+        line.style.borderRadius = '8px';
+        line.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+    } else if (message.includes('错误') || message.includes('❌') || message.includes('失败')) {
         line.className += ' error';
     } else if (message.includes('成功') || message.includes('✅') || message.includes('完成')) {
         line.className += ' success';

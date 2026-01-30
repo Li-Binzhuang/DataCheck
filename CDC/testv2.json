@@ -1,0 +1,221 @@
+{
+    "consultas": [
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-11-24",
+            "importeCredito": 1000,
+            "nombreOtorgante": "CAMELINAS MECANICAS",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-11-06",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-11-05",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-11-05",
+            "importeCredito": 1000,
+            "nombreOtorgante": "SOCIEDAD FINANCIERA DE OBJETO MULTIPLE",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-11-05",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-10-17",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-09-30",
+            "importeCredito": 0,
+            "nombreOtorgante": "SIC",
+            "tipoCredito": "F"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-09-23",
+            "importeCredito": 0,
+            "nombreOtorgante": "SIC",
+            "tipoCredito": "F"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-08-26",
+            "importeCredito": 0,
+            "nombreOtorgante": "SIC",
+            "tipoCredito": "F"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-07-21",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-07-20",
+            "importeCredito": 0,
+            "nombreOtorgante": "SIC",
+            "tipoCredito": "F"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-07-20",
+            "importeCredito": 1000,
+            "nombreOtorgante": "MICROFINANCIERA",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-07-18",
+            "importeCredito": 1000,
+            "nombreOtorgante": "SERVICIOS",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-06-01",
+            "importeCredito": 0,
+            "nombreOtorgante": "SIC",
+            "tipoCredito": "F"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-05-02",
+            "importeCredito": 1000,
+            "nombreOtorgante": "MICROFINANCIERA",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-04-19",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-01-20",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-01-15",
+            "importeCredito": 1000,
+            "nombreOtorgante": "COMPANIA DE PRESTAMO PERSONAL",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2025-01-15",
+            "importeCredito": 1000,
+            "nombreOtorgante": "MICROFINANCIERA",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2024-11-12",
+            "importeCredito": 1000,
+            "nombreOtorgante": "SOCIEDADES FINANCIERAS POPULARES",
+            "tipoCredito": "M"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2024-10-29",
+            "importeCredito": 0,
+            "nombreOtorgante": "SIC",
+            "tipoCredito": "F"
+        },
+        {
+            "claveUnidadMonetaria": "MX",
+            "fechaConsulta": "2024-08-17",
+            "importeCredito": 1000,
+            "nombreOtorgante": "SOCIEDADES FINANCIERAS POPULARES",
+            "tipoCredito": "M"
+        },
+        {
+            "fechaConsulta": "2025-11-22",
+            "importeCredito": 0,
+            "nombreOtorgante": "FINANCIERA",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2025-09-30",
+            "importeCredito": 0,
+            "nombreOtorgante": "FINANCIERA",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2025-09-23",
+            "importeCredito": 0,
+            "nombreOtorgante": "FINANCIERA",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2025-08-26",
+            "importeCredito": 0,
+            "nombreOtorgante": "BANCO",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2025-07-20",
+            "importeCredito": 0,
+            "nombreOtorgante": "BANCO",
+            "tipoCredito": "NC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2025-06-13",
+            "importeCredito": 0,
+            "nombreOtorgante": "FINANCIERA",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2025-06-01",
+            "importeCredito": 0,
+            "nombreOtorgante": "FINANCIERA",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2024-10-29",
+            "importeCredito": 0,
+            "nombreOtorgante": "FINANCIERA",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        },
+        {
+            "fechaConsulta": "2024-08-17",
+            "importeCredito": 0,
+            "nombreOtorgante": "FINANCIERA",
+            "tipoCredito": "TC",
+            "tipoResponsabilidad": "I"
+        }
+    ]
+}

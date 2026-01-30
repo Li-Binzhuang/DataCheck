@@ -41,7 +41,7 @@ class StreamingComparator:
         timeout: int = 60,
         add_one_second: bool = False,
         api_params: Optional[List[Dict[str, Any]]] = None,
-        batch_size: int = 1000,  # 批次大小
+        batch_size: int = 50,  # 批次大小（每批50条）
     ):
         """
         初始化流式对比器
@@ -323,10 +323,9 @@ class StreamingComparator:
             
             # 分批处理
             for batch_idx, batch in enumerate(self._batch_rows(rows), 1):
-                # 每10个批次或最后一个批次显示进度
-                if batch_idx % 10 == 0 or batch_idx == 1:
-                    total_batches = (len(rows) + self.batch_size - 1) // self.batch_size
-                    print(f"处理批次 {batch_idx}/{total_batches}: {len(batch)} 行")
+                # 每个批次都显示进度（每50条显示一次）
+                total_batches = (len(rows) + self.batch_size - 1) // self.batch_size
+                print(f"处理批次 {batch_idx}/{total_batches}: {len(batch)} 行")
                 
                 # 处理这一批数据
                 for comparison_result in self._process_batch(batch, headers, feature_headers):

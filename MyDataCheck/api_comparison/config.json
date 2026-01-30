@@ -1,18 +1,18 @@
 {
   "scenarios": [
     {
-      "name": "boss",
+      "name": "hibaset",
       "enabled": true,
       "description": "bz",
-      "input_csv_file": "cdcboss_features_batch001_1-500.csv",
-      "output_file_prefix": "bz_cdcboss",
-      "api_url": "http://10.129.2.25:8080/riskanalysis/Cdc/features",
-      "thread_count": 150,
+      "input_csv_file": "cdc1_features_batch001_1-500.csv",
+      "output_file_prefix": "bz_cdc1",
+      "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
+      "thread_count": 180,
       "timeout": 60,
       "convert_feature_to_number": true,
       "add_one_second": false,
       "column_config": {
-        "feature_start_column": 666
+        "feature_start_column": 2
       },
       "api_params": [
         {
@@ -31,7 +31,7 @@
     }
   ],
   "global_config": {
-    "default_thread_count": 150,
+    "default_thread_count": 180,
     "default_timeout": 60,
     "default_convert_feature_to_number": true
   },

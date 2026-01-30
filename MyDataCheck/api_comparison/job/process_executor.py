@@ -197,7 +197,7 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
                            cust_no_column: int, use_create_time_column: int,
                            thread_count: int, timeout: int,
                            feature_start_column: int, add_one_second: bool, api_params: list,
-                           batch_size: int = 1000):
+                           batch_size: int = 50):
     """
     流式对比：边请求边对比边写入（最优方案，内存占用降低80-90%）
     
@@ -418,7 +418,7 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
                     feature_start_column,
                     add_one_second,
                     api_params,
-                    batch_size=1000  # 批次大小
+                    batch_size=50  # 批次大小（每批50条）
                 )
                 gc.collect()
             

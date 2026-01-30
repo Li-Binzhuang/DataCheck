@@ -365,7 +365,7 @@
 
         /* 输出面板 */
         .output-panel {
-            min-height: 500px;
+            min-height: 800px;
             max-height: 800px;
             overflow-y: auto;
             overflow-x: hidden;  /* 改为hidden，强制换行而不是横向滚动 */

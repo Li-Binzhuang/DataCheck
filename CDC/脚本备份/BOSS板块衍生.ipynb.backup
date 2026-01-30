@@ -2,7 +2,7 @@
  "cells": [
   {
    "cell_type": "code",
-   "execution_count": 37,
+   "execution_count": 20,
    "metadata": {
     "execution": {
      "iopub.execute_input": "2026-01-14T11:03:44.399685Z",
@@ -162,7 +162,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 38,
+   "execution_count": 21,
    "metadata": {
     "execution": {
      "iopub.execute_input": "2026-01-14T11:03:44.839278Z",
@@ -545,7 +545,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 39,
+   "execution_count": 22,
    "metadata": {
     "execution": {
      "iopub.execute_input": "2026-01-14T11:03:45.072569Z",
@@ -750,7 +750,7 @@
     "\n",
     "    # 零余额\n",
     "    # 大白话：执行下一行代码：zero_balance_cnt = int((cre[\\\"saldoActual\\\"].fillna(np.nan) == 0).sum()) if total_accounts else 0\n",
-    "    zero_balance_cnt = int((cre[\"saldoActual\"].fillna(-999) == 0).sum()) if total_accounts else 0\n",
+    "    zero_balance_cnt = int((cre[\"saldoActual\"].fillna(np.nan) == 0).sum()) if total_accounts else 0\n",
     "    # 大白话：执行下一行代码：out[\\\"boss_zero_balance_accounts_cnt\\\"] = float(zero_balance_cnt)\n",
     "    out[\"boss_zero_balance_accounts_cnt\"] = float(zero_balance_cnt)\n",
     "\n",
@@ -1044,7 +1044,7 @@
     "        # 大白话：执行下一行代码：else:\n",
     "        else:\n",
     "            # 大白话：执行下一行代码：out[w_prefix + \\\"high_util_cnt\\\"] = 0.0\n",
-    "            out[w_prefix + \"high_util_cnt\"] = -999\n",
+    "            out[w_prefix + \"high_util_cnt\"] = 0.0\n",
     "\n",
     "        # 窗口内总使用率：sum(balance)/sum(limit)\n",
     "        # 大白话：执行下一行代码：if len(dfw):\n",
@@ -1186,9 +1186,9 @@
     "    # 大白话：执行下一行代码：else:\n",
     "    else:\n",
     "        # 大白话：执行下一行代码：out[\\\"boss_auto_loan_query_cnt\\\"] = 0.0\n",
-    "        out[\"boss_auto_loan_query_cnt\"] = -999\n",
+    "        out[\"boss_auto_loan_query_cnt\"] = 0.0\n",
     "        # 大白话：执行下一行代码：out[\\\"boss_credit_card_query_cnt\\\"] = 0.0\n",
-    "        out[\"boss_credit_card_query_cnt\"] = -999\n",
+    "        out[\"boss_credit_card_query_cnt\"] = 0.0\n",
     "\n",
     "    # 查询频率（次/月）：近360天查询数/12\n",
     "    # 大白话：执行下一行代码：if total_queries and pd.notna(cutoff):\n",
@@ -1241,7 +1241,7 @@
     "        # 大白话：执行下一行代码：for w in WINDOWS:\n",
     "        for w in WINDOWS:\n",
     "            # 大白话：执行下一行代码：out[f\\\"boss_w{w}d_query_amount_sum\\\"] = 0.0\n",
-    "            out[f\"boss_w{w}d_query_amount_sum\"] = -999\n",
+    "            out[f\"boss_w{w}d_query_amount_sum\"] = 0.0\n",
     "            # 大白话：执行下一行代码：out[f\\\"boss_w{w}d_query_amount_max\\\"] = SENTINEL\n",
     "            out[f\"boss_w{w}d_query_amount_max\"] = SENTINEL\n",
     "            # 大白话：执行下一行代码：out[f\\\"boss_w{w}d_query_amount_mean\\\"] = SENTINEL\n",
@@ -1356,11 +1356,11 @@
     "        # 大白话：执行下一行代码：out[\\\"boss_current_salary\\\"] = SENTINEL\n",
     "        out[\"boss_current_salary\"] = SENTINEL\n",
     "        # 大白话：执行下一行代码：out[\\\"boss_has_verified_employment_flag\\\"] = 0.0\n",
-    "        out[\"boss_has_verified_employment_flag\"] = -999\n",
+    "        out[\"boss_has_verified_employment_flag\"] = 0.0\n",
     "        # 大白话：执行下一行代码：out[\\\"boss_salary_verified_flag\\\"] = 0.0\n",
-    "        out[\"boss_salary_verified_flag\"] = -999\n",
+    "        out[\"boss_salary_verified_flag\"] = 0.0\n",
     "        # 大白话：执行下一行代码：out[\\\"boss_company_nunique\\\"] = 0.0\n",
-    "        out[\"boss_company_nunique\"] = -999\n",
+    "        out[\"boss_company_nunique\"] = 0.0\n",
     "        # 大白话：执行下一行代码：out[\\\"boss_avg_job_months\\\"] = SENTINEL\n",
     "        out[\"boss_avg_job_months\"] = SENTINEL\n",
     "        # 大白话：执行下一行代码：out[\\\"boss_max_job_months\\\"] = SENTINEL\n",
@@ -1433,7 +1433,7 @@
     "            # 大白话：执行下一行代码：else:\n",
     "            else:\n",
     "                # 大白话：执行下一行代码：out[\\\"boss_recent_move_flag_180d\\\"] = 0.0\n",
-    "                out[\"boss_recent_move_flag_180d\"] = -999\n",
+    "                out[\"boss_recent_move_flag_180d\"] = 0.0\n",
     "        # 大白话：执行下一行代码：else:\n",
     "        else:\n",
     "            # 大白话：执行下一行代码：out[\\\"boss_recent_move_flag_180d\\\"] = SENTINEL\n",
@@ -1521,7 +1521,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 40,
+   "execution_count": 23,
    "metadata": {
     "execution": {
      "iopub.execute_input": "2026-01-14T11:03:45.110770Z",
@@ -2152,7 +2152,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 41,
+   "execution_count": 24,
    "metadata": {},
    "outputs": [
     {
@@ -2195,7 +2195,7 @@
        "0  1065991091661283329                           0.974421"
       ]
      },
-     "execution_count": 41,
+     "execution_count": 24,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -2212,7 +2212,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 42,
+   "execution_count": 25,
    "metadata": {},
    "outputs": [
     {
@@ -2385,7 +2385,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 43,
+   "execution_count": 26,
    "metadata": {},
    "outputs": [
     {
@@ -2684,7 +2684,7 @@
     "        uniq = pd.DataFrame({\"bin\": lab, \"x\": x.where(~miss, np.nan)}).groupby(\"bin\", observed=False)[\"x\"].nunique(dropna=True).rename(\"unique_cnt\").reset_index()\n",
     "        out = out.merge(uniq, on=\"bin\", how=\"left\")\n",
     "        # zlf update: 特征值为空时填充-999\n",
-    "        out[\"unique_cnt\"] = out[\"unique_cnt\"].fillna(-999).astype(int)\n",
+    "        out[\"unique_cnt\"] = out[\"unique_cnt\"].fillna(0).astype(int)\n",
     "        out.insert(0, \"feature\", feat)\n",
     "        out.insert(1, \"method\", method)\n",
     "        return out\n",

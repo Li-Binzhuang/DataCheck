@@ -289,6 +289,87 @@ class StreamingComparator:
         
         print(f"读取CSV文件: {len(rows)} 行, {len(headers)} 列")
         
+        # 先处理第一条数据，打印入参和出参（用于调试）
+        if rows:
+            print(f"\n{'='*80}")
+            print("第一条请求调试信息:")
+            print(f"{'='*80}")
+            first_row = rows[0]
+            
+            # 构建第一条数据的请求参数
+            first_request_params = {}
+            first_original_values = {}
+            params_valid = True
+            
+            for param_config in self.api_params:
+                param_name = param_config.get("param_name")
+                column_index = param_config.get("column_index")
+                is_time_field = param_config.get("is_time_field", False)
+                
+                # 如果列索引为 None，跳过该参数
+                if column_index is None:
+                    print(f"参数 '{param_name}' 的列索引为空，跳过该参数")
+                    continue
+                
+                if column_index < 0 or column_index >= len(first_row):
+                    print(f"参数 '{param_name}' 的列索引无效，跳过调试信息打印")
+                    params_valid = False
+                    break
+                
+                param_value = first_row[column_index].strip() if first_row[column_index] else ""
+                
+                if not param_value:
+                    print(f"参数 '{param_name}' 为空，跳过调试信息打印")
+                    params_valid = False
+                    break
+                
+                first_original_values[param_name] = param_value
+                
+                # 如果是时间字段，进行时间格式处理
+                if is_time_field:
+                    if 'a' in param_value or 'A' in param_value:
+                        param_value = param_value.replace('a', '').replace('A', '')
+                    # 获取是否加T分隔符的配置（默认True，保持向后兼容）
+                    add_t_separator = param_config.get("add_t_separator", True)
+                    # 获取是否将日期转换为时间格式的配置（默认True，保持向后兼容）
+                    convert_date_to_time = param_config.get("convert_date_to_time", True)
+                    param_value = self.fetcher.normalize_timestamp(param_value, add_t_separator=add_t_separator, convert_date_to_time=convert_date_to_time)
+                    if self.add_one_second:
+                        param_value = self.fetcher._add_one_second(param_value)
+                
+                first_request_params[param_name] = param_value
+            
+            if params_valid and first_request_params:
+                # 打印请求入参
+                print(f"请求入参:")
+                for param_name, original_value in first_original_values.items():
+                    print(f"  {param_name} (原始): {original_value}")
+                for param_name, request_value in first_request_params.items():
+                    if param_name in first_original_values and first_original_values[param_name] != request_value:
+                        print(f"  {param_name} (处理后): {request_value}")
+                print()
+                
+                # 发送请求并打印出参
+                print(f"发送请求...")
+                api_response = self.fetcher.send_request(first_request_params)
+                
+                if api_response is not None:
+                    print(f"请求成功，响应数据:")
+                    print(f"{'-'*80}")
+                    import json
+                    print(json.dumps(api_response, ensure_ascii=False, indent=2))
+                    print(f"{'-'*80}")
+                    if isinstance(api_response, dict):
+                        print(f"响应字段数量: {len(api_response)}")
+                        print(f"响应字段列表: {list(api_response.keys())[:10]}{'...' if len(api_response) > 10 else ''}")
+                else:
+                    print(f"请求失败")
+                print(f"{'='*80}\n")
+            else:
+                if not first_request_params:
+                    print(f"没有有效的接口参数配置")
+                print(f"{'='*80}\n")
+        
         # 获取特征列
         feature_headers = headers[self.feature_start_column:] if len(headers) > self.feature_start_column else []
         feature_headers = [h for h in feature_headers if h.lower() not in ["pt", "time_now"]]

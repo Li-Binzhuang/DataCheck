@@ -1,13 +1,13 @@
 {
   "scenarios": [
     {
-      "name": "hibaset",
-      "enabled": true,
+      "name": "bz",
+      "enabled": false,
       "description": "bz",
       "input_csv_file": "cdc1_features_batch001_1-500.csv",
-      "output_file_prefix": "bz_cdc1",
+      "output_file_prefix": "bz_cdc1_1",
       "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
-      "thread_count": 180,
+      "thread_count": 200,
       "timeout": 60,
       "convert_feature_to_number": true,
       "add_one_second": false,
@@ -28,10 +28,39 @@
           "convert_date_to_time": true
         }
       ]
+    },
+    {
+      "name": "hd",
+      "enabled": true,
+      "description": "hd",
+      "input_csv_file": "hdpart2_29.csv",
+      "output_file_prefix": "hd_29_part2",
+      "api_url": "http://10.129.2.25:8082/riskanalysis/loanOrderNew/calculateFeatures",
+      "thread_count": 200,
+      "timeout": 60,
+      "convert_feature_to_number": true,
+      "add_one_second": false,
+      "column_config": {
+        "feature_start_column": 2
+      },
+      "api_params": [
+        {
+          "param_name": "custNo",
+          "column_index": 0,
+          "is_time_field": false
+        },
+        {
+          "param_name": "dateTimeStr",
+          "column_index": 1,
+          "is_time_field": true,
+          "add_t_separator": false,
+          "convert_date_to_time": true
+        }
+      ]
     }
   ],
   "global_config": {
-    "default_thread_count": 180,
+    "default_thread_count": 200,
     "default_timeout": 60,
     "default_convert_feature_to_number": true
   },

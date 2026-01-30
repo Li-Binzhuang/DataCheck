@@ -1,0 +1,71 @@
+{
+    "scenarios": [
+        {
+            "name": "接口A对比",
+            "enabled": true,
+            "description": "对比接口A的数据",
+            "input_csv_file": "test_data.csv",
+            "output_file_prefix": "api_a_result",
+            "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
+            "thread_count": 180,
+            "timeout": 60,
+            "convert_feature_to_number": true,
+            "add_one_second": false,
+            "column_config": {
+                "feature_start_column": 2
+            },
+            "api_params": [
+                {
+                    "param_name": "applyId",
+                    "column_index": 0,
+                    "is_time_field": false
+                },
+                {
+                    "param_name": "baseTime",
+                    "column_index": 1,
+                    "is_time_field": true,
+                    "add_t_separator": true,
+                    "convert_date_to_time": true
+                }
+            ]
+        },
+        {
+            "name": "接口B对比",
+            "enabled": true,
+            "description": "对比接口B的数据",
+            "input_csv_file": "test_data.csv",
+            "output_file_prefix": "api_b_result",
+            "api_url": "http://10.129.2.25:8082/riskanalysis/Cdc/features",
+            "thread_count": 180,
+            "timeout": 60,
+            "convert_feature_to_number": true,
+            "add_one_second": false,
+            "column_config": {
+                "feature_start_column": 2
+            },
+            "api_params": [
+                {
+                    "param_name": "applyId",
+                    "column_index": 0,
+                    "is_time_field": false
+                },
+                {
+                    "param_name": "baseTime",
+                    "column_index": 1,
+                    "is_time_field": true,
+                    "add_t_separator": true,
+                    "convert_date_to_time": true
+                }
+            ]
+        }
+    ],
+    "global_config": {
+        "default_thread_count": 180,
+        "default_timeout": 60,
+        "default_convert_feature_to_number": true
+    },
+    "output_config": {
+        "output_intermediate_files": true,
+        "output_error_records": true
+    }
+}

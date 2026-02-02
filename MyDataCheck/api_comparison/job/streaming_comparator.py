@@ -41,7 +41,8 @@ class StreamingComparator:
         timeout: int = 60,
         add_one_second: bool = False,
         api_params: Optional[List[Dict[str, Any]]] = None,
-        batch_size: int = 50,  # 批次大小（每批50条）
+        batch_size: int = 50,  # 批次大小（每批处理多少行）
+        calculate_difference: bool = False,  # 是否计算差值
     ):
         """
         初始化流式对比器
@@ -56,6 +57,7 @@ class StreamingComparator:
             add_one_second: 是否在请求接口时加1秒
             api_params: 接口参数配置列表
             batch_size: 批次大小（每批处理多少行）
+            calculate_difference: 是否计算差值（CSV值 - API值）
         """
         self.api_url = api_url
         self.param1_column = param1_column
@@ -65,6 +67,7 @@ class StreamingComparator:
         self.timeout = timeout
         self.add_one_second = add_one_second
         self.batch_size = batch_size
+        self.calculate_difference = calculate_difference
         
         # 处理接口参数配置
         if api_params:
@@ -396,15 +399,20 @@ class StreamingComparator:
         with open(analysis_path, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
             
-            # 写入表头：详细对比格式（去掉 baseTime）
-            analysis_headers = [
-                "特征名", "applyId", "request_time", "CSV值", "API值"
-            ]
+            # 写入表头（根据配置决定是否包含"差值"列）
+            if self.calculate_difference:
+                analysis_headers = [
+                    "特征名", "applyId", "request_time", "CSV值", "API值", "差值"
+                ]
+            else:
+                analysis_headers = [
+                    "特征名", "applyId", "request_time", "CSV值", "API值"
+                ]
             writer.writerow(analysis_headers)
             
             # 分批处理
             for batch_idx, batch in enumerate(self._batch_rows(rows), 1):
-                # 每个批次都显示进度（每50条显示一次）
+                # 显示批次进度
                 total_batches = (len(rows) + self.batch_size - 1) // self.batch_size
                 print(f"处理批次 {batch_idx}/{total_batches}: {len(batch)} 行")
                 
@@ -430,7 +438,7 @@ class StreamingComparator:
                         if error_rows % 100 == 1:
                             print(f"\n⚠️  接口请求异常: 行 {row_index + 2}, 错误: {error_msg}")
                     else:
-                        # 正常行：写入分析报告
+                        # 正常行：直接写入分析报告
                         success_rows += 1
                         row_index = comparison_result["row_index"]
                         cust_no = comparison_result["cust_no"]
@@ -447,19 +455,40 @@ class StreamingComparator:
                             else:
                                 feature_stats[header]["match"] += 1
                         
-                        # 写入每个不匹配的特征（详细格式，去掉 baseTime）
+                        # 写入每个不匹配的特征（根据配置决定是否计算差值）
                         if has_mismatch:
                             for feature_name, feature_data in comparison_results.items():
                                 csv_value = feature_data.get("csv_value", "")
                                 api_value = feature_data.get("api_value", "")
                                 
-                                writer.writerow([
-                                    feature_name,
-                                    apply_id,           # applyId
-                                    use_create_time,    # request_time
-                                    csv_value,
-                                    api_value
-                                ])
+                                # 根据配置决定是否计算差值
+                                if self.calculate_difference:
+                                    # 计算差值（CSV值 - API值），保留6位小数
+                                    try:
+                                        csv_num = float(csv_value) if csv_value else 0.0
+                                        api_num = float(api_value) if api_value else 0.0
+                                        difference = round(csv_num - api_num, 6)
+                                    except (ValueError, TypeError):
+                                        # 如果无法转换为数字，差值设为空字符串
+                                        difference = ""
+                                    
+                                    writer.writerow([
+                                        feature_name,
+                                        apply_id,           # applyId
+                                        use_create_time,    # request_time
+                                        csv_value,
+                                        api_value,
+                                        difference          # 差值
+                                    ])
+                                else:
+                                    # 不计算差值
+                                    writer.writerow([
+                                        feature_name,
+                                        apply_id,           # applyId
+                                        use_create_time,    # request_time
+                                        csv_value,
+                                        api_value
+                                    ])
                 
                 # 每批处理完后立即释放内存
                 gc.collect()

@@ -100,7 +100,8 @@ def fetch_api_data_step(csv_file_path: str, output_file_path: str, api_url: str,
 
 def compare_data_step(original_csv_path: str, api_data_csv_path: str, output_csv_path: str,
                       cust_no_column: int, use_create_time_column: int, feature_start_column: int,
-                      add_one_second: bool = False, output_merged_data: bool = True):
+                      add_one_second: bool = False, output_merged_data: bool = True,
+                      calculate_difference: bool = False):
     """
     对比数据
     
@@ -113,6 +114,7 @@ def compare_data_step(original_csv_path: str, api_data_csv_path: str, output_csv
         feature_start_column: 特征开始列
         add_one_second: 是否在请求接口时加1秒
         output_merged_data: 是否输出全量数据合并文件
+        calculate_difference: 是否计算差值
     """
     print(f"\n{'='*80}")
     print(f"步骤2: 数据对比")
@@ -121,11 +123,12 @@ def compare_data_step(original_csv_path: str, api_data_csv_path: str, output_csv
     print(f"  接口数据文件: {os.path.basename(api_data_csv_path)}")
     print(f"  输出文件前缀: {os.path.basename(output_csv_path).replace('.csv', '')}")
     print(f"  输出全量合并: {'是' if output_merged_data else '否'}")
+    print(f"  计算差值: {'是' if calculate_difference else '否'}")
     print(f"{'='*80}")
     
     # 创建对比器
     comparator = DataComparator(
-        cust_no_column, use_create_time_column, feature_start_column, add_one_second
+        cust_no_column, use_create_time_column, feature_start_column, add_one_second, calculate_difference
     )
     
     # 执行对比
@@ -197,7 +200,7 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
                            cust_no_column: int, use_create_time_column: int,
                            thread_count: int, timeout: int,
                            feature_start_column: int, add_one_second: bool, api_params: list,
-                           batch_size: int = 50):
+                           batch_size: int = 50, calculate_difference: bool = False):
     """
     流式对比：边请求边对比边写入（最优方案，内存占用降低80-90%）
     
@@ -213,6 +216,7 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
         add_one_second: 是否在请求接口时加1秒
         api_params: 接口参数配置列表
         batch_size: 批次大小
+        calculate_difference: 是否计算差值
     """
     print(f"\n{'='*80}")
     print(f"流式对比模式: 边请求边对比边写入")
@@ -221,6 +225,7 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
     print(f"  超时时间: {timeout}秒")
     print(f"  批次大小: {batch_size}")
     print(f"  输入文件: {os.path.basename(original_csv_path)}")
+    print(f"  计算差值: {'是' if calculate_difference else '否'}")
     print(f"{'='*80}")
     
     # 创建流式对比器
@@ -233,7 +238,8 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
         timeout=timeout,
         add_one_second=add_one_second,
         api_params=api_params,
-        batch_size=batch_size
+        batch_size=batch_size,
+        calculate_difference=calculate_difference
     )
     
     # 执行流式对比
@@ -274,9 +280,11 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
         api_url = scenario_config.get('api_url')
         thread_count = scenario_config.get('thread_count', global_config.get('default_thread_count', 150))
         timeout = scenario_config.get('timeout', global_config.get('default_timeout', 60))
+        batch_size = scenario_config.get('batch_size', global_config.get('default_batch_size', 50))
         convert_feature_to_number = scenario_config.get('convert_feature_to_number', 
                                                          global_config.get('default_convert_feature_to_number', True))
         add_one_second = scenario_config.get('add_one_second', global_config.get('default_add_one_second', True))
+        calculate_difference = scenario_config.get('calculate_difference', False)  # 默认不计算差值
         column_config = scenario_config.get('column_config', {})
         
         # 获取接口参数配置（新增）
@@ -321,6 +329,7 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
         print(f"  输出前缀: {output_file_prefix if output_file_prefix else '(无)'}")
         print(f"  输出模式: {'完整输出（含中间文件）' if output_intermediate_files else '仅输出对比报告'}")
         print(f"  错误记录: {'输出到单独CSV文件' if output_error_records else '不输出'}")
+        print(f"  计算差值: {'是' if calculate_difference else '否'}")
         print(f"  线程数: {thread_count}, 超时: {timeout}秒")
         
         # 处理列索引配置（兼容新旧配置）
@@ -398,7 +407,8 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
                     use_create_time_column if use_create_time_column is not None else 0,
                     feature_start_column,
                     add_one_second,
-                    output_merged_data=True  # 完整模式输出全量合并
+                    output_merged_data=True,  # 完整模式输出全量合并
+                    calculate_difference=calculate_difference  # 传递差值计算配置
                 )
                 gc.collect()
                 
@@ -418,7 +428,8 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
                     feature_start_column,
                     add_one_second,
                     api_params,
-                    batch_size=50  # 批次大小（每批50条）
+                    batch_size=batch_size,  # 使用配置的批次大小
+                    calculate_difference=calculate_difference  # 传递差值计算配置
                 )
                 gc.collect()
             

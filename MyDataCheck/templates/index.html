@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,18 +8,19 @@
     <!-- 引入外部CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
+
 <body>
     <div class="app-container">
         <!-- 侧边栏 -->
         <div class="sidebar" id="sidebar">
             <!-- 切换按钮 -->
             <div class="sidebar-toggle" onclick="toggleSidebar()" title="收起/展开侧边栏"></div>
-            
+
             <div class="sidebar-header">
                 <h1>📊 数据对比平台</h1>
                 <p>Data Comparison Platform</p>
             </div>
-            
+
             <div class="sidebar-menu">
                 <div class="menu-item active" onclick="switchPage('api')">
                     <span class="icon">📡</span>
@@ -47,15 +49,16 @@
                     <h2>📡 接口数据对比</h2>
                     <p>对比接口返回数据与预期数据的差异</p>
                 </div>
-                
+
                 <div class="content-grid">
                     <!-- 配置面板 -->
                     <div class="panel">
                         <h3>📝 执行配置</h3>
                         <div id="alert-container-api"></div>
                         <div id="scenarios-container"></div>
-                        <button class="btn-success" onclick="addScenario()" style="width: 100%; margin-top: 10px;">➕ 添加场景</button>
-                        
+                        <button class="btn-success" onclick="addScenario()" style="width: 100%; margin-top: 10px;">➕
+                            添加场景</button>
+
                         <!-- 全局配置 -->
                         <div class="global-config" style="margin-top: 20px;">
                             <h3>⚙️ 全局默认配置</h3>
@@ -69,29 +72,41 @@
                                     <input type="number" id="global_timeout" value="60" min="1">
                                 </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="global_batch_size">流式对比批次大小:</label>
+                                    <input type="number" id="global_batch_size" value="50" min="1" max="1000">
+                                </div>
+                            </div>
+                            <p style="color: #666; font-size: 11px; margin-top: 5px; line-height: 1.4;">
+                                💡 批次大小：流式对比模式下，每批处理的行数。较小的批次可降低内存占用，较大的批次可提升处理速度。建议值：50-200。
+                            </p>
                             <div class="form-group">
                                 <div class="checkbox-group">
                                     <input type="checkbox" id="global_convert_feature" checked>
                                     <label for="global_convert_feature" style="margin: 0;">默认转换特征值为数值</label>
                                 </div>
                             </div>
-                            
+
                             <!-- 输出控制配置 -->
-                            <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                            <div class="form-group"
+                                style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
                                 <h4 style="margin-bottom: 10px; font-size: 14px; color: #666;">📄 输出文件控制</h4>
                                 <div class="checkbox-group">
                                     <input type="checkbox" id="output_intermediate_files" checked>
                                     <label for="output_intermediate_files" style="margin: 0;">输出中间文件（接口数据和全量合并）</label>
                                 </div>
-                                <p style="color: #666; font-size: 11px; margin-top: 5px; margin-left: 22px; line-height: 1.4;">
+                                <p
+                                    style="color: #666; font-size: 11px; margin-top: 5px; margin-left: 22px; line-height: 1.4;">
                                     💡 取消勾选后，将直接在内存中对比，不写入中间文件，只输出对比报告。适合批量对比场景，可显著提升速度并节省磁盘空间。
                                 </p>
                             </div>
                         </div>
-                        
+
                         <div class="button-group">
                             <button class="btn-primary" onclick="executeConfig()" id="btn-execute-api">▶️ 执行对比</button>
-                            <button class="btn-danger" onclick="stopCurrentTask()" id="btn-stop-task" style="display: none;">⏹️ 停止执行</button>
+                            <button class="btn-danger" onclick="stopCurrentTask()" id="btn-stop-task"
+                                style="display: none;">⏹️ 停止执行</button>
                             <button class="btn-success" onclick="saveConfig()">💾 保存配置</button>
                             <button class="btn-secondary" onclick="loadConfig()">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearOutput('api')">🗑️ 清空输出</button>
@@ -119,16 +134,18 @@
                     <h2>🌐 线上灰度落数对比</h2>
                     <p>对比线上环境与灰度环境的数据差异</p>
                 </div>
-                
+
                 <div class="content-grid">
                     <div class="panel">
                         <h3>📝 执行配置</h3>
                         <div id="alert-container-online"></div>
                         <div id="online-scenarios-container"></div>
-                        <button class="btn-success" onclick="addOnlineScenario()" style="width: 100%; margin-top: 10px;">➕ 添加场景</button>
-                        
+                        <button class="btn-success" onclick="addOnlineScenario()"
+                            style="width: 100%; margin-top: 10px;">➕ 添加场景</button>
+
                         <div class="button-group" style="margin-top: 15px;">
-                            <button class="btn-primary" onclick="executeOnlineConfig()" id="btn-execute-online">▶️ 执行对比</button>
+                            <button class="btn-primary" onclick="executeOnlineConfig()" id="btn-execute-online">▶️
+                                执行对比</button>
                             <button class="btn-success" onclick="saveOnlineConfig()">💾 保存配置</button>
                             <button class="btn-secondary" onclick="loadOnlineConfig()">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearOutput('online')">🗑️ 清空输出</button>
@@ -155,7 +172,7 @@
                     <h2>📊 数据对比</h2>
                     <p>对比两个CSV/XLSX文件的数据差异</p>
                 </div>
-                
+
                 <div class="content-grid">
                     <div class="panel">
                         <h3>📝 对比配置</h3>
@@ -163,13 +180,15 @@
 
                         <div class="form-group">
                             <label>sql data (CSV/XLSX):</label>
-                            <input type="file" id="compare-file1" accept=".csv,.xlsx" onchange="handleCompareFileSelect(1, this)">
+                            <input type="file" id="compare-file1" accept=".csv,.xlsx"
+                                onchange="handleCompareFileSelect(1, this)">
                             <div class="file-info" id="file-info-compare-1">未选择文件</div>
                         </div>
 
                         <div class="form-group">
                             <label>从库/灰度/线上文件 (CSV/XLSX):</label>
-                            <input type="file" id="compare-file2" accept=".csv,.xlsx" onchange="handleCompareFileSelect(2, this)">
+                            <input type="file" id="compare-file2" accept=".csv,.xlsx"
+                                onchange="handleCompareFileSelect(2, this)">
                             <div class="file-info" id="file-info-compare-2">未选择文件</div>
                         </div>
 
@@ -205,20 +224,24 @@
                                 <input type="checkbox" id="compare-convert-feature" checked>
                                 <label for="compare-convert-feature" style="margin: 0;">转换特征值为数值</label>
                             </div>
-                            <p style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
                                 勾选后，会尝试将字符串类型的特征值转换为数值类型进行对比（如 "8" 转为 8）
                             </p>
                         </div>
 
                         <div class="button-group">
-                            <button class="btn-primary" onclick="executeCompare()" id="btn-execute-compare" disabled style="flex: 1;">▶️ 执行对比</button>
+                            <button class="btn-primary" onclick="executeCompare()" id="btn-execute-compare" disabled
+                                style="flex: 1;">▶️ 执行对比</button>
                             <button class="btn-success" onclick="saveCompareConfig()">💾 保存配置</button>
                             <button class="btn-secondary" onclick="loadCompareConfig()">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearOutput('compare')">🗑️ 清空输出</button>
                         </div>
-                        
-                        <div style="margin-top: 8px; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; font-size: 10px; color: #666; line-height: 1.4;">
-                            <strong>💡 提示：</strong>配置将保存到 <code style="background: #e0e0e0; padding: 1px 4px; border-radius: 2px;">data_comparison/config.json</code>
+
+                        <div
+                            style="margin-top: 8px; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; font-size: 10px; color: #666; line-height: 1.4;">
+                            <strong>💡 提示：</strong>配置将保存到 <code
+                                style="background: #e0e0e0; padding: 1px 4px; border-radius: 2px;">data_comparison/config.json</code>
                         </div>
                     </div>
 
@@ -242,11 +265,11 @@
                     <h2>📦 PKL文件解析工具</h2>
                     <p>上传PKL文件，查看内容结构，并转换为CSV格式</p>
                 </div>
-                
+
                 <div class="content-grid">
                     <div class="panel">
                         <h3>📝 文件上传</h3>
-                        
+
                         <div class="form-group">
                             <label>选择PKL文件:</label>
                             <input type="file" id="pkl-file-input" accept=".pkl" onchange="handlePklFileSelect(this)">
@@ -254,22 +277,30 @@
                         </div>
 
                         <div class="button-group">
-                            <button class="btn-success" onclick="parsePklFile()" id="btn-parse-pkl" disabled>🔍 解析文件</button>
-                            <button class="btn-primary" onclick="convertPklToCsv()" id="btn-convert-pkl" disabled>💾 转换为CSV</button>
-                            <button class="btn-primary" onclick="convertPklToCdcV2Csv()" id="btn-convert-cdcv2-pkl" disabled style="background: #28a745;">📊 cdcV2核心Csv</button>
+                            <button class="btn-success" onclick="parsePklFile()" id="btn-parse-pkl" disabled>🔍
+                                解析文件</button>
+                            <button class="btn-primary" onclick="convertPklToCsv()" id="btn-convert-pkl" disabled>💾
+                                转换为CSV</button>
+                            <button class="btn-primary" onclick="convertPklToCdcV2Csv()" id="btn-convert-cdcv2-pkl"
+                                disabled style="background: #28a745;">📊 cdcV2核心Csv</button>
                         </div>
 
                         <!-- PKL文件内容预览 -->
                         <div id="pkl-preview-container" style="margin-top: 20px; display: none;">
                             <h4 style="margin-bottom: 10px;">📋 文件内容预览</h4>
-                            <div id="pkl-preview-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 12px;"></div>
-                            <div id="pkl-preview-data" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-size: 11px;"></div>
+                            <div id="pkl-preview-info"
+                                style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 12px;">
+                            </div>
+                            <div id="pkl-preview-data"
+                                style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-size: 11px;">
+                            </div>
                         </div>
 
                         <!-- 转换结果 -->
                         <div id="pkl-convert-result" style="margin-top: 20px; display: none;">
                             <h4 style="margin-bottom: 10px;">✅ 转换结果</h4>
-                            <div id="pkl-convert-info" style="background: #d4edda; padding: 15px; border-radius: 8px; font-size: 12px;"></div>
+                            <div id="pkl-convert-info"
+                                style="background: #d4edda; padding: 15px; border-radius: 8px; font-size: 12px;"></div>
                         </div>
                     </div>
 
@@ -283,7 +314,7 @@
                                 <li style="margin-bottom: 8px;">点击"💾 转换为CSV"将PKL转换为CSV格式</li>
                                 <li style="margin-bottom: 8px;">或点击"📊 cdcV2核心Csv"转换为CDC V2格式</li>
                             </ol>
-                            
+
                             <h4 style="margin: 20px 0 10px; color: #667eea;">支持的功能：</h4>
                             <ul style="padding-left: 20px; color: #666;">
                                 <li style="margin-bottom: 8px;">查看PKL文件结构和内容</li>
@@ -308,4 +339,5 @@
     <script src="{{ url_for('static', filename='js/data-compare.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pkl.js') }}"></script>
 </body>
+
 </html>

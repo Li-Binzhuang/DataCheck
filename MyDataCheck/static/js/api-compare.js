@@ -5,7 +5,7 @@ function addScenario(scenarioData = null, isFirst = false) {
     scenarioCount++;
     const scenarioId = `scenario_${scenarioCount}`;
     const container = document.getElementById('scenarios-container');
-    
+
     const scenario = scenarioData || {
         name: `场景${scenarioCount}`,
         enabled: true,
@@ -92,6 +92,13 @@ function addScenario(scenarioData = null, isFirst = false) {
             <div class="checkbox-group">
                 <input type="checkbox" class="scenario-add-one-second" ${scenario.add_one_second ? 'checked' : ''}>
                 <label style="margin: 0;">请求接口时时间加1秒</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" class="scenario-calculate-difference" ${scenario.calculate_difference === false ? '' : ''}>
+                <label style="margin: 0;">计算差值（CSV值 - API值）</label>
             </div>
         </div>
 
@@ -221,17 +228,17 @@ function addScenario(scenarioData = null, isFirst = false) {
         </div>
         </div>
     `;
-    
+
     container.appendChild(card);
-    
+
     const nameInput = card.querySelector('.scenario-name-input');
     if (nameInput) {
         // 确保输入框可以正常获得焦点和编辑
-        nameInput.addEventListener('mousedown', function(e) {
+        nameInput.addEventListener('mousedown', function (e) {
             e.stopPropagation();
         });
-        
-        nameInput.addEventListener('focus', function(e) {
+
+        nameInput.addEventListener('focus', function (e) {
             e.stopPropagation();
             // 不自动选中，让用户可以正常编辑
         });
@@ -252,10 +259,10 @@ function toggleScenario(scenarioId) {
 function addApiParam(scenarioId) {
     const container = document.getElementById(`api-params-${scenarioId}`);
     if (!container) return;
-    
+
     const paramItems = container.querySelectorAll('.api-param-item');
     const newIndex = paramItems.length;
-    
+
     const newParamHtml = `
         <div class="api-param-item" data-param-index="${newIndex}">
             <div class="form-row">
@@ -291,7 +298,7 @@ function addApiParam(scenarioId) {
             </div>
         </div>
     `;
-    
+
     container.insertAdjacentHTML('beforeend', newParamHtml);
 }
 
@@ -300,14 +307,14 @@ function addApiParam(scenarioId) {
 function toggleTSeparator(scenarioId, paramIndex) {
     const container = document.getElementById(`api-params-${scenarioId}`);
     if (!container) return;
-    
+
     const paramItem = container.querySelector(`[data-param-index="${paramIndex}"]`);
     if (!paramItem) return;
-    
+
     const isTimeField = paramItem.querySelector('.param-is-time')?.checked || false;
     const tSeparatorCheckbox = paramItem.querySelector('.param-add-t-separator');
     const convertDateCheckbox = paramItem.querySelector('.param-convert-date-to-time');
-    
+
     if (tSeparatorCheckbox) {
         // 如果时间字段被勾选，启用T分隔符复选框；否则禁用
         tSeparatorCheckbox.disabled = !isTimeField;
@@ -320,7 +327,7 @@ function toggleTSeparator(scenarioId, paramIndex) {
             tSeparatorCheckbox.setAttribute('data-initialized', 'true');
         }
     }
-    
+
     if (convertDateCheckbox) {
         // 如果时间字段被勾选，启用日期转换复选框；否则禁用
         convertDateCheckbox.disabled = !isTimeField;
@@ -338,19 +345,19 @@ function toggleTSeparator(scenarioId, paramIndex) {
 function removeApiParam(scenarioId, paramIndex) {
     const container = document.getElementById(`api-params-${scenarioId}`);
     if (!container) return;
-    
+
     const paramItems = container.querySelectorAll('.api-param-item');
-    
+
     // 至少保留一个参数
     if (paramItems.length <= 1) {
         alert('至少需要保留一个接口参数');
         return;
     }
-    
+
     const paramItem = container.querySelector(`[data-param-index="${paramIndex}"]`);
     if (paramItem) {
         paramItem.remove();
-        
+
         // 重新编号
         const remainingItems = container.querySelectorAll('.api-param-item');
         remainingItems.forEach((item, index) => {
@@ -373,9 +380,9 @@ function toggleScenarioCollapse(scenarioId) {
     const content = document.getElementById(`scenario-content-${scenarioId}`);
     const toggleBtn = document.getElementById(`toggle-btn-${scenarioId}`);
     const card = document.getElementById(scenarioId);
-    
+
     if (!content || !toggleBtn || !card) return;
-    
+
     if (content.classList.contains('collapsed')) {
         // 展开
         content.classList.remove('collapsed');
@@ -410,10 +417,10 @@ async function removeScenario(scenarioId) {
         // 先获取要删除的场景名称（用于调试）
         const cardToRemove = document.getElementById(scenarioId);
         const scenarioName = cardToRemove ? cardToRemove.querySelector('.scenario-name-input')?.value || scenarioId : scenarioId;
-        
+
         // 删除DOM元素
         cardToRemove.remove();
-        
+
         // 更新剩余场景的删除按钮显示
         const container = document.getElementById('scenarios-container');
         const remainingCards = container ? container.querySelectorAll('.scenario-card') : [];
@@ -425,14 +432,14 @@ async function removeScenario(scenarioId) {
                 deleteBtn.remove();
             }
         }
-        
+
         // 等待DOM更新完成
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         // 自动保存配置
         try {
             const config = collectConfig();
-            
+
             if (config.scenarios.length === 0) {
                 showAlert('至少需要添加一个场景', 'error', 'api');
                 return;
@@ -451,7 +458,7 @@ async function removeScenario(scenarioId) {
             });
 
             const data = await response.json();
-            
+
             if (data.success) {
                 showAlert(`场景 "${scenarioName}" 已删除，配置已保存（剩余 ${config.scenarios.length} 个场景）`, 'success', 'api');
             } else {
@@ -494,7 +501,7 @@ async function handleFileSelect(scenarioId, input) {
         if (data.success) {
             const hiddenInput = document.getElementById(scenarioId).querySelector('.scenario-filename');
             hiddenInput.value = data.filename;
-            
+
             if (data.converted) {
                 fileInfo.textContent = `✓ PKL已转换: ${data.original_filename} → ${data.filename}`;
             } else {
@@ -527,20 +534,21 @@ function collectConfig() {
         const elem = document.getElementById(id);
         return elem ? elem.checked : defaultValue;
     };
-    
+
     const globalThreadCount = getGlobalValue('global_thread_count', 150);
     const globalTimeout = getGlobalValue('global_timeout', 60);
-    
+    const globalBatchSize = getGlobalValue('global_batch_size', 50);
+
     const scenarios = [];
     // 只从接口数据对比的容器中收集场景卡片
     const container = document.getElementById('scenarios-container');
     const scenarioCards = container ? container.querySelectorAll('.scenario-card') : [];
-    
+
     scenarioCards.forEach(card => {
         // 安全地获取元素值，避免null错误
         const getValue = (selector, defaultValue = '') => {
             const elem = card.querySelector(selector);
-               if (!elem) return defaultValue;
+            if (!elem) return defaultValue;
             const val = elem.value;
             // 对于场景名称，trim后如果为空则使用默认值
             if (selector === '.scenario-name-input') {
@@ -572,7 +580,7 @@ function collectConfig() {
             }
             return '';
         };
-        
+
         // 收集接口参数配置
         const apiParamsList = card.querySelector('.api-params-list');
         const apiParams = [];
@@ -585,7 +593,7 @@ function collectConfig() {
                 const isTimeField = item.querySelector('.param-is-time')?.checked || false;
                 const addTSeparator = item.querySelector('.param-add-t-separator')?.checked !== false; // 默认true
                 const convertDateToTime = item.querySelector('.param-convert-date-to-time')?.checked !== false; // 默认true
-                
+
                 // 只有参数名不为空才添加
                 if (paramName) {
                     // 如果列索引为空，则不添加该参数（不作为入参）
@@ -608,7 +616,7 @@ function collectConfig() {
                 }
             });
         }
-        
+
         const scenario = {
             name: getValue('.scenario-name-input', '未命名场景'),
             enabled: getChecked('.scenario-enabled', true),
@@ -618,13 +626,15 @@ function collectConfig() {
             api_url: getValue('.scenario-api-url'),
             thread_count: globalThreadCount,
             timeout: globalTimeout,
+            batch_size: globalBatchSize,
             convert_feature_to_number: getChecked('.scenario-convert-feature', true),
             add_one_second: getChecked('.scenario-add-one-second', true),
+            calculate_difference: getChecked('.scenario-calculate-difference', false),
             column_config: {
                 feature_start_column: getIntValue('.scenario-feature-column', 3)
             }
         };
-        
+
         // 如果有接口参数配置，添加到场景中
         if (apiParams.length > 0) {
             scenario.api_params = apiParams;
@@ -633,7 +643,7 @@ function collectConfig() {
             scenario.column_config.cust_no_column = getIntValue('.scenario-cust-no-column', 0);
             scenario.column_config.use_create_time_column = getIntValue('.scenario-time-column', 2);
         }
-        
+
         scenarios.push(scenario);
     });
 
@@ -642,6 +652,7 @@ function collectConfig() {
         global_config: {
             default_thread_count: globalThreadCount,
             default_timeout: globalTimeout,
+            default_batch_size: globalBatchSize,
             default_convert_feature_to_number: getGlobalChecked('global_convert_feature', true)
         },
         output_config: {
@@ -653,16 +664,16 @@ function collectConfig() {
 async function loadConfig() {
     try {
         console.log('[DEBUG] 开始加载接口数据对比配置...');
-        
+
         const response = await fetch('/api/config/load');
         const data = await response.json();
-        
+
         console.log('[DEBUG] 响应数据:', data);
-        
+
         if (data.success) {
             const config = data.config;
             console.log('[DEBUG] 配置内容:', config);
-            
+
             // 安全地设置全局配置值
             const globalThreadCountElem = document.getElementById('global_thread_count');
             if (globalThreadCountElem) {
@@ -674,22 +685,27 @@ async function loadConfig() {
                 globalTimeoutElem.value = config.global_config?.default_timeout || 60;
                 console.log('[DEBUG] 设置超时时间:', globalTimeoutElem.value);
             }
+            const globalBatchSizeElem = document.getElementById('global_batch_size');
+            if (globalBatchSizeElem) {
+                globalBatchSizeElem.value = config.global_config?.default_batch_size || 50;
+                console.log('[DEBUG] 设置批次大小:', globalBatchSizeElem.value);
+            }
             const globalConvertFeatureElem = document.getElementById('global_convert_feature');
             if (globalConvertFeatureElem) {
                 globalConvertFeatureElem.checked = config.global_config?.default_convert_feature_to_number !== false;
                 console.log('[DEBUG] 设置特征转换:', globalConvertFeatureElem.checked);
             }
-            
+
             // 加载输出控制配置
             const outputIntermediateFilesElem = document.getElementById('output_intermediate_files');
             if (outputIntermediateFilesElem) {
                 outputIntermediateFilesElem.checked = config.output_config?.output_intermediate_files !== false;
                 console.log('[DEBUG] 设置输出中间文件:', outputIntermediateFilesElem.checked);
             }
-            
+
             document.getElementById('scenarios-container').innerHTML = '';
             scenarioCount = 0;
-            
+
             if (config.scenarios && config.scenarios.length > 0) {
                 console.log('[DEBUG] 加载场景数量:', config.scenarios.length);
                 config.scenarios.forEach((scenario, index) => {
@@ -699,7 +715,7 @@ async function loadConfig() {
                 console.log('[DEBUG] 没有场景配置，添加默认场景');
                 addScenario(null, true);
             }
-            
+
             console.log('[SUCCESS] 接口数据对比配置加载成功');
             showAlert('✅ 配置加载成功！', 'success', 'api');
         } else {
@@ -715,7 +731,7 @@ async function loadConfig() {
 async function saveConfig() {
     try {
         const config = collectConfig();
-        
+
         if (config.scenarios.length === 0) {
             showAlert('至少需要添加一个场景', 'error', 'api');
             return;
@@ -730,7 +746,7 @@ async function saveConfig() {
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
             showAlert('配置保存成功', 'success', 'api');
         } else {
@@ -749,7 +765,7 @@ function executeConfig() {
 
     try {
         const config = collectConfig();
-        
+
         if (config.scenarios.length === 0) {
             showAlert('至少需要添加一个场景', 'error', 'api');
             return;
@@ -762,7 +778,7 @@ function executeConfig() {
         }
 
         clearOutput('api');
-        
+
         isExecuting = true;
         updateStatus('running', '执行中...', 'api');
         document.querySelectorAll('[id^="execute-btn-"]').forEach(btn => {
@@ -773,7 +789,7 @@ function executeConfig() {
         document.getElementById('loading-spinner-api').style.display = 'inline-block';
 
         const configJson = JSON.stringify(config);
-        
+
         fetch('/api/execute', {
             method: 'POST',
             headers: {
@@ -781,104 +797,104 @@ function executeConfig() {
             },
             body: JSON.stringify({ config: configJson })
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('执行失败');
-            }
-            
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            
-            function readStream() {
-                reader.read().then(({ done, value }) => {
-                    if (done) {
-                        if (buffer.trim()) {
-                            processBuffer(buffer, 'api');
-                            buffer = '';
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('执行失败');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                function readStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            if (buffer.trim()) {
+                                processBuffer(buffer, 'api');
+                                buffer = '';
+                            }
+                            isExecuting = false;
+                            updateStatus('success', '执行完成', 'api');
+                            document.querySelectorAll('[id^="execute-btn-"]').forEach(btn => {
+                                if (btn.id !== 'execute-btn-online') {
+                                    btn.disabled = false;
+                                }
+                            });
+                            document.getElementById('loading-spinner-api').style.display = 'none';
+                            return;
                         }
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            processLine(line, 'api');
+                        }
+
+                        readStream();
+                    }).catch(error => {
+                        appendOutput('错误: ' + error.message, 'error', 'api');
                         isExecuting = false;
-                        updateStatus('success', '执行完成', 'api');
+                        updateStatus('error', '执行失败', 'api');
                         document.querySelectorAll('[id^="execute-btn-"]').forEach(btn => {
                             if (btn.id !== 'execute-btn-online') {
                                 btn.disabled = false;
                             }
                         });
                         document.getElementById('loading-spinner-api').style.display = 'none';
-                        return;
-                    }
-                    
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    
-                    for (const line of lines) {
-                        processLine(line, 'api');
-                    }
-                    
-                    readStream();
-                }).catch(error => {
-                    appendOutput('错误: ' + error.message, 'error', 'api');
-                    isExecuting = false;
-                    updateStatus('error', '执行失败', 'api');
-                    document.querySelectorAll('[id^="execute-btn-"]').forEach(btn => {
-                        if (btn.id !== 'execute-btn-online') {
-                            btn.disabled = false;
-                        }
                     });
-                    document.getElementById('loading-spinner-api').style.display = 'none';
-                });
-            }
-            
-            function processLine(line, tab) {
-                if (line.startsWith('data: ')) {
-                    try {
-                        const data = JSON.parse(line.substring(6));
-                        if (data.type === 'start') {
-                            appendOutput(data.message, 'info', tab);
-                            // 保存task_id并显示停止按钮
-                            if (data.task_id && typeof setCurrentTaskId === 'function') {
-                                setCurrentTaskId(data.task_id);
+                }
+
+                function processLine(line, tab) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            if (data.type === 'start') {
+                                appendOutput(data.message, 'info', tab);
+                                // 保存task_id并显示停止按钮
+                                if (data.task_id && typeof setCurrentTaskId === 'function') {
+                                    setCurrentTaskId(data.task_id);
+                                }
+                            } else if (data.type === 'output') {
+                                appendOutput(data.message, 'output', tab);
+                            } else if (data.type === 'error') {
+                                appendOutput(data.message, 'error', tab);
+                            } else if (data.type === 'end') {
+                                appendOutput(data.message, 'success', tab);
+                                // 清除task_id并隐藏停止按钮
+                                if (typeof clearCurrentTaskId === 'function') {
+                                    clearCurrentTaskId();
+                                }
                             }
-                        } else if (data.type === 'output') {
-                            appendOutput(data.message, 'output', tab);
-                        } else if (data.type === 'error') {
-                            appendOutput(data.message, 'error', tab);
-                        } else if (data.type === 'end') {
-                            appendOutput(data.message, 'success', tab);
-                            // 清除task_id并隐藏停止按钮
-                            if (typeof clearCurrentTaskId === 'function') {
-                                clearCurrentTaskId();
-                            }
+                        } catch (e) {
+                            // 忽略解析错误
                         }
-                    } catch (e) {
-                        // 忽略解析错误
                     }
                 }
-            }
-            
-            function processBuffer(buf, tab) {
-                const lines = buf.split('\n');
-                for (const line of lines) {
-                    if (line.trim()) {
-                        processLine(line, tab);
+
+                function processBuffer(buf, tab) {
+                    const lines = buf.split('\n');
+                    for (const line of lines) {
+                        if (line.trim()) {
+                            processLine(line, tab);
+                        }
                     }
                 }
-            }
-            
-            readStream();
-        })
-        .catch(error => {
-            appendOutput('执行错误: ' + error.message, 'error', 'api');
-            isExecuting = false;
-            updateStatus('error', '执行失败', 'api');
-            document.querySelectorAll('[id^="execute-btn-"]').forEach(btn => {
-                if (btn.id !== 'execute-btn-online') {
-                    btn.disabled = false;
-                }
+
+                readStream();
+            })
+            .catch(error => {
+                appendOutput('执行错误: ' + error.message, 'error', 'api');
+                isExecuting = false;
+                updateStatus('error', '执行失败', 'api');
+                document.querySelectorAll('[id^="execute-btn-"]').forEach(btn => {
+                    if (btn.id !== 'execute-btn-online') {
+                        btn.disabled = false;
+                    }
+                });
+                document.getElementById('loading-spinner-api').style.display = 'none';
             });
-            document.getElementById('loading-spinner-api').style.display = 'none';
-        });
 
     } catch (error) {
         showAlert('执行失败: ' + error.message, 'error', 'api');
@@ -898,16 +914,16 @@ function appendOutput(message, type = 'output', tab = 'api') {
         outputCounters[tab] = 0;
     }
     outputCounters[tab]++;
-    
+
     const outputPanel = document.getElementById(`output-panel-${tab}`);
-    
+
     // 创建输出行
     const line = document.createElement('div');
     line.className = 'output-line';
-    
+
     // 检测完成标记
     const isCompletion = message.includes('🎉') || message.includes('任务执行完成');
-    
+
     // 添加类型样式
     if (isCompletion) {
         // 完成消息特殊样式
@@ -929,10 +945,10 @@ function appendOutput(message, type = 'output', tab = 'api') {
     } else {
         line.className += ' info';
     }
-    
+
     line.textContent = message;
     outputPanel.appendChild(line);
-    
+
     // 限制最大行数（防止内存溢出）
     const lines = outputPanel.querySelectorAll('.output-line');
     if (lines.length > MAX_OUTPUT_LINES) {
@@ -941,7 +957,7 @@ function appendOutput(message, type = 'output', tab = 'api') {
             lines[i].remove();
         }
     }
-    
+
     // 滚动到底部（防抖）
     if (outputPanel._scrollTimeout) {
         clearTimeout(outputPanel._scrollTimeout);
@@ -954,7 +970,7 @@ function appendOutput(message, type = 'output', tab = 'api') {
 function updateStatus(status, text, tab = 'api') {
     const indicator = document.getElementById(`status-indicator-${tab}`);
     const statusText = document.getElementById(`status-text-${tab}`);
-    
+
     indicator.className = 'status-indicator ' + status;
     statusText.textContent = text;
 }
@@ -962,7 +978,7 @@ function updateStatus(status, text, tab = 'api') {
 
 
 // ========== 页面加载时自动加载配置 ==========
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 检查是否在接口数据对比页面
     const apiPage = document.getElementById('page-api');
     if (apiPage) {

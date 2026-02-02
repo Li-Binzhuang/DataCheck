@@ -2,10 +2,10 @@
   "scenarios": [
     {
       "name": "bz",
-      "enabled": false,
+      "enabled": true,
       "description": "bz",
-      "input_csv_file": "cdc1_features_batch001_1-500.csv",
-      "output_file_prefix": "bz_cdc1_1",
+      "input_csv_file": "cdc2_features_batch001_1-500.csv",
+      "output_file_prefix": "bz_cdc2_1",
       "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
       "thread_count": 200,
       "timeout": 60,
@@ -31,10 +31,10 @@
     },
     {
       "name": "hd",
-      "enabled": true,
+      "enabled": false,
       "description": "hd",
-      "input_csv_file": "hdpart2_29.csv",
-      "output_file_prefix": "hd_29_part2",
+      "input_csv_file": "hd_part1.csv",
+      "output_file_prefix": "hd_29_part1",
       "api_url": "http://10.129.2.25:8082/riskanalysis/loanOrderNew/calculateFeatures",
       "thread_count": 200,
       "timeout": 60,
@@ -65,6 +65,6 @@
     "default_convert_feature_to_number": true
   },
   "output_config": {
-    "output_intermediate_files": true
+    "output_intermediate_files": false
   }
 }

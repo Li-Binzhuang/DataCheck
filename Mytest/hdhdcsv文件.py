@@ -1,41 +1,51 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-合并 hd21.csv 至 hd28.csv 文件
-将8个CSV文件合并为一个文件输出
+合并 '合并前单独文件' 文件夹下所有 CSV 文件
+自动扫描文件夹中的所有 CSV 文件并合并为一个文件
 """
 
 import pandas as pd
 import os
 from datetime import datetime
+import glob
 
-def merge_hd_files():
-    """合并 hd21.csv 到 hd28.csv 的8个文件"""
+def merge_csv_files():
+    """合并 '合并前单独文件' 文件夹下的所有 CSV 文件"""
     
-    # 定义输入文件列表
-    input_files = [f'hd{i}.csv' for i in range(21, 29)]
+    # 定义输入文件夹
+    input_folder = '合并前单独文件'
     
-    # 检查文件是否存在
-    print("检查文件...")
-    missing_files = []
-    for file in input_files:
-        if not os.path.exists(file):
-            missing_files.append(file)
-            print(f"  ❌ {file} - 不存在")
-        else:
-            file_size = os.path.getsize(file) / (1024 * 1024)  # MB
-            print(f"  ✓ {file} - {file_size:.2f} MB")
-    
-    if missing_files:
-        print(f"\n错误：缺少 {len(missing_files)} 个文件")
+    # 检查文件夹是否存在
+    if not os.path.exists(input_folder):
+        print(f"❌ 错误：文件夹 '{input_folder}' 不存在")
         return
+    
+    # 获取文件夹中所有 CSV 文件
+    csv_pattern = os.path.join(input_folder, '*.csv')
+    csv_files = glob.glob(csv_pattern)
+    
+    # 检查是否有 CSV 文件
+    if not csv_files:
+        print(f"⚠️  提示：文件夹 '{input_folder}' 中没有找到任何 CSV 文件")
+        return
+    
+    # 按文件名排序
+    csv_files.sort()
+    
+    print(f"找到 {len(csv_files)} 个 CSV 文件:")
+    for file in csv_files:
+        file_size = os.path.getsize(file) / (1024 * 1024)  # MB
+        file_name = os.path.basename(file)
+        print(f"  ✓ {file_name} - {file_size:.2f} MB")
     
     # 读取并合并文件
     print("\n开始合并文件...")
     dfs = []
     
-    for i, file in enumerate(input_files, 1):
-        print(f"  [{i}/8] 读取 {file}...", end=' ')
+    for i, file in enumerate(csv_files, 1):
+        file_name = os.path.basename(file)
+        print(f"  [{i}/{len(csv_files)}] 读取 {file_name}...", end=' ')
         try:
             df = pd.read_csv(file)
             rows = len(df)
@@ -52,7 +62,7 @@ def merge_hd_files():
     
     # 生成输出文件名（带时间戳）
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_file = f'hd21_to_hd28_merged_{timestamp}.csv'
+    output_file = f'merged_csv_{timestamp}.csv'
     
     # 保存合并后的文件
     print(f"保存到 {output_file}...")
@@ -63,7 +73,7 @@ def merge_hd_files():
     print("\n" + "="*60)
     print("合并完成！")
     print("="*60)
-    print(f"输入文件数: {len(input_files)}")
+    print(f"输入文件数: {len(csv_files)}")
     print(f"总行数: {len(merged_df):,}")
     print(f"总列数: {len(merged_df.columns)}")
     print(f"输出文件: {output_file}")
@@ -72,14 +82,15 @@ def merge_hd_files():
     
     # 显示每个文件的行数统计
     print("\n各文件行数统计:")
-    for i, (file, df) in enumerate(zip(input_files, dfs), 1):
-        print(f"  {i}. {file}: {len(df):,} 行")
+    for i, (file, df) in enumerate(zip(csv_files, dfs), 1):
+        file_name = os.path.basename(file)
+        print(f"  {i}. {file_name}: {len(df):,} 行")
     
     return output_file
 
 if __name__ == '__main__':
     print("="*60)
-    print("合并 hd21.csv 至 hd28.csv 文件")
+    print("合并 '合并前单独文件' 文件夹下所有 CSV 文件")
     print("="*60)
     print()
     
@@ -89,4 +100,4 @@ if __name__ == '__main__':
     print(f"工作目录: {os.getcwd()}\n")
     
     # 执行合并
-    merge_hd_files()
+    merge_csv_files()

@@ -53,6 +53,41 @@ def _convert_string_to_number(value: Any) -> Any:
     return value
 
 
+def extract_features_from_data(d: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    从data字典中提取特征数据
+    
+    如果data中包含features字段，则解析features；否则直接返回data
+    
+    Args:
+        d: 数据字典（可能是直接的特征，也可能包含features子字段）
+    
+    Returns:
+        特征字典
+    """
+    if d is None or not isinstance(d, dict):
+        return {}
+    
+    # 检查是否存在features字段
+    if 'features' in d:
+        features = d['features']
+        if isinstance(features, dict):
+            return features
+        elif isinstance(features, list):
+            # 如果features是列表，尝试合并所有字典
+            merged = {}
+            for item in features:
+                if isinstance(item, dict):
+                    merged.update(item)
+            return merged
+        else:
+            # features不是字典或列表，返回原始data（排除features字段）
+            return {k: v for k, v in d.items() if k != 'features'}
+    
+    # 没有features字段，直接返回data
+    return d
+
+
 def flatten_dict(d: Dict[str, Any], convert_to_number: bool = False) -> Dict[str, Any]:
     """
     打平嵌套字典
@@ -177,8 +212,11 @@ def parse_json_to_csv(
                     print(f"警告: 第 {row_index + 2} 行JSON解析结果不是字典类型: {type(json_obj)}，跳过该行")
                 continue
             
+            # 从data中提取特征（如果存在features字段则解析features，否则直接使用data）
+            feature_data = extract_features_from_data(json_obj)
+            
             # 打平嵌套字典
-            flattened = flatten_dict(json_obj, convert_string_to_number)
+            flattened = flatten_dict(feature_data, convert_string_to_number)
             
             # 收集所有特征字段
             all_feature_keys.update(flattened.keys())

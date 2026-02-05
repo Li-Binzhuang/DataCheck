@@ -43,8 +43,9 @@ COMPARE_INPUT_DIR = os.path.join(INPUT_DATA_DIR, "data_comparison")            #
 
 # ==================== Flask配置 ====================
 
-# 文件上传大小限制（1GB）
-MAX_CONTENT_LENGTH = 1024 * 1024 * 1024  # 1GB = 1024MB = 1024*1024KB = 1024*1024*1024B
+# 文件上传大小限制（10GB）
+# 注意：如果使用Nginx等反向代理，需要同时配置代理的client_max_body_size
+MAX_CONTENT_LENGTH = 10 * 1024 * 1024 * 1024  # 10GB
 
 # 允许的文件扩展名
 ALLOWED_EXTENSIONS = {'csv', 'pkl', 'xlsx'}

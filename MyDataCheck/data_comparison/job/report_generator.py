@@ -42,6 +42,8 @@ def generate_comparison_reports(
     api_key_column = comparison_results["api_key_column"]
     sql_feature_start = comparison_results["sql_feature_start"]
     api_feature_start = comparison_results["api_feature_start"]
+    key_column_name = comparison_results.get("key_column_name", "主键值")
+    time_column_name = comparison_results.get("time_column_name", "时间")
     
     print(f"\n开始生成报告...")
     
@@ -68,13 +70,19 @@ def generate_comparison_reports(
     detail_file = f"{output_base_path}_差异数据明细.csv"
     with open(detail_file, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.writer(f)
-        writer.writerow(['主键值', 'cust_no', '特征名', '接口文件值', 'Sql文件值'])
+        writer.writerow([key_column_name, time_column_name, 'cust_no', '特征名', '接口/灰度/从库值', '模型特征表值'])
         
         # 按主键值和特征名排序
         sorted_diffs = sorted(differences_dict.items(), key=lambda x: (x[0][0], x[0][1]))
         
-        for (key_value, feature), (api_value, sql_value, cust_no) in sorted_diffs:
-            writer.writerow([key_value, cust_no, feature, api_value, sql_value])
+        for (key_value, feature), diff_data in sorted_diffs:
+            # 兼容旧格式(3个值)和新格式(4个值)
+            if len(diff_data) == 4:
+                api_value, sql_value, cust_no, time_value = diff_data
+            else:
+                api_value, sql_value, cust_no = diff_data
+                time_value = ""
+            writer.writerow([key_value, time_value, cust_no, feature, api_value, sql_value])
     
     print(f"✅ 差异数据明细已保存: {detail_file}")
     
@@ -109,7 +117,7 @@ def generate_comparison_reports(
         header.extend(all_features)
         writer.writerow(header)
         
-        # 写入接口文件数据
+        # 写入接口/灰度/从库特征表数据
         for row in rows_api:
             if api_key_column >= len(row):
                 continue
@@ -122,7 +130,7 @@ def generate_comparison_reports(
             has_diff = any((key_value, feature) in differences_dict for feature in all_features)
             result = "有差异" if has_diff else "一致"
             
-            row_data = [key_value, "接口文件", result]
+            row_data = [key_value, "接口/灰度/从库", result]
             
             # 添加特征值
             for feature in all_features:
@@ -134,7 +142,7 @@ def generate_comparison_reports(
             
             writer.writerow(row_data)
         
-        # 写入Sql文件数据
+        # 写入模型特征表数据
         for row in rows_sql:
             if sql_key_column >= len(row):
                 continue
@@ -147,7 +155,7 @@ def generate_comparison_reports(
             has_diff = any((key_value, feature) in differences_dict for feature in all_features)
             result = "有差异" if has_diff else "一致"
             
-            row_data = [key_value, "Sql文件", result]
+            row_data = [key_value, "模型特征表", result]
             
             # 添加特征值
             for feature in all_features:
@@ -161,23 +169,23 @@ def generate_comparison_reports(
     
     print(f"✅ 全量数据合并已保存: {merged_file}")
     
-    # 5. 生成仅在接口文件中的数据
+    # 5. 生成仅在接口/灰度/从库特征表中的数据
     if len(unmatched_rows) > 0:
-        api_only_file = f"{output_base_path}_仅在接口文件中的数据.csv"
+        api_only_file = f"{output_base_path}_仅在接口灰度从库中的数据.csv"
         with open(api_only_file, 'w', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             writer.writerow(headers_api)
             writer.writerows(unmatched_rows)
-        print(f"✅ 仅在接口文件中的数据已保存: {api_only_file} (共 {len(unmatched_rows)} 条)")
+        print(f"✅ 仅在接口/灰度/从库中的数据已保存: {api_only_file} (共 {len(unmatched_rows)} 条)")
     
-    # 6. 生成仅在Sql文件中的数据
+    # 6. 生成仅在模型特征表中的数据
     if len(sql_only_rows) > 0:
-        sql_only_file = f"{output_base_path}_仅在Sql文件中的数据.csv"
+        sql_only_file = f"{output_base_path}_仅在模型特征表中的数据.csv"
         with open(sql_only_file, 'w', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             writer.writerow(headers_sql)
             writer.writerows(sql_only_rows)
-        print(f"✅ 仅在Sql文件中的数据已保存: {sql_only_file} (共 {len(sql_only_rows)} 条)")
+        print(f"✅ 仅在模型特征表中的数据已保存: {sql_only_file} (共 {len(sql_only_rows)} 条)")
     
     print(f"\n{'='*80}")
     print(f"报告生成完成！")
@@ -188,7 +196,7 @@ def generate_comparison_reports(
     print(f"  3. 特征统计: {stats_file}")
     print(f"  4. 全量数据合并: {merged_file}")
     if len(unmatched_rows) > 0:
-        print(f"  5. 仅在接口文件中的数据: {api_only_file} (共 {len(unmatched_rows)} 条)")
+        print(f"  5. 仅在接口/灰度/从库中的数据: {api_only_file} (共 {len(unmatched_rows)} 条)")
     if len(sql_only_rows) > 0:
-        print(f"  6. 仅在Sql文件中的数据: {sql_only_file} (共 {len(sql_only_rows)} 条)")
+        print(f"  6. 仅在模型特征表中的数据: {sql_only_file} (共 {len(sql_only_rows)} 条)")
     print(f"{'='*80}")

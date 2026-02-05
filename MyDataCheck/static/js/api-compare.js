@@ -815,6 +815,8 @@ function executeConfig() {
                             }
                             isExecuting = false;
                             updateStatus('success', '执行完成', 'api');
+                            showAlert('🎉 接口数据对比执行完成！', 'success', 'api');
+                            appendOutput('🎉 任务执行完成！', 'success', 'api');
                             document.querySelectorAll('[id^="execute-btn-"]').forEach(btn => {
                                 if (btn.id !== 'execute-btn-online') {
                                     btn.disabled = false;

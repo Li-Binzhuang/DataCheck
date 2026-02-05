@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-数据对比器模块（大文件性能优化版）
+数据对比器模块（性能优化版）
 功能：对比两个CSV/XLSX文件的数据差异
 
 优化点：
 1. 使用字典索引替代嵌套循环查找（O(1) vs O(n)）
 2. 预先构建特征映射，避免重复查找
 3. 批量处理进度输出，减少I/O开销
-4. 针对大文件优化内存使用
+4. 优化数据结构，减少内存占用
 """
 
 import os
@@ -21,27 +21,46 @@ from csv_tool import read_csv_with_encoding
 from value_comparator import compare_values
 
 
-def _convert_string_to_number_fast(value: Any) -> Any:
+def _convert_string_to_number(value: Any) -> Any:
     """
-    快速将字符串转换为数值类型（优化版）
+    尝试将字符串转换为数值类型，并去除多余的引号
+    
+    Args:
+        value: 输入值
+    
+    Returns:
+        如果可以转换为数值，返回数值；否则返回去除引号后的字符串
     """
     if value is None or value == "":
         return value
     
+    # 如果已经是数值类型，直接返回
     if isinstance(value, (int, float)):
         return value
     
+    # 转换为字符串并去除空格
     str_value = str(value).strip()
+    
+    # 处理空字符串
     if not str_value:
         return value
     
-    # 快速去除引号
-    if str_value[0] in ('"', "'") and str_value[-1] in ('"', "'"):
-        str_value = str_value[1:-1]
+    # 循环去除字符串两端的所有双引号和单引号
+    while len(str_value) >= 2:
+        if (str_value[0] == '"' and str_value[-1] == '"') or \
+           (str_value[0] == "'" and str_value[-1] == "'"):
+            str_value = str_value[1:-1].strip()
+        elif str_value.endswith('"') or str_value.endswith("'"):
+            str_value = str_value[:-1].strip()
+        elif str_value.startswith('"') or str_value.startswith("'"):
+            str_value = str_value[1:].strip()
+        else:
+            break
     
     if not str_value:
         return value
     
+    # 尝试转换为数值
     try:
         float_value = float(str_value)
         if float_value == int(float_value):
@@ -140,22 +159,22 @@ def compare_two_files(
     feature_mapping = {}  # {feature_name: (api_idx, sql_idx)}
     all_features = []
     
-    # 预先构建接口文件特征名到索引的映射（避免重复使用list.index()）
-    api_feature_index = {feature: api_feature_start + idx for idx, feature in enumerate(feature_cols_api)}
-    
-    # 以Sql文件（第一个文件）为基准
-    # 只对比Sql文件中存在的特征，忽略只在接口文件中存在的特征
-    for idx, feature_sql in enumerate(feature_cols_sql):
-        actual_sql_idx = sql_feature_start + idx
-        actual_api_idx = api_feature_index.get(feature_sql)  # O(1) 查找
+    # 以接口文件为基准
+    for idx, feature_api in enumerate(feature_cols_api):
+        actual_api_idx = api_feature_start + idx
+        actual_sql_idx = None
         
-        feature_mapping[feature_sql] = (actual_api_idx, actual_sql_idx)
-        all_features.append(feature_sql)
+        # 在Sql文件中查找对应的特征
+        if feature_api in feature_cols_sql:
+            idx_sql = feature_cols_sql.index(feature_api)
+            actual_sql_idx = sql_feature_start + idx_sql
+        
+        feature_mapping[feature_api] = (actual_api_idx, actual_sql_idx)
+        if feature_api not in all_features:
+            all_features.append(feature_api)
     
     all_features = sorted(all_features)
-    print(f"Sql文件特征数: {len(feature_cols_sql)}")
-    print(f"接口文件特征数: {len(feature_cols_api)}")
-    print(f"实际对比的特征数: {len(all_features)} (以Sql文件为基准)")
+    print(f"实际对比的特征数: {len(all_features)}")
     
     # 查找cust_no列
     cust_no_idx_api = None
@@ -176,33 +195,10 @@ def compare_two_files(
     if cust_no_idx_sql is not None:
         print(f"Sql文件cust_no列: 索引{cust_no_idx_sql} ({headers_sql[cust_no_idx_sql]})")
     
-    # 查找时间列（用于差异明细输出）
-    time_idx_api = None
-    time_idx_sql = None
-    
-    for i, header in enumerate(headers_api):
-        if "time" in header.lower() or "date" in header.lower():
-            time_idx_api = i
-            break
-    # 如果没找到，默认使用主键列后面一列
-    if time_idx_api is None and api_key_column + 1 < len(headers_api):
-        time_idx_api = api_key_column + 1
-    
-    for i, header in enumerate(headers_sql):
-        if "time" in header.lower() or "date" in header.lower():
-            time_idx_sql = i
-            break
-    if time_idx_sql is None and sql_key_column + 1 < len(headers_sql):
-        time_idx_sql = sql_key_column + 1
-    
-    if time_idx_api is not None:
-        print(f"接口文件时间列: 索引{time_idx_api} ({headers_api[time_idx_api]})")
-    if time_idx_sql is not None:
-        print(f"Sql文件时间列: 索引{time_idx_sql} ({headers_sql[time_idx_sql]})")
-    
     # [优化3] 对比数据 - 使用字典查找替代嵌套循环
     print(f"\n[4/5] 对比数据...")
     differences_dict = {}
+    matches_dict = {}
     matched_count = 0
     unmatched_count = 0
     unmatched_rows = []
@@ -248,34 +244,43 @@ def compare_two_files(
         if not cust_no and cust_no_idx_api is not None and cust_no_idx_api < len(row_api):
             cust_no = str(row_api[cust_no_idx_api]).strip() if row_api[cust_no_idx_api] is not None else ""
         
-        # 获取时间值（优先从接口文件获取）
-        time_value = ""
-        if time_idx_api is not None and time_idx_api < len(row_api):
-            time_value = str(row_api[time_idx_api]).strip() if row_api[time_idx_api] is not None else ""
-        if not time_value and time_idx_sql is not None and time_idx_sql < len(sql_row):
-            time_value = str(sql_row[time_idx_sql]).strip() if sql_row[time_idx_sql] is not None else ""
-        
         # 对比所有特征
         for feature_name in all_features:
             api_idx, sql_idx = feature_mapping[feature_name]
             
-            # 获取值（优化：减少函数调用）
-            api_value = row_api[api_idx] if api_idx is not None and api_idx < len(row_api) else ""
-            sql_value = sql_row[sql_idx] if sql_idx is not None and sql_idx < len(sql_row) else ""
+            # 获取值
+            api_value = ""
+            if api_idx is not None and api_idx < len(row_api):
+                api_value = str(row_api[api_idx]).strip() if row_api[api_idx] is not None else ""
+            
+            sql_value = ""
+            if sql_idx is not None and sql_idx < len(sql_row):
+                sql_value = str(sql_row[sql_idx]).strip() if sql_row[sql_idx] is not None else ""
             
             # 转换为数值
             if convert_feature_to_number:
-                api_value = _convert_string_to_number_fast(api_value)
-                sql_value = _convert_string_to_number_fast(sql_value)
+                api_value = _convert_string_to_number(api_value)
+                sql_value = _convert_string_to_number(sql_value)
             
-            # 判断差异（以Sql文件为基准）
-            if sql_idx is not None and api_idx is not None:
-                # 特征在两个文件中都存在，比较值
-                if not compare_values(api_value, sql_value, feature_name):
-                    differences_dict[(key_value, feature_name)] = (api_value, sql_value, cust_no, time_value)
-            elif sql_idx is not None:
-                # 特征在Sql文件中存在，在接口文件中不存在
-                differences_dict[(key_value, feature_name)] = (api_value, sql_value, cust_no, time_value)
+            # 判断差异
+            has_diff = False
+            is_match = False
+            
+            if api_idx is not None and sql_idx is not None:
+                if compare_values(api_value, sql_value, feature_name):
+                    is_match = True
+                else:
+                    has_diff = True
+            elif api_idx is not None and sql_idx is None:
+                has_diff = True
+            elif api_idx is None and sql_idx is not None:
+                has_diff = True
+            
+            if is_match:
+                matches_dict[(key_value, feature_name)] = api_value
+            
+            if has_diff:
+                differences_dict[(key_value, feature_name)] = (api_value, sql_value, cust_no)
     
     print(f"  进度: {len(rows_api)}/{len(rows_api)} (100.0%)")
     
@@ -347,7 +352,7 @@ def compare_two_files(
     
     return {
         "differences_dict": differences_dict,
-        "matches_dict": {},  # 不再收集一致数据，节省内存
+        "matches_dict": matches_dict,
         "all_features": all_features,
         "feature_stats": feature_stats,
         "matched_count": matched_count,
@@ -366,7 +371,5 @@ def compare_two_files(
         "sql_key_column": sql_key_column,
         "api_key_column": api_key_column,
         "sql_feature_start": sql_feature_start,
-        "api_feature_start": api_feature_start,
-        "key_column_name": headers_api[api_key_column] if api_key_column < len(headers_api) else "主键值",
-        "time_column_name": headers_api[time_idx_api] if time_idx_api is not None and time_idx_api < len(headers_api) else "时间"
+        "api_feature_start": api_feature_start
     }

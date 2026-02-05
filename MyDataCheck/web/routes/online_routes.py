@@ -28,6 +28,8 @@ online_bp = Blueprint('online_routes', __name__)
 online_input_dir = ONLINE_INPUT_DIR
 online_output_dir = ONLINE_OUTPUT_DIR
 online_comparison_dir = ONLINE_COMPARISON_DIR
+online_job_dir = ONLINE_JOB_DIR
+script_dir = SCRIPT_DIR
 
 # 动态导入线上灰度落数对比模块
 json_parser_path = os.path.join(ONLINE_JOB_DIR, "json_parser.py")
@@ -770,12 +772,17 @@ def upload_online_file():
 def parse_online():
     """只执行JSON解析（不执行对比）"""
     try:
-        config_json_str = request.json.get('config')
-        if not config_json_str:
+        config_data = request.json.get('config')
+        if not config_data:
             return jsonify({'success': False, 'error': '配置数据为空'})
 
-        # 验证JSON格式
-        json.loads(config_json_str)
+        # 如果是字典，转换为JSON字符串；如果已经是字符串，验证JSON格式
+        if isinstance(config_data, dict):
+            config_json_str = json.dumps(config_data)
+        else:
+            # 验证JSON格式
+            json.loads(config_data)
+            config_json_str = config_data
 
         # 创建输出队列
         output_queue = Queue()
@@ -849,20 +856,25 @@ def execute_online():
         if not config_data:
             return jsonify({'success': False, 'error': '配置数据为空'})
         
-        # 判断是单场景还是多场景配置
+        print(f"[DEBUG] 收到配置数据类型: {type(config_data)}")
+        
+        # 如果是字符串，先解析为字典
         if isinstance(config_data, str):
-            # 旧格式：JSON字符串（单场景）
-            config_json_str = config_data
-            output_queue = Queue()
-            thread = Thread(target=execute_online_comparison_flow, args=(config_json_str, output_queue))
-            thread.daemon = True
-            thread.start()
-        elif isinstance(config_data, dict):
-            # 新格式：字典（可能是单场景或多场景）
+            try:
+                config_data = json.loads(config_data)
+                print(f"[DEBUG] 解析后配置数据类型: {type(config_data)}")
+                print(f"[DEBUG] 配置数据keys: {config_data.keys() if isinstance(config_data, dict) else 'N/A'}")
+            except json.JSONDecodeError as e:
+                return jsonify({'success': False, 'error': f'配置JSON解析错误: {str(e)}'})
+        
+        # 判断是单场景还是多场景配置
+        if isinstance(config_data, dict):
             if 'scenarios' in config_data:
                 # 多场景模式
                 scenarios = config_data.get('scenarios', [])
                 enabled_scenarios = [s for s in scenarios if s.get('enabled', True)]
+                
+                print(f"[DEBUG] 多场景模式，启用场景数: {len(enabled_scenarios)}")
                 
                 if not enabled_scenarios:
                     return jsonify({'success': False, 'error': '没有启用的场景'})
@@ -876,6 +888,7 @@ def execute_online():
                 thread.start()
             else:
                 # 单场景模式（兼容旧格式）
+                print(f"[DEBUG] 单场景模式")
                 config_json_str = json.dumps(config_data)
                 output_queue = Queue()
                 thread = Thread(target=execute_online_comparison_flow, args=(config_json_str, output_queue))

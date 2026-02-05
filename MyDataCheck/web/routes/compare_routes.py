@@ -48,12 +48,12 @@ def execute_compare_flow(config: dict, output_queue: Queue):
         sys.stderr = capture
         
         print("[INFO] 开始执行数据对比...")
-        print(f"[INFO] sql data: {config['file1']}")
-        print(f"[INFO] 从库/灰度/线上文件: {config['file2']}")
-        print(f"[INFO] sql data主键列: {config['key_column_1']}")
-        print(f"[INFO] 从库/灰度/线上文件主键列: {config['key_column_2']}")
-        print(f"[INFO] sql data特征起始列: {config['feature_start_1']}")
-        print(f"[INFO] 从库/灰度/线上文件特征起始列: {config['feature_start_2']}")
+        print(f"[INFO] 模型特征表: {config['file1']}")
+        print(f"[INFO] 接口/灰度/从库特征表: {config['file2']}")
+        print(f"[INFO] 模型特征表主键列: {config['key_column_1']}")
+        print(f"[INFO] 接口/灰度/从库特征表主键列: {config['key_column_2']}")
+        print(f"[INFO] 模型特征表特征起始列: {config['feature_start_1']}")
+        print(f"[INFO] 接口/灰度/从库特征表特征起始列: {config['feature_start_2']}")
         print(f"[INFO] 转换特征值为数值: {config.get('convert_feature_to_number', False)}")
         
         # 构建文件路径
@@ -62,9 +62,9 @@ def execute_compare_flow(config: dict, output_queue: Queue):
         
         # 检查文件是否存在
         if not os.path.exists(file1_path):
-            raise FileNotFoundError(f"sql data不存在: {file1_path}")
+            raise FileNotFoundError(f"模型特征表不存在: {file1_path}")
         if not os.path.exists(file2_path):
-            raise FileNotFoundError(f"从库/灰度/线上文件不存在: {file2_path}")
+            raise FileNotFoundError(f"接口/灰度/从库特征表不存在: {file2_path}")
         
         # 动态导入数据对比模块
         data_comparator_path = os.path.join(data_comparison_job_dir, "data_comparator.py")

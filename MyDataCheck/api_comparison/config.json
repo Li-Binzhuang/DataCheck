@@ -4,12 +4,12 @@
       "name": "bz",
       "enabled": true,
       "description": "bz",
-      "input_csv_file": "cdc1_features_batch002_2101-4200.csv",
-      "output_file_prefix": "bz_cdc1_2",
+      "input_csv_file": "cdcboss_features_all.csv",
+      "output_file_prefix": "bz_cdcboss_All",
       "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
       "thread_count": 200,
       "timeout": 10,
-      "batch_size": 100,
+      "batch_size": 150,
       "convert_feature_to_number": true,
       "add_one_second": false,
       "calculate_difference": false,
@@ -40,7 +40,7 @@
       "api_url": "http://10.129.2.25:8082/riskanalysis/loanOrderNew/calculateFeatures",
       "thread_count": 200,
       "timeout": 10,
-      "batch_size": 100,
+      "batch_size": 150,
       "convert_feature_to_number": true,
       "add_one_second": false,
       "calculate_difference": false,
@@ -66,10 +66,10 @@
   "global_config": {
     "default_thread_count": 200,
     "default_timeout": 10,
-    "default_batch_size": 100,
+    "default_batch_size": 150,
     "default_convert_feature_to_number": true
   },
   "output_config": {
-    "output_intermediate_files": true
+    "output_intermediate_files": false
   }
 }

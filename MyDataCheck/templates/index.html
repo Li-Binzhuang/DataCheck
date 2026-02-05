@@ -144,7 +144,7 @@
                             style="width: 100%; margin-top: 10px;">➕ 添加场景</button>
 
                         <div class="button-group" style="margin-top: 15px;">
-                            <button class="btn-primary" onclick="executeOnlineConfig()" id="btn-execute-online">▶️
+                            <button class="btn-primary" onclick="executeOnlineConfig()" id="execute-btn-online">▶️
                                 执行对比</button>
                             <button class="btn-success" onclick="saveOnlineConfig()">💾 保存配置</button>
                             <button class="btn-secondary" onclick="loadOnlineConfig()">📂 加载配置</button>
@@ -179,14 +179,14 @@
                         <div id="alert-container-compare"></div>
 
                         <div class="form-group">
-                            <label>sql data (CSV/XLSX):</label>
+                            <label>模型特征表 (CSV/XLSX):</label>
                             <input type="file" id="compare-file1" accept=".csv,.xlsx"
                                 onchange="handleCompareFileSelect(1, this)">
                             <div class="file-info" id="file-info-compare-1">未选择文件</div>
                         </div>
 
                         <div class="form-group">
-                            <label>从库/灰度/线上文件 (CSV/XLSX):</label>
+                            <label>接口/灰度/从库特征表 (CSV/XLSX):</label>
                             <input type="file" id="compare-file2" accept=".csv,.xlsx"
                                 onchange="handleCompareFileSelect(2, this)">
                             <div class="file-info" id="file-info-compare-2">未选择文件</div>
@@ -194,22 +194,22 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label>sql data主键列索引 (A列=0):</label>
+                                <label>模型特征表主键列索引 (A列=0):</label>
                                 <input type="number" id="compare-key-column-1" value="0" min="0">
                             </div>
                             <div class="form-group">
-                                <label>从库/灰度/线上文件主键列索引 (A列=0):</label>
+                                <label>接口/灰度/从库特征表主键列索引 (A列=0):</label>
                                 <input type="number" id="compare-key-column-2" value="0" min="0">
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label>sql data特征起始列索引:</label>
+                                <label>模型特征表特征起始列索引:</label>
                                 <input type="number" id="compare-feature-start-1" value="1" min="0">
                             </div>
                             <div class="form-group">
-                                <label>从库/灰度/线上文件特征起始列索引:</label>
+                                <label>接口/灰度/从库特征表特征起始列索引:</label>
                                 <input type="number" id="compare-feature-start-2" value="1" min="0">
                             </div>
                         </div>
@@ -234,7 +234,7 @@
                             <button class="btn-primary" onclick="executeCompare()" id="btn-execute-compare" disabled
                                 style="flex: 1;">▶️ 执行对比</button>
                             <button class="btn-success" onclick="saveCompareConfig()">💾 保存配置</button>
-                            <button class="btn-secondary" onclick="loadCompareConfig()">📂 加载配置</button>
+                            <button class="btn-secondary" onclick="loadCompareConfig(true)">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearOutput('compare')">🗑️ 清空输出</button>
                         </div>
 

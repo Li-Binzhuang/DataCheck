@@ -4,10 +4,10 @@ let currentPklFile = null;
 let currentPklData = null;
 
 // PKL文件选择处理
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const pklFileInput = document.getElementById('pkl-file-input');
     if (pklFileInput) {
-        pklFileInput.addEventListener('change', function(e) {
+        pklFileInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 if (!file.name.endsWith('.pkl')) {
@@ -15,17 +15,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.target.value = '';
                     return;
                 }
-                
+
                 currentPklFile = file;
                 const fileInfo = document.getElementById('pkl-file-info');
                 fileInfo.textContent = `已选择: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
                 fileInfo.style.color = '#28a745';
-                
+
                 // 启用按钮
                 document.getElementById('btn-parse-pkl').disabled = false;
                 document.getElementById('btn-convert-pkl').disabled = false;
                 document.getElementById('btn-convert-cdcv2-pkl').disabled = false;
-                
+
                 // 隐藏之前的预览和结果
                 document.getElementById('pkl-preview-container').style.display = 'none';
                 document.getElementById('pkl-convert-result').style.display = 'none';
@@ -69,7 +69,7 @@ async function parsePklFile() {
             uploadController.abort();
             throw new Error('上传超时，文件可能过大。请检查文件大小或网络连接。');
         }, 600000); // 10分钟超时（大文件）
-        
+
         const uploadResponse = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
@@ -84,7 +84,7 @@ async function parsePklFile() {
             }
             throw new Error(`上传失败: HTTP ${uploadResponse.status}`);
         }
-        
+
         const uploadData = await uploadResponse.json();
 
         if (!uploadData.success) {
@@ -96,7 +96,7 @@ async function parsePklFile() {
 
         // 解析文件
         fileInfo.textContent = `解析中: ${pklFilename}...`;
-        
+
         const parseResponse = await fetch('/api/pkl/parse', {
             method: 'POST',
             headers: {
@@ -112,12 +112,12 @@ async function parsePklFile() {
 
         if (parseResult.success) {
             currentPklData = parseResult.data;
-            
+
             // 显示文件信息
             const info = parseResult.data;
             let infoHtml = `<div style="margin-bottom: 10px;"><strong>文件:</strong> ${info.file_name}</div>`;
             infoHtml += `<div style="margin-bottom: 10px;"><strong>数据类型:</strong> ${info.data_type}</div>`;
-            
+
             if (info.type === 'DataFrame') {
                 infoHtml += `<div style="margin-bottom: 10px;"><strong>形状:</strong> ${info.rows} 行 × ${info.cols} 列</div>`;
                 infoHtml += `<div style="margin-bottom: 10px;"><strong>列数:</strong> ${info.cols}</div>`;
@@ -129,7 +129,7 @@ async function parsePklFile() {
             } else if (info.type === 'list') {
                 infoHtml += `<div style="margin-bottom: 10px;"><strong>列表长度:</strong> ${info.length}</div>`;
             }
-            
+
             previewInfo.innerHTML = infoHtml;
 
             // 显示预览数据（使用JSON格式显示）
@@ -150,7 +150,7 @@ async function parsePklFile() {
             previewContainer.style.display = 'block';
             fileInfo.textContent = `✓ 解析完成: ${pklFilename}`;
             fileInfo.style.color = '#28a745';
-            showAlert('PKL文件解析成功', 'success', 'api');
+            showAlert('🎉 PKL文件解析完成！', 'success', 'api');
         } else {
             // 显示详细的错误信息
             let errorMsg = parseResult.error || '解析失败';
@@ -165,7 +165,7 @@ async function parsePklFile() {
     } catch (error) {
         fileInfo.textContent = `✗ ${error.name === 'AbortError' ? '上传超时' : '解析失败'}: ${error.message.split('\n')[0]}`;
         fileInfo.style.color = '#dc3545';
-        
+
         // 显示详细的错误信息（包含安装说明）
         let errorDisplay = error.message;
         if (error.message.includes('413') || error.message.includes('文件过大') || error.message.includes('Request Entity Too Large')) {
@@ -177,7 +177,7 @@ async function parsePklFile() {
         } else if (error.message.includes('文件不存在')) {
             errorDisplay = '❌ 文件不存在\n\n可能的原因：\n1. 文件上传失败\n2. 文件名不正确\n3. 文件已被删除\n\n请重新上传文件';
         }
-        
+
         showAlert(errorDisplay, 'error', 'api');
         console.error('解析PKL文件失败:', error);
     } finally {
@@ -204,7 +204,7 @@ async function convertPklToCsv() {
     try {
         // 先上传文件（如果还没有上传）
         let filename = currentPklFile.name;
-        
+
         // 检查文件是否已上传
         const formData = new FormData();
         formData.append('file', currentPklFile);
@@ -242,17 +242,17 @@ async function convertPklToCsv() {
             infoHtml += `<div style="margin-bottom: 10px;"><strong>输出文件:</strong> ${convertData.info.output_file}</div>`;
             infoHtml += `<div style="margin-bottom: 10px;"><strong>数据行数:</strong> ${convertData.info.rows}</div>`;
             infoHtml += `<div style="margin-bottom: 10px;"><strong>数据列数:</strong> ${convertData.info.columns}</div>`;
-            
+
             if (convertData.info.column_names && convertData.info.column_names.length > 0) {
                 const colsPreview = convertData.info.column_names.slice(0, 10).join(', ');
                 infoHtml += `<div style="margin-bottom: 10px;"><strong>列名（前10个）:</strong> ${colsPreview}${convertData.info.column_names.length > 10 ? '...' : ''}</div>`;
             }
-            
+
             convertInfo.innerHTML = infoHtml;
             convertResult.style.display = 'block';
             fileInfo.textContent = `✓ 转换完成: ${convertData.csv_filename}`;
             fileInfo.style.color = '#28a745';
-            showAlert(`CSV文件已生成: ${convertData.csv_filename}`, 'success', 'api');
+            showAlert(`🎉 PKL转换完成！CSV文件已生成: ${convertData.csv_filename}`, 'success', 'api');
         } else {
             // 显示详细的错误信息
             let errorMsg = convertData.error || '转换失败';
@@ -267,13 +267,13 @@ async function convertPklToCsv() {
     } catch (error) {
         fileInfo.textContent = `✗ 转换失败: ${error.message.split('\n')[0]}`;
         fileInfo.style.color = '#dc3545';
-        
+
         // 显示详细的错误信息（包含安装说明）
         let errorDisplay = error.message;
         if (error.message.includes('pandas')) {
             errorDisplay = '❌ pandas库未安装\n\n请执行以下步骤：\n1. 打开终端\n2. 进入项目目录: cd MyDataCheck\n3. 激活虚拟环境: source .venv/bin/activate\n4. 安装依赖: pip install pandas numpy\n\n或者直接安装所有依赖: pip install -r requirements.txt';
         }
-        
+
         showAlert(errorDisplay, 'error', 'api');
         console.error('转换PKL文件失败:', error);
     } finally {
@@ -304,7 +304,7 @@ async function convertPklToCdcV2Csv() {
 
         const uploadController3 = new AbortController();
         const uploadTimeout3 = setTimeout(() => uploadController3.abort(), 600000); // 10分钟超时
-        
+
         const uploadResponse = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
@@ -348,14 +348,14 @@ async function convertPklToCdcV2Csv() {
             infoHtml += `<div style="margin-bottom: 10px;"><strong>输出文件:</strong> ${convertData.info.output_file}</div>`;
             infoHtml += `<div style="margin-bottom: 10px;"><strong>数据行数:</strong> ${convertData.info.rows}</div>`;
             infoHtml += `<div style="margin-bottom: 10px;"><strong>总列数:</strong> ${convertData.info.columns} (基础列: ${convertData.info.base_columns}, 特征列: ${convertData.info.feature_columns})</div>`;
-            
+
             if (convertData.info.column_names && convertData.info.column_names.length > 0) {
                 const baseCols = convertData.info.column_names.slice(0, 2);
                 const featureColsPreview = convertData.info.column_names.slice(2, 12).join(', ');
                 infoHtml += `<div style="margin-bottom: 10px;"><strong>基础列:</strong> ${baseCols.join(', ')}</div>`;
                 infoHtml += `<div style="margin-bottom: 10px;"><strong>特征列（前10个）:</strong> ${featureColsPreview}${convertData.info.feature_columns > 10 ? '...' : ''}</div>`;
             }
-            
+
             convertInfo.innerHTML = infoHtml;
             convertResult.style.display = 'block';
             fileInfo.textContent = `✓ cdcV2核心CSV生成完成: ${convertData.csv_filename}`;
@@ -375,7 +375,7 @@ async function convertPklToCdcV2Csv() {
     } catch (error) {
         fileInfo.textContent = `✗ 转换失败: ${error.message.split('\n')[0]}`;
         fileInfo.style.color = '#dc3545';
-        
+
         // 显示详细的错误信息
         let errorDisplay = error.message;
         if (error.name === 'AbortError' || error.message.includes('超时')) {
@@ -385,7 +385,7 @@ async function convertPklToCdcV2Csv() {
         } else if (error.message.includes('缺少') || error.message.includes('apply_id') || error.message.includes('response_body')) {
             errorDisplay = `❌ 数据格式错误\n\n${error.message}\n\n请确保PKL文件包含以下列：\n- apply_id\n- apply_time\n- response_body`;
         }
-        
+
         showAlert(errorDisplay, 'error', 'api');
         console.error('转换cdcV2核心CSV失败:', error);
     } finally {
@@ -400,7 +400,7 @@ function showAlert(message, type, tab = 'api') {
     alert.textContent = message;
     container.innerHTML = '';
     container.appendChild(alert);
-    
+
     setTimeout(() => {
         alert.classList.remove('show');
         setTimeout(() => alert.remove(), 300);

@@ -54,8 +54,9 @@ def create_app():
     # 创建Flask应用实例
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
     
-    # 配置应用：设置最大上传文件大小（1GB）
+    # 配置应用：设置最大上传文件大小（5GB）
     app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
+    print(f"[CONFIG] 文件上传大小限制: {MAX_CONTENT_LENGTH / (1024**3):.2f} GB")
     
     # 初始化目录：创建输入输出数据目录
     init_directories()

@@ -15,7 +15,10 @@ async function handleCompareFileSelect(fileNum, input) {
     }
 
     const fileInfo = document.getElementById(`file-info-compare-${fileNum}`);
-    fileInfo.textContent = `上传中: ${file.name}...`;
+
+    // 显示文件大小
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB)...`;
     fileInfo.style.color = '#667eea';
 
     try {
@@ -23,27 +26,58 @@ async function handleCompareFileSelect(fileNum, input) {
         formData.append('file', file);
         formData.append('file_num', fileNum);
 
-        const response = await fetch('/api/compare/upload', {
-            method: 'POST',
-            body: formData
+        // 使用XMLHttpRequest以支持上传进度
+        const xhr = new XMLHttpRequest();
+
+        const uploadPromise = new Promise((resolve, reject) => {
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB) - ${percent}%`;
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    try {
+                        resolve(JSON.parse(xhr.responseText));
+                    } catch (e) {
+                        reject(new Error('解析响应失败'));
+                    }
+                } else {
+                    reject(new Error(`上传失败: HTTP ${xhr.status}`));
+                }
+            };
+
+            xhr.onerror = () => reject(new Error('网络错误'));
+            xhr.ontimeout = () => reject(new Error('上传超时'));
         });
 
-        const data = await response.json();
+        xhr.open('POST', '/api/compare/upload');
+        xhr.timeout = 300000; // 5分钟超时
+        xhr.send(formData);
+
+        const data = await uploadPromise;
 
         if (data.success) {
             if (fileNum === 1) {
                 compareFile1 = data.filename;
+                console.log('[INFO] 文件1已更新为:', compareFile1);
             } else {
                 compareFile2 = data.filename;
+                console.log('[INFO] 文件2已更新为:', compareFile2);
             }
-            
+
             fileInfo.textContent = `✓ 已上传: ${data.filename}`;
             fileInfo.style.color = '#28a745';
-            
-            // 检查是否两个文件都已上传
+
+            // 检查是否两个文件都已上传，启用执行按钮
             if (compareFile1 && compareFile2) {
                 document.getElementById('btn-execute-compare').disabled = false;
             }
+
+            // 同步更新配置保存时使用的文件名（确保保存配置时使用最新上传的文件）
+            console.log('[INFO] 当前文件状态 - file1:', compareFile1, ', file2:', compareFile2);
         } else {
             fileInfo.textContent = `✗ 上传失败: ${data.error}`;
             fileInfo.style.color = '#dc3545';
@@ -63,7 +97,7 @@ async function executeCompare() {
     }
 
     if (!compareFile1 || !compareFile2) {
-        showAlert('请先上传两个文件', 'error', 'compare');
+        showAlert('请先上传两个文件或加载配置', 'error', 'compare');
         return;
     }
 
@@ -80,7 +114,17 @@ async function executeCompare() {
     loadingSpinner.style.display = 'inline-block';
     outputPanel.innerHTML = '';
 
+    // 显示当前使用的文件信息
+    const infoLine = document.createElement('div');
+    infoLine.className = 'output-line info';
+    infoLine.textContent = `[INFO] 准备对比 - 模型特征表: ${compareFile1}, 接口/灰度/从库: ${compareFile2}`;
+    outputPanel.appendChild(infoLine);
+
     try {
+        // 使用当前变量中的文件名（可能是上传的新文件或配置加载的文件）
+        console.log('[INFO] 执行对比 - 使用文件1:', compareFile1);
+        console.log('[INFO] 执行对比 - 使用文件2:', compareFile2);
+
         const config = {
             file1: compareFile1,
             file2: compareFile2,
@@ -118,12 +162,12 @@ async function executeCompare() {
                 if (line.startsWith('data: ')) {
                     try {
                         const data = JSON.parse(line.substring(6));
-                        
+
                         if (data.type === 'output') {
                             const outputLine = document.createElement('div');
                             outputLine.className = 'output-line';
                             outputLine.textContent = data.message;
-                            
+
                             if (data.message.includes('✅') || data.message.includes('成功')) {
                                 outputLine.classList.add('success');
                             } else if (data.message.includes('❌') || data.message.includes('错误') || data.message.includes('失败')) {
@@ -133,13 +177,19 @@ async function executeCompare() {
                             } else if (data.message.includes('[INFO]')) {
                                 outputLine.classList.add('info');
                             }
-                            
+
                             outputPanel.appendChild(outputLine);
                             outputPanel.scrollTop = outputPanel.scrollHeight;
                         } else if (data.type === 'end') {
                             statusIndicator.className = 'status-indicator success';
                             statusText.textContent = '执行完成';
-                            showAlert('数据对比完成！', 'success', 'compare');
+                            showAlert('🎉 数据对比执行完成！', 'success', 'compare');
+                            // 添加完成提示到输出面板
+                            const completeLine = document.createElement('div');
+                            completeLine.className = 'output-line success';
+                            completeLine.textContent = '🎉 任务执行完成！';
+                            outputPanel.appendChild(completeLine);
+                            outputPanel.scrollTop = outputPanel.scrollHeight;
                         } else if (data.type === 'error') {
                             statusIndicator.className = 'status-indicator error';
                             statusText.textContent = '执行失败';
@@ -155,7 +205,7 @@ async function executeCompare() {
         statusIndicator.className = 'status-indicator error';
         statusText.textContent = '执行失败';
         showAlert('执行失败: ' + error.message, 'error', 'compare');
-        
+
         const errorLine = document.createElement('div');
         errorLine.className = 'output-line error';
         errorLine.textContent = `❌ 错误: ${error.message}`;
@@ -171,7 +221,7 @@ function clearCompareOutput() {
     const outputPanel = document.getElementById('output-panel-compare');
     const statusIndicator = document.getElementById('status-indicator-compare');
     const statusText = document.getElementById('status-text-compare');
-    
+
     outputPanel.innerHTML = '<div class="output-line info">等待执行...</div>';
     statusIndicator.className = 'status-indicator';
     statusText.textContent = '就绪';
@@ -181,7 +231,7 @@ function clearCompareOutput() {
 async function saveCompareConfig() {
     try {
         console.log('[DEBUG] 开始保存配置...');
-        
+
         const config = {
             scenarios: [{
                 name: "当前配置",
@@ -234,10 +284,11 @@ async function saveCompareConfig() {
 }
 
 // 加载数据对比配置
-async function loadCompareConfig() {
+// forceLoad: 是否强制从配置加载（覆盖当前上传的文件）
+async function loadCompareConfig(forceLoad = false) {
     try {
-        console.log('[DEBUG] 开始加载配置...');
-        
+        console.log('[DEBUG] 开始加载配置... forceLoad:', forceLoad);
+
         const response = await fetch('/api/compare/config/load', {
             method: 'GET'
         });
@@ -250,7 +301,7 @@ async function loadCompareConfig() {
         if (data.success && data.config) {
             const config = data.config;
             console.log('[DEBUG] 配置内容:', config);
-            
+
             // 加载全局配置
             if (config.global_config) {
                 const gc = config.global_config;
@@ -261,27 +312,36 @@ async function loadCompareConfig() {
                 document.getElementById('compare-feature-start-2').value = gc.default_api_feature_start || 1;
                 document.getElementById('compare-convert-feature').checked = gc.default_convert_feature_to_number !== false;
             }
-            
+
             // 加载第一个场景的配置（如果存在）
             if (config.scenarios && config.scenarios.length > 0) {
                 const scenario = config.scenarios[0];
                 console.log('[DEBUG] 加载场景配置:', scenario);
-                
+
                 // 更新文件信息显示
+                // forceLoad=true 或 变量为空时，从配置加载文件
                 if (scenario.sql_file) {
-                    compareFile1 = scenario.sql_file;
-                    document.getElementById('file-info-compare-1').textContent = `配置中的文件: ${scenario.sql_file}`;
-                    document.getElementById('file-info-compare-1').style.color = '#667eea';
-                    console.log('[DEBUG] 设置文件1:', scenario.sql_file);
+                    if (forceLoad || !compareFile1) {
+                        compareFile1 = scenario.sql_file;
+                        document.getElementById('file-info-compare-1').textContent = `配置中的文件: ${scenario.sql_file}`;
+                        document.getElementById('file-info-compare-1').style.color = '#667eea';
+                        console.log('[DEBUG] 从配置加载文件1:', scenario.sql_file);
+                    } else {
+                        console.log('[DEBUG] 文件1已有上传文件，跳过配置加载:', compareFile1);
+                    }
                 }
-                
+
                 if (scenario.api_file) {
-                    compareFile2 = scenario.api_file;
-                    document.getElementById('file-info-compare-2').textContent = `配置中的文件: ${scenario.api_file}`;
-                    document.getElementById('file-info-compare-2').style.color = '#667eea';
-                    console.log('[DEBUG] 设置文件2:', scenario.api_file);
+                    if (forceLoad || !compareFile2) {
+                        compareFile2 = scenario.api_file;
+                        document.getElementById('file-info-compare-2').textContent = `配置中的文件: ${scenario.api_file}`;
+                        document.getElementById('file-info-compare-2').style.color = '#667eea';
+                        console.log('[DEBUG] 从配置加载文件2:', scenario.api_file);
+                    } else {
+                        console.log('[DEBUG] 文件2已有上传文件，跳过配置加载:', compareFile2);
+                    }
                 }
-                
+
                 // 更新其他配置
                 if (scenario.sql_key_column !== undefined) {
                     document.getElementById('compare-key-column-1').value = scenario.sql_key_column;
@@ -307,14 +367,14 @@ async function loadCompareConfig() {
                     document.getElementById('compare-convert-feature').checked = scenario.convert_feature_to_number;
                     console.log('[DEBUG] 设置特征转换:', scenario.convert_feature_to_number);
                 }
-                
+
                 // 如果两个文件都存在，启用执行按钮
                 if (compareFile1 && compareFile2) {
                     document.getElementById('btn-execute-compare').disabled = false;
                     console.log('[DEBUG] 两个文件都存在，启用执行按钮');
                 }
             }
-            
+
             console.log('[SUCCESS] 配置加载成功');
             showAlert('✅ 配置加载成功！', 'success', 'compare');
         } else {
@@ -329,7 +389,7 @@ async function loadCompareConfig() {
 
 
 // ========== 页面加载时自动加载配置 ==========
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 检查是否在数据对比页面
     const comparePage = document.getElementById('page-compare');
     if (comparePage) {

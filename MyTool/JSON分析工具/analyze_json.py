@@ -182,4 +182,10 @@ def analyze_json_structure(file_path):
         print(f"错误: {e}")
 
 if __name__ == "__main__":
-    analyze_json_structure("Mytest/cdcjson.txt")
+    import sys
+    if len(sys.argv) > 1:
+        file_path = sys.argv[1]
+    else:
+        # 默认使用同目录下的 cdcjson.txt
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cdcjson.txt")
+    analyze_json_structure(file_path)

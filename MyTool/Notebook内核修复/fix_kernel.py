@@ -66,7 +66,12 @@ def fix_notebook_kernel(notebook_path):
     return True
 
 if __name__ == '__main__':
-    notebook_path = "/Users/zhanglifeng12703/Documents/OverseasPython/Mytest/ipynb/parse_pkl_to_csv.ipynb"
+    if len(sys.argv) > 1:
+        notebook_path = sys.argv[1]
+    else:
+        print("用法: python fix_notebook_kernel.py <notebook文件路径>")
+        print("示例: python fix_notebook_kernel.py ../ipynb/parse_pkl_to_csv.ipynb")
+        sys.exit(1)
     
     if not os.path.exists(notebook_path):
         print(f"❌ Notebook 不存在: {notebook_path}")

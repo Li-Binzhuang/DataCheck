@@ -10,11 +10,12 @@ import os
 from datetime import datetime
 import glob
 
-def merge_csv_files():
-    """合并 '合并前单独文件' 文件夹下的所有 CSV 文件"""
+def merge_csv_files(input_folder=None):
+    """合并指定文件夹下的所有 CSV 文件"""
     
     # 定义输入文件夹
-    input_folder = '合并前单独文件'
+    if input_folder is None:
+        input_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '合并前单独文件')
     
     # 检查文件夹是否存在
     if not os.path.exists(input_folder):
@@ -89,8 +90,10 @@ def merge_csv_files():
     return output_file
 
 if __name__ == '__main__':
+    import sys
+    
     print("="*60)
-    print("合并 '合并前单独文件' 文件夹下所有 CSV 文件")
+    print("CSV文件合并工具")
     print("="*60)
     print()
     
@@ -99,5 +102,11 @@ if __name__ == '__main__':
     os.chdir(script_dir)
     print(f"工作目录: {os.getcwd()}\n")
     
+    # 支持命令行指定文件夹
+    if len(sys.argv) > 1:
+        folder = sys.argv[1]
+    else:
+        folder = None
+    
     # 执行合并
-    merge_csv_files()
+    merge_csv_files(folder)

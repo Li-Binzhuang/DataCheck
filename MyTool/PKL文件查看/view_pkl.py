@@ -1,9 +1,31 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+PKL文件查看工具
+用法: python openpkl.py [pkl文件路径]
+"""
 import pickle
 import pandas as pd
 from pprint import pprint
+import sys
+import os
+
+# 获取文件路径
+if len(sys.argv) > 1:
+    pkl_file = sys.argv[1]
+else:
+    # 默认使用同目录下的示例文件
+    pkl_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cdc_pickle_pass_fpd7.pkl')
+
+if not os.path.exists(pkl_file):
+    print(f"❌ 文件不存在: {pkl_file}")
+    print("用法: python openpkl.py [pkl文件路径]")
+    sys.exit(1)
+
+print(f"读取文件: {pkl_file}")
 
 # 1. 先查看文件结构
-with open('cdc_pickle_pass_fpd7.pkl', 'rb') as f:
+with open(pkl_file, 'rb') as f:
     data = pickle.load(f)
 
 print("=" * 50)

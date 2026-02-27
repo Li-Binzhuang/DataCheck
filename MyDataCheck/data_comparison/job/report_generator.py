@@ -8,9 +8,30 @@
 import os
 import sys
 import csv
+import subprocess
+import platform
 
 # 添加公共工具目录到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../common'))
+
+
+def _open_output_folder(folder_path: str):
+    """
+    自动打开输出文件夹
+    
+    Args:
+        folder_path: 文件夹路径
+    """
+    try:
+        if platform.system() == "Darwin":  # macOS
+            subprocess.run(["open", folder_path], check=True)
+        elif platform.system() == "Windows":
+            subprocess.run(["explorer", folder_path], check=True)
+        else:  # Linux
+            subprocess.run(["xdg-open", folder_path], check=True)
+        print(f"📂 已打开输出文件夹: {folder_path}")
+    except Exception as e:
+        print(f"⚠️ 无法自动打开文件夹: {e}")
 
 
 def generate_comparison_reports(
@@ -200,3 +221,7 @@ def generate_comparison_reports(
     if len(sql_only_rows) > 0:
         print(f"  6. 仅在模型特征表中的数据: {sql_only_file} (共 {len(sql_only_rows)} 条)")
     print(f"{'='*80}")
+    
+    # 自动打开输出文件夹
+    output_dir = os.path.dirname(output_base_path)
+    _open_output_folder(output_dir)

@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from web.config import init_directories, MAX_CONTENT_LENGTH
 from web.routes import register_blueprints
+from common.auto_cleanup import startup_cleanup
 
 
 def create_app():
@@ -60,6 +61,9 @@ def create_app():
     
     # 初始化目录：创建输入输出数据目录
     init_directories()
+    
+    # zlf update: 启动时自动清理7天前的旧文件
+    startup_cleanup(retention_days=7)
     
     # 注册蓝图：注册所有功能模块的路由
     register_blueprints(app)

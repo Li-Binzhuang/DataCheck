@@ -38,6 +38,10 @@
                     <span class="icon">📦</span>
                     <span>PKL文件解析</span>
                 </div>
+                <div class="menu-item" onclick="switchPage('batch-run')">
+                    <span class="icon">🚀</span>
+                    <span>跑数</span>
+                </div>
             </div>
         </div>
 
@@ -178,18 +182,55 @@
                         <h3>📝 对比配置</h3>
                         <div id="alert-container-compare"></div>
 
+                        <!-- 文件输入方式切换 -->
                         <div class="form-group">
-                            <label>模型特征表 (CSV/XLSX):</label>
-                            <input type="file" id="compare-file1" accept=".csv,.xlsx"
-                                onchange="handleCompareFileSelect(1, this)">
-                            <div class="file-info" id="file-info-compare-1">未选择文件</div>
+                            <label>文件输入方式:</label>
+                            <div class="radio-group" style="display: flex; gap: 20px; margin-top: 5px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="file-input-mode" value="upload" checked
+                                        onchange="toggleFileInputMode()">
+                                    <span>上传文件</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="file-input-mode" value="path"
+                                        onchange="toggleFileInputMode()">
+                                    <span>服务器路径（大文件推荐）</span>
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>接口/灰度/从库特征表 (CSV/XLSX):</label>
-                            <input type="file" id="compare-file2" accept=".csv,.xlsx"
-                                onchange="handleCompareFileSelect(2, this)">
-                            <div class="file-info" id="file-info-compare-2">未选择文件</div>
+                        <!-- 上传文件模式 -->
+                        <div id="upload-mode-container">
+                            <div class="form-group">
+                                <label>模型特征 (CSV/XLSX):</label>
+                                <input type="file" id="compare-file1" accept=".csv,.xlsx"
+                                    onchange="handleCompareFileSelect(1, this)">
+                                <div class="file-info" id="file-info-compare-1">未选择文件</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>接口/灰度/从库特征表 (CSV/XLSX):</label>
+                                <input type="file" id="compare-file2" accept=".csv,.xlsx"
+                                    onchange="handleCompareFileSelect(2, this)">
+                                <div class="file-info" id="file-info-compare-2">未选择文件</div>
+                            </div>
+                        </div>
+
+                        <!-- 服务器路径模式 -->
+                        <div id="path-mode-container" style="display: none;">
+                            <div class="form-group">
+                                <label>模型特征文件路径:</label>
+                                <input type="text" id="compare-path1" placeholder="如: /data/model_features.csv"
+                                    onchange="handlePathInput()">
+                                <p style="color: #666; font-size: 10px; margin-top: 3px;">
+                                    输入服务器上的绝对路径或相对于inputdata/data_comparison的路径</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label>接口/灰度/从库特征表路径:</label>
+                                <input type="text" id="compare-path2" placeholder="如: /data/api_features.csv"
+                                    onchange="handlePathInput()">
+                            </div>
                         </div>
 
                         <div class="form-row">
@@ -230,6 +271,17 @@
                             </p>
                         </div>
 
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="compare-output-full">
+                                <label for="compare-output-full" style="margin: 0;">输出全量数据合并文件</label>
+                            </div>
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                                勾选后，会生成全量数据合并CSV文件（文件较大时会增加处理时间）
+                            </p>
+                        </div>
+
                         <div class="button-group">
                             <button class="btn-primary" onclick="executeCompare()" id="btn-execute-compare" disabled
                                 style="flex: 1;">▶️ 执行对比</button>
@@ -253,6 +305,197 @@
                             <span class="loading" id="loading-spinner-compare" style="display: none;"></span>
                         </div>
                         <div class="output-panel" id="output-panel-compare">
+                            <div class="output-line info">等待执行...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 小数位数处理功能模块 -->
+                <div class="content-grid" style="margin-top: 20px;">
+                    <div class="panel">
+                        <h3>🔢 小数位数处理</h3>
+                        <p style="color: #666; font-size: 12px; margin-bottom: 15px;">
+                            上传差异明细文件，根据模型特征值的小数位数处理接口值，重新计算差异
+                        </p>
+                        <div id="alert-container-decimal"></div>
+
+                        <!-- 文件输入方式切换 -->
+                        <div class="form-group">
+                            <label>文件输入方式:</label>
+                            <div class="radio-group" style="display: flex; gap: 20px; margin-top: 5px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="decimal-file-input-mode" value="upload" checked
+                                        onchange="toggleDecimalFileInputMode()">
+                                    <span>上传文件</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="decimal-file-input-mode" value="path"
+                                        onchange="toggleDecimalFileInputMode()">
+                                    <span>服务器路径（大文件推荐）</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 上传文件模式 -->
+                        <div id="decimal-upload-mode-container">
+                            <div class="form-group">
+                                <label>差异明细文件 (CSV):</label>
+                                <input type="file" id="decimal-diff-file" accept=".csv"
+                                    onchange="handleDecimalFileSelect(this)">
+                                <div class="file-info" id="file-info-decimal">未选择文件</div>
+                            </div>
+                        </div>
+
+                        <!-- 服务器路径模式 -->
+                        <div id="decimal-path-mode-container" style="display: none;">
+                            <div class="form-group">
+                                <label>差异明细文件路径:</label>
+                                <input type="text" id="decimal-file-path" placeholder="如: /data/diff_detail.csv"
+                                    onchange="handleDecimalPathInput()">
+                                <p style="color: #666; font-size: 10px; margin-top: 3px;">
+                                    输入服务器上的绝对路径或相对于inputdata/data_comparison的路径</p>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>接口小数处理:</label>
+                            <div class="radio-group"
+                                style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 5px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="decimal-method" value="none" checked>
+                                    <span>不处理</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="decimal-method" value="round">
+                                    <span>四舍五入</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="decimal-method" value="double_round">
+                                    <span>双精度四舍五入</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="decimal-method" value="truncate">
+                                    <span>截取</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="decimal-method" value="ceil">
+                                    <span>向上取整</span>
+                                </label>
+                            </div>
+                            <p style="color: #666; font-size: 10px; margin-top: 5px; line-height: 1.4;">
+                                处理"接口/灰度/从库值"列，按模型特征样本值的小数位数进行处理
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label>模型样本小数处理:</label>
+                            <div class="radio-group"
+                                style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 5px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="model-decimal-method" value="none" checked>
+                                    <span>不处理</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="model-decimal-method" value="round">
+                                    <span>四舍五入</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="model-decimal-method" value="double_round">
+                                    <span>双精度四舍五入</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="model-decimal-method" value="truncate">
+                                    <span>截取</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="model-decimal-method" value="ceil">
+                                    <span>向上取整</span>
+                                </label>
+                            </div>
+                            <p style="color: #666; font-size: 10px; margin-top: 5px; line-height: 1.4;">
+                                处理"模型特征样本值"列，按自身小数位数进行处理（用于统一精度）
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label>对比方式:</label>
+                            <div class="radio-group"
+                                style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 5px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="compare-mode" value="exact" checked
+                                        onchange="toggleToleranceInput()">
+                                    <span>精确对比</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="compare-mode" value="tolerance"
+                                        onchange="toggleToleranceInput()">
+                                    <span>容差对比</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="compare-mode" value="last_digit"
+                                        onchange="toggleToleranceInput()">
+                                    <span>最后一位差1不计异常</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="compare-mode" value="last_digit_2"
+                                        onchange="toggleToleranceInput()">
+                                    <span>最后一位差2不计异常</span>
+                                </label>
+                            </div>
+                            <div id="tolerance-input-container" style="display: none; margin-top: 8px;">
+                                <label style="font-size: 12px;">容差值:</label>
+                                <input type="number" id="tolerance-value" value="0.01" step="0.001" min="0"
+                                    style="width: 100px; margin-left: 5px;">
+                                <span style="color: #666; font-size: 11px; margin-left: 5px;">差异绝对值 ≤ 此值时不计为差异</span>
+                            </div>
+                            <p style="color: #666; font-size: 10px; margin-top: 5px; line-height: 1.4;">
+                                💡 精确对比：差异为0才不计为差异<br>
+                                💡 容差对比：差异绝对值在容差范围内的不计为差异<br>
+                                💡 最后一位差1不计异常：根据模型特征值的小数位数，最后一位允许±1误差<br>
+                                💡 最后一位差2不计异常：根据模型特征值的小数位数，最后一位允许±2误差
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label>输出文件前缀:</label>
+                            <input type="text" id="decimal-output-prefix" value="decimal_processed"
+                                placeholder="输出文件前缀">
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="decimal-output-full">
+                                <label for="decimal-output-full" style="margin: 0;">输出全量处理结果文件</label>
+                            </div>
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                                勾选后，会生成包含所有记录的完整处理结果CSV文件
+                            </p>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn-primary" onclick="executeDecimalProcess()" id="btn-execute-decimal"
+                                disabled style="flex: 1;">▶️ 执行处理</button>
+                            <button class="btn-danger" onclick="clearOutput('decimal')">🗑️ 清空输出</button>
+                        </div>
+
+                        <div
+                            style="margin-top: 10px; padding: 8px; background: #e8f4fd; border-radius: 4px; font-size: 11px; color: #0066cc; line-height: 1.5;">
+                            <strong>📋 功能说明：</strong><br>
+                            1. 新增"接口/灰度/从库值-处理小数"列：按模型特征值的小数位数处理接口值<br>
+                            2. 新增"差异值"列：模型特征表值 - 处理后的接口值<br>
+                            3. 输出差异不为0的记录到新CSV文件
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h3>📊 处理输出</h3>
+                        <div class="status-bar">
+                            <div class="status-indicator" id="status-indicator-decimal"></div>
+                            <span id="status-text-decimal">就绪</span>
+                            <span class="loading" id="loading-spinner-decimal" style="display: none;"></span>
+                        </div>
+                        <div class="output-panel" id="output-panel-decimal">
                             <div class="output-line info">等待执行...</div>
                         </div>
                     </div>
@@ -326,6 +569,107 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 跑数页面 -->
+            <div id="page-batch-run" class="content-section">
+                <div class="page-header">
+                    <h2>🚀 跑数</h2>
+                    <p>批量调用接口，将原始数据和返回的特征值合并输出到CSV</p>
+                </div>
+
+                <div class="content-grid">
+                    <div class="panel">
+                        <h3>📝 跑数配置</h3>
+
+                        <div class="form-group">
+                            <label>接口URL:</label>
+                            <input type="text" id="batch-run-api-url"
+                                placeholder="如: http://10.129.2.25:8080/riskanalysis/cdc/v3/consultas">
+                        </div>
+
+                        <div class="form-group">
+                            <label>输入CSV文件:</label>
+                            <div style="display: flex; gap: 10px;">
+                                <select id="batch-run-input-file" style="flex: 1;">
+                                    <option value="">-- 选择文件 --</option>
+                                </select>
+                                <button class="btn-secondary" onclick="loadBatchRunFiles()"
+                                    style="padding: 6px 12px;">🔄</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>上传新文件:</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="file" id="batch-run-file-upload" accept=".csv" style="flex: 1;">
+                                <button class="btn-success" onclick="uploadBatchRunFile()" style="padding: 6px 12px;">📤
+                                    上传</button>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>输出文件前缀:</label>
+                                <input type="text" id="batch-run-output-prefix" value="batch_run" placeholder="输出文件前缀">
+                            </div>
+                            <div class="form-group">
+                                <label>并发线程数:</label>
+                                <input type="number" id="batch-run-thread-count" value="50" min="1" max="500">
+                            </div>
+                            <div class="form-group">
+                                <label>超时时间(秒):</label>
+                                <input type="number" id="batch-run-timeout" value="30" min="1">
+                            </div>
+                        </div>
+
+                        <!-- 入参配置 -->
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                            <h4 style="margin-bottom: 10px; font-size: 14px;">📋 入参配置</h4>
+                            <p style="color: #666; font-size: 11px; margin-bottom: 10px;">
+                                配置接口入参，指定参数名和对应的CSV列索引（A列=0, B列=1, ...）
+                            </p>
+                            <div id="batch-run-params-container"></div>
+                            <button class="btn-success" onclick="addBatchRunParam()"
+                                style="width: 100%; margin-top: 8px;">➕ 添加入参</button>
+                        </div>
+
+                        <div class="button-group" style="margin-top: 15px;">
+                            <button class="btn-primary" onclick="executeBatchRun()" id="btn-execute-batch-run">▶️
+                                执行跑数</button>
+                            <button class="btn-success" onclick="saveBatchRunConfig()">💾 保存配置</button>
+                            <button class="btn-secondary" onclick="loadBatchRunConfig()">📂 加载配置</button>
+                            <button class="btn-danger" onclick="clearBatchRunOutput()">🗑️ 清空输出</button>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h3>📊 执行输出</h3>
+                        <div class="status-bar">
+                            <div class="status-indicator" id="status-indicator-batch-run"></div>
+                            <span id="status-text-batch-run">就绪</span>
+                            <span class="loading" id="loading-spinner-batch-run" style="display: none;"></span>
+                        </div>
+                        <div class="output-panel" id="output-panel-batch-run">
+                            <div class="output-line info">等待执行...</div>
+                        </div>
+
+                        <div
+                            style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 12px;">
+                            <h4 style="margin-bottom: 8px; color: #667eea;">📖 使用说明</h4>
+                            <ol style="padding-left: 20px; color: #666; line-height: 1.8;">
+                                <li>上传或选择包含入参数据的CSV文件</li>
+                                <li>输入接口URL</li>
+                                <li>配置入参：指定参数名和对应的列索引</li>
+                                <li>点击"执行跑数"开始批量请求</li>
+                                <li>输出文件包含原始列 + 接口返回的所有特征</li>
+                            </ol>
+                            <p style="margin-top: 10px; color: #888;">
+                                💡 输出文件保存在 <code>outputdata/batch_run/</code> 目录
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -338,6 +682,7 @@
     <script src="{{ url_for('static', filename='js/online.js') }}"></script>
     <script src="{{ url_for('static', filename='js/data-compare.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pkl.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/batch-run.js') }}"></script>
 </body>
 
 </html>

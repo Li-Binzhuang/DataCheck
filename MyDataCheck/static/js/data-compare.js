@@ -3,6 +3,54 @@
 let compareFile1 = null;
 let compareFile2 = null;
 let isExecutingCompare = false;
+let fileInputMode = 'upload'; // 'upload' 或 'path'
+
+// 切换文件输入模式
+function toggleFileInputMode() {
+    const mode = document.querySelector('input[name="file-input-mode"]:checked').value;
+    fileInputMode = mode;
+
+    const uploadContainer = document.getElementById('upload-mode-container');
+    const pathContainer = document.getElementById('path-mode-container');
+
+    if (mode === 'upload') {
+        uploadContainer.style.display = 'block';
+        pathContainer.style.display = 'none';
+    } else {
+        uploadContainer.style.display = 'none';
+        pathContainer.style.display = 'block';
+    }
+
+    // 检查是否可以启用执行按钮
+    checkCompareReady();
+}
+
+// 处理路径输入
+function handlePathInput() {
+    const path1 = document.getElementById('compare-path1').value.trim();
+    const path2 = document.getElementById('compare-path2').value.trim();
+
+    if (path1) {
+        compareFile1 = 'PATH:' + path1;
+    }
+    if (path2) {
+        compareFile2 = 'PATH:' + path2;
+    }
+
+    checkCompareReady();
+}
+
+// 检查是否可以执行对比
+function checkCompareReady() {
+    const btn = document.getElementById('btn-execute-compare');
+    if (fileInputMode === 'upload') {
+        btn.disabled = !(compareFile1 && compareFile2 && !compareFile1.startsWith('PATH:') && !compareFile2.startsWith('PATH:'));
+    } else {
+        const path1 = document.getElementById('compare-path1').value.trim();
+        const path2 = document.getElementById('compare-path2').value.trim();
+        btn.disabled = !(path1 && path2);
+    }
+}
 
 async function handleCompareFileSelect(fileNum, input) {
     const file = input.files[0];
@@ -96,9 +144,22 @@ async function executeCompare() {
         return;
     }
 
-    if (!compareFile1 || !compareFile2) {
-        showAlert('请先上传两个文件或加载配置', 'error', 'compare');
-        return;
+    // 根据输入模式获取文件
+    let file1, file2;
+    if (fileInputMode === 'path') {
+        file1 = 'PATH:' + document.getElementById('compare-path1').value.trim();
+        file2 = 'PATH:' + document.getElementById('compare-path2').value.trim();
+        if (!file1.substring(5) || !file2.substring(5)) {
+            showAlert('请输入两个文件路径', 'error', 'compare');
+            return;
+        }
+    } else {
+        file1 = compareFile1;
+        file2 = compareFile2;
+        if (!file1 || !file2) {
+            showAlert('请先上传两个文件或加载配置', 'error', 'compare');
+            return;
+        }
     }
 
     isExecutingCompare = true;
@@ -117,23 +178,24 @@ async function executeCompare() {
     // 显示当前使用的文件信息
     const infoLine = document.createElement('div');
     infoLine.className = 'output-line info';
-    infoLine.textContent = `[INFO] 准备对比 - 模型特征表: ${compareFile1}, 接口/灰度/从库: ${compareFile2}`;
+    infoLine.textContent = `[INFO] 准备对比 - 模型特征表: ${file1}, 接口/灰度/从库: ${file2}`;
     outputPanel.appendChild(infoLine);
 
     try {
         // 使用当前变量中的文件名（可能是上传的新文件或配置加载的文件）
-        console.log('[INFO] 执行对比 - 使用文件1:', compareFile1);
-        console.log('[INFO] 执行对比 - 使用文件2:', compareFile2);
+        console.log('[INFO] 执行对比 - 使用文件1:', file1);
+        console.log('[INFO] 执行对比 - 使用文件2:', file2);
 
         const config = {
-            file1: compareFile1,
-            file2: compareFile2,
+            file1: file1,
+            file2: file2,
             key_column_1: parseInt(document.getElementById('compare-key-column-1').value) || 0,
             key_column_2: parseInt(document.getElementById('compare-key-column-2').value) || 0,
             feature_start_1: parseInt(document.getElementById('compare-feature-start-1').value) || 1,
             feature_start_2: parseInt(document.getElementById('compare-feature-start-2').value) || 1,
             output_prefix: document.getElementById('compare-output-prefix').value || 'compare',
-            convert_feature_to_number: document.getElementById('compare-convert-feature').checked
+            convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
+            output_full_data: document.getElementById('compare-output-full').checked
         };
 
         const response = await fetch('/api/compare/execute', {
@@ -400,3 +462,265 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 500);
     }
 });
+
+
+// ========== 小数位数处理相关函数 ==========
+
+let decimalDiffFile = null;
+let isExecutingDecimal = false;
+let decimalFileInputMode = 'upload'; // 'upload' 或 'path'
+
+// 切换小数处理文件输入模式
+function toggleDecimalFileInputMode() {
+    const mode = document.querySelector('input[name="decimal-file-input-mode"]:checked').value;
+    decimalFileInputMode = mode;
+
+    const uploadContainer = document.getElementById('decimal-upload-mode-container');
+    const pathContainer = document.getElementById('decimal-path-mode-container');
+
+    if (mode === 'upload') {
+        uploadContainer.style.display = 'block';
+        pathContainer.style.display = 'none';
+    } else {
+        uploadContainer.style.display = 'none';
+        pathContainer.style.display = 'block';
+    }
+
+    checkDecimalReady();
+}
+
+// 处理小数处理路径输入
+function handleDecimalPathInput() {
+    const path = document.getElementById('decimal-file-path').value.trim();
+    if (path) {
+        decimalDiffFile = 'PATH:' + path;
+    }
+    checkDecimalReady();
+}
+
+// 检查是否可以执行小数处理
+function checkDecimalReady() {
+    const btn = document.getElementById('btn-execute-decimal');
+    if (decimalFileInputMode === 'upload') {
+        btn.disabled = !(decimalDiffFile && !decimalDiffFile.startsWith('PATH:'));
+    } else {
+        const path = document.getElementById('decimal-file-path').value.trim();
+        btn.disabled = !path;
+    }
+}
+
+// 切换容差输入框显示
+function toggleToleranceInput() {
+    const mode = document.querySelector('input[name="compare-mode"]:checked').value;
+    const container = document.getElementById('tolerance-input-container');
+    container.style.display = mode === 'tolerance' ? 'block' : 'none';
+}
+
+async function handleDecimalFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+        showAlert('只支持CSV文件', 'error', 'compare');
+        input.value = '';
+        return;
+    }
+
+    const fileInfo = document.getElementById('file-info-decimal');
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB)...`;
+    fileInfo.style.color = '#667eea';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+
+        const uploadPromise = new Promise((resolve, reject) => {
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB) - ${percent}%`;
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    try {
+                        resolve(JSON.parse(xhr.responseText));
+                    } catch (e) {
+                        reject(new Error('解析响应失败'));
+                    }
+                } else {
+                    reject(new Error(`上传失败: HTTP ${xhr.status}`));
+                }
+            };
+
+            xhr.onerror = () => reject(new Error('网络错误'));
+            xhr.ontimeout = () => reject(new Error('上传超时'));
+        });
+
+        xhr.open('POST', '/api/compare/decimal/upload');
+        xhr.timeout = 300000;
+        xhr.send(formData);
+
+        const data = await uploadPromise;
+
+        if (data.success) {
+            decimalDiffFile = data.filename;
+            fileInfo.textContent = `✓ 已上传: ${data.filename}`;
+            fileInfo.style.color = '#28a745';
+            document.getElementById('btn-execute-decimal').disabled = false;
+        } else {
+            fileInfo.textContent = `✗ 上传失败: ${data.error}`;
+            fileInfo.style.color = '#dc3545';
+            input.value = '';
+        }
+    } catch (error) {
+        fileInfo.textContent = `✗ 上传错误: ${error.message}`;
+        fileInfo.style.color = '#dc3545';
+        input.value = '';
+    }
+}
+
+async function executeDecimalProcess() {
+    if (isExecutingDecimal) {
+        showAlert('正在执行中，请稍候...', 'error', 'compare');
+        return;
+    }
+
+    // 根据输入模式获取文件
+    let file;
+    if (decimalFileInputMode === 'path') {
+        file = 'PATH:' + document.getElementById('decimal-file-path').value.trim();
+        if (!file.substring(5)) {
+            showAlert('请输入文件路径', 'error', 'compare');
+            return;
+        }
+    } else {
+        file = decimalDiffFile;
+        if (!file) {
+            showAlert('请先上传差异明细文件', 'error', 'compare');
+            return;
+        }
+    }
+
+    isExecutingDecimal = true;
+    const executeBtn = document.getElementById('btn-execute-decimal');
+    const statusIndicator = document.getElementById('status-indicator-decimal');
+    const statusText = document.getElementById('status-text-decimal');
+    const loadingSpinner = document.getElementById('loading-spinner-decimal');
+    const outputPanel = document.getElementById('output-panel-decimal');
+
+    executeBtn.disabled = true;
+    statusIndicator.className = 'status-indicator running';
+    statusText.textContent = '执行中...';
+    loadingSpinner.style.display = 'inline-block';
+    outputPanel.innerHTML = '';
+
+    // 获取小数处理方式和对比方式
+    const decimalMethod = document.querySelector('input[name="decimal-method"]:checked').value;
+    const modelDecimalMethod = document.querySelector('input[name="model-decimal-method"]:checked').value;
+    const compareMode = document.querySelector('input[name="compare-mode"]:checked').value;
+    const toleranceValue = parseFloat(document.getElementById('tolerance-value').value) || 0.01;
+    const outputPrefix = document.getElementById('decimal-output-prefix').value || 'decimal_processed';
+
+    const infoLine = document.createElement('div');
+    infoLine.className = 'output-line info';
+    const methodText = decimalMethod === 'none' ? '不处理' : decimalMethod === 'round' ? '四舍五入' : decimalMethod === 'double_round' ? '双精度四舍五入' : decimalMethod === 'truncate' ? '截取' : '向上取整';
+    const modelMethodText = modelDecimalMethod === 'none' ? '不处理' : modelDecimalMethod === 'round' ? '四舍五入' : modelDecimalMethod === 'double_round' ? '双精度四舍五入' : modelDecimalMethod === 'truncate' ? '截取' : '向上取整';
+    const compareModeText = compareMode === 'exact' ? '精确对比' : compareMode === 'tolerance' ? `容差对比(${toleranceValue})` : compareMode === 'last_digit' ? '最后一位差1不计异常' : '最后一位差2不计异常';
+    infoLine.textContent = `[INFO] 开始处理 - 接口小数: ${methodText}, 模型小数: ${modelMethodText}, 对比: ${compareModeText}`;
+    outputPanel.appendChild(infoLine);
+
+    try {
+        const config = {
+            file: file,
+            method: decimalMethod,
+            model_method: modelDecimalMethod,
+            compare_mode: compareMode,
+            tolerance: toleranceValue,
+            output_prefix: outputPrefix,
+            output_full_data: document.getElementById('decimal-output-full').checked
+        };
+
+        const response = await fetch('/api/compare/decimal/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ config: config })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.substring(6));
+
+                        if (data.type === 'output') {
+                            const outputLine = document.createElement('div');
+                            outputLine.className = 'output-line';
+                            outputLine.textContent = data.message;
+
+                            if (data.message.includes('✅') || data.message.includes('成功')) {
+                                outputLine.classList.add('success');
+                            } else if (data.message.includes('❌') || data.message.includes('错误') || data.message.includes('失败')) {
+                                outputLine.classList.add('error');
+                            } else if (data.message.includes('⚠️') || data.message.includes('警告')) {
+                                outputLine.classList.add('warning');
+                            } else if (data.message.includes('[INFO]')) {
+                                outputLine.classList.add('info');
+                            }
+
+                            outputPanel.appendChild(outputLine);
+                            outputPanel.scrollTop = outputPanel.scrollHeight;
+                        } else if (data.type === 'end') {
+                            statusIndicator.className = 'status-indicator success';
+                            statusText.textContent = '执行完成';
+                            showAlert('🎉 小数位数处理完成！', 'success', 'compare');
+                            const completeLine = document.createElement('div');
+                            completeLine.className = 'output-line success';
+                            completeLine.textContent = '🎉 处理完成！';
+                            outputPanel.appendChild(completeLine);
+                            outputPanel.scrollTop = outputPanel.scrollHeight;
+                        } else if (data.type === 'error') {
+                            statusIndicator.className = 'status-indicator error';
+                            statusText.textContent = '执行失败';
+                            showAlert(data.message, 'error', 'compare');
+                        }
+                    } catch (e) {
+                        console.error('解析输出失败:', e);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        statusIndicator.className = 'status-indicator error';
+        statusText.textContent = '执行失败';
+        showAlert('执行失败: ' + error.message, 'error', 'compare');
+
+        const errorLine = document.createElement('div');
+        errorLine.className = 'output-line error';
+        errorLine.textContent = `❌ 错误: ${error.message}`;
+        outputPanel.appendChild(errorLine);
+    } finally {
+        isExecutingDecimal = false;
+        executeBtn.disabled = false;
+        loadingSpinner.style.display = 'none';
+    }
+}

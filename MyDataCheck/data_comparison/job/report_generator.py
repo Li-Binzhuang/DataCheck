@@ -36,7 +36,8 @@ def _open_output_folder(folder_path: str):
 
 def generate_comparison_reports(
     output_base_path: str,
-    comparison_results: dict
+    comparison_results: dict,
+    output_full_data: bool = False
 ):
     """
     生成数据对比报告
@@ -44,6 +45,7 @@ def generate_comparison_reports(
     Args:
         output_base_path: 输出文件基础路径（不含扩展名）
         comparison_results: 对比结果字典
+        output_full_data: 是否输出全量数据合并文件
     """
     differences_dict = comparison_results["differences_dict"]
     all_features = comparison_results["all_features"]
@@ -91,7 +93,7 @@ def generate_comparison_reports(
     detail_file = f"{output_base_path}_差异数据明细.csv"
     with open(detail_file, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.writer(f)
-        writer.writerow([key_column_name, time_column_name, 'cust_no', '特征名', '接口/灰度/从库值', '模型特征表值'])
+        writer.writerow([key_column_name, time_column_name, 'cust_no', '特征名', '接口/灰度/从库值', '模型特征样本值'])
         
         # 按主键值和特征名排序
         sorted_diffs = sorted(differences_dict.items(), key=lambda x: (x[0][0], x[0][1]))
@@ -127,68 +129,71 @@ def generate_comparison_reports(
     
     print(f"✅ 特征统计已保存: {stats_file}")
     
-    # 4. 生成全量数据合并（包含对比结果标记）
-    merged_file = f"{output_base_path}_全量数据合并.csv"
-    with open(merged_file, 'w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.writer(f)
+    # 4. 生成全量数据合并（包含对比结果标记）- 仅在配置开启时生成
+    if output_full_data:
+        merged_file = f"{output_base_path}_全量数据合并.csv"
+        with open(merged_file, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            
+            # 构建表头
+            header = ['主键值', '数据来源', '对比结果']
+            # 添加所有特征列
+            header.extend(all_features)
+            writer.writerow(header)
+            
+            # 写入接口/灰度/从库特征表数据
+            for row in rows_api:
+                if api_key_column >= len(row):
+                    continue
+                
+                key_value = str(row[api_key_column]).strip() if row[api_key_column] is not None else ""
+                if not key_value:
+                    continue
+                
+                # 判断对比结果
+                has_diff = any((key_value, feature) in differences_dict for feature in all_features)
+                result = "有差异" if has_diff else "一致"
+                
+                row_data = [key_value, "接口/灰度/从库", result]
+                
+                # 添加特征值
+                for feature in all_features:
+                    api_idx = api_feature_start + headers_api[api_feature_start:].index(feature) if feature in headers_api[api_feature_start:] else None
+                    if api_idx is not None and api_idx < len(row):
+                        row_data.append(row[api_idx] if row[api_idx] is not None else "")
+                    else:
+                        row_data.append("")
+                
+                writer.writerow(row_data)
+            
+            # 写入模型特征表数据
+            for row in rows_sql:
+                if sql_key_column >= len(row):
+                    continue
+                
+                key_value = str(row[sql_key_column]).strip() if row[sql_key_column] is not None else ""
+                if not key_value:
+                    continue
+                
+                # 判断对比结果
+                has_diff = any((key_value, feature) in differences_dict for feature in all_features)
+                result = "有差异" if has_diff else "一致"
+                
+                row_data = [key_value, "模型特征表", result]
+                
+                # 添加特征值
+                for feature in all_features:
+                    sql_idx = sql_feature_start + headers_sql[sql_feature_start:].index(feature) if feature in headers_sql[sql_feature_start:] else None
+                    if sql_idx is not None and sql_idx < len(row):
+                        row_data.append(row[sql_idx] if row[sql_idx] is not None else "")
+                    else:
+                        row_data.append("")
+                
+                writer.writerow(row_data)
         
-        # 构建表头
-        header = ['主键值', '数据来源', '对比结果']
-        # 添加所有特征列
-        header.extend(all_features)
-        writer.writerow(header)
-        
-        # 写入接口/灰度/从库特征表数据
-        for row in rows_api:
-            if api_key_column >= len(row):
-                continue
-            
-            key_value = str(row[api_key_column]).strip() if row[api_key_column] is not None else ""
-            if not key_value:
-                continue
-            
-            # 判断对比结果
-            has_diff = any((key_value, feature) in differences_dict for feature in all_features)
-            result = "有差异" if has_diff else "一致"
-            
-            row_data = [key_value, "接口/灰度/从库", result]
-            
-            # 添加特征值
-            for feature in all_features:
-                api_idx = api_feature_start + headers_api[api_feature_start:].index(feature) if feature in headers_api[api_feature_start:] else None
-                if api_idx is not None and api_idx < len(row):
-                    row_data.append(row[api_idx] if row[api_idx] is not None else "")
-                else:
-                    row_data.append("")
-            
-            writer.writerow(row_data)
-        
-        # 写入模型特征表数据
-        for row in rows_sql:
-            if sql_key_column >= len(row):
-                continue
-            
-            key_value = str(row[sql_key_column]).strip() if row[sql_key_column] is not None else ""
-            if not key_value:
-                continue
-            
-            # 判断对比结果
-            has_diff = any((key_value, feature) in differences_dict for feature in all_features)
-            result = "有差异" if has_diff else "一致"
-            
-            row_data = [key_value, "模型特征表", result]
-            
-            # 添加特征值
-            for feature in all_features:
-                sql_idx = sql_feature_start + headers_sql[sql_feature_start:].index(feature) if feature in headers_sql[sql_feature_start:] else None
-                if sql_idx is not None and sql_idx < len(row):
-                    row_data.append(row[sql_idx] if row[sql_idx] is not None else "")
-                else:
-                    row_data.append("")
-            
-            writer.writerow(row_data)
-    
-    print(f"✅ 全量数据合并已保存: {merged_file}")
+        print(f"✅ 全量数据合并已保存: {merged_file}")
+    else:
+        print(f"[INFO] 跳过全量数据合并文件生成（未勾选输出选项）")
     
     # 5. 生成仅在接口/灰度/从库特征表中的数据
     if len(unmatched_rows) > 0:
@@ -215,7 +220,8 @@ def generate_comparison_reports(
     print(f"  1. 差异特征汇总: {summary_file}")
     print(f"  2. 差异数据明细: {detail_file}")
     print(f"  3. 特征统计: {stats_file}")
-    print(f"  4. 全量数据合并: {merged_file}")
+    if output_full_data:
+        print(f"  4. 全量数据合并: {merged_file}")
     if len(unmatched_rows) > 0:
         print(f"  5. 仅在接口/灰度/从库中的数据: {api_only_file} (共 {len(unmatched_rows)} 条)")
     if len(sql_only_rows) > 0:

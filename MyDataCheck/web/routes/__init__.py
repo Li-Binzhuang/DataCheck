@@ -15,6 +15,7 @@ def register_blueprints(app):
     from .compare_routes import compare_bp
     from .pkl_routes import pkl_bp
     from .stop_routes import stop_bp
+    from .batch_run_routes import batch_run_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
@@ -22,3 +23,4 @@ def register_blueprints(app):
     app.register_blueprint(compare_bp)
     app.register_blueprint(pkl_bp)
     app.register_blueprint(stop_bp)
+    app.register_blueprint(batch_run_bp)

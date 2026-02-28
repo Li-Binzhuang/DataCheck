@@ -221,6 +221,9 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue):
         config_json_str: JSON配置字符串
         output_queue: 输出队列
     """
+    import time
+    start_time = time.time()
+    
     # 设置输出捕获
     capture = OutputCapture(output_queue)
     
@@ -419,6 +422,17 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue):
         if online_only_count > 0:
             print(f"  7. 仅在线上文件中的数据: {output_base_path}_仅在线上文件中的数据.csv (共 {online_only_count} 条)")
         
+        # 计算执行时长
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        if elapsed_time >= 60:
+            minutes = int(elapsed_time // 60)
+            seconds = elapsed_time % 60
+            time_str = f"{minutes}分{seconds:.1f}秒"
+        else:
+            time_str = f"{elapsed_time:.1f}秒"
+        
+        print(f"⏱️ 本次执行耗时: {time_str}")
         print(f"{'='*80}")
         
     except json.JSONDecodeError as e:
@@ -445,6 +459,9 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue):
         config_data: 配置字典（包含scenarios数组）
         output_queue: 输出队列
     """
+    import time
+    start_time = time.time()
+    
     # 设置输出捕获
     capture = OutputCapture(output_queue)
     
@@ -627,6 +644,18 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue):
         # 总结
         print("="*60)
         print(f"执行完成: 成功 {success_count} 个, 失败 {fail_count} 个")
+        
+        # 计算执行时长
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        if elapsed_time >= 60:
+            minutes = int(elapsed_time // 60)
+            seconds = elapsed_time % 60
+            time_str = f"{minutes}分{seconds:.1f}秒"
+        else:
+            time_str = f"{elapsed_time:.1f}秒"
+        
+        print(f"⏱️ 本次执行耗时: {time_str}")
         print("="*60)
         
     except Exception as e:

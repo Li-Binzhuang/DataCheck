@@ -33,6 +33,9 @@ os.makedirs(BATCH_RUN_OUTPUT_DIR, exist_ok=True)
 
 def execute_batch_run(config: dict, output_queue: Queue):
     """执行跑数任务"""
+    import time
+    start_time = time.time()
+    
     capture = OutputCapture(output_queue)
     
     try:
@@ -87,6 +90,18 @@ def execute_batch_run(config: dict, output_queue: Queue):
         print(f"📊 结果: 成功 {result['success']} 条, 失败 {result['errors']} 条")
         print(f"📋 特征数量: {result['features_count']}")
         print(f"📁 输出文件: {output_file}")
+        
+        # 计算执行时长
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        if elapsed_time >= 60:
+            minutes = int(elapsed_time // 60)
+            seconds = elapsed_time % 60
+            time_str = f"{minutes}分{seconds:.1f}秒"
+        else:
+            time_str = f"{elapsed_time:.1f}秒"
+        
+        print(f"⏱️ 本次执行耗时: {time_str}")
         print("=" * 60)
         
     except Exception as e:

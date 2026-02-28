@@ -53,6 +53,9 @@ def execute_comparison_flow(config_json_str: str, output_queue: Queue, task_id: 
         output_queue: 输出队列
         task_id: 任务ID（用于停止控制和状态管理）
     """
+    import time
+    start_time = time.time()
+    
     # 导入停止控制器和任务管理器
     from common.stop_controller import StopController
     from common.task_manager import TaskManager
@@ -155,10 +158,22 @@ def execute_comparison_flow(config_json_str: str, output_queue: Queue, task_id: 
         print("="*60)
         print(f"执行完成: 成功 {success_count} 个, 失败 {fail_count} 个")
         print("="*60)
+        
+        # 计算执行时长
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        if elapsed_time >= 60:
+            minutes = int(elapsed_time // 60)
+            seconds = elapsed_time % 60
+            time_str = f"{minutes}分{seconds:.1f}秒"
+        else:
+            time_str = f"{elapsed_time:.1f}秒"
+        
         print("")
         print("🎉 ✅ 任务执行完成！")
         print(f"📊 执行结果: 成功 {success_count} 个场景, 失败 {fail_count} 个场景")
         print(f"📁 输出目录: {api_output_dir}")
+        print(f"⏱️ 本次执行耗时: {time_str}")
         print("")
         
         # 更新任务状态为完成

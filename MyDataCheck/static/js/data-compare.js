@@ -621,7 +621,6 @@ async function executeDecimalProcess() {
 
     // 获取小数处理方式和对比方式
     const decimalMethod = document.querySelector('input[name="decimal-method"]:checked').value;
-    const modelDecimalMethod = document.querySelector('input[name="model-decimal-method"]:checked').value;
     const compareMode = document.querySelector('input[name="compare-mode"]:checked').value;
     const toleranceValue = parseFloat(document.getElementById('tolerance-value').value) || 0.01;
     const outputPrefix = document.getElementById('decimal-output-prefix').value || 'decimal_processed';
@@ -629,16 +628,14 @@ async function executeDecimalProcess() {
     const infoLine = document.createElement('div');
     infoLine.className = 'output-line info';
     const methodText = decimalMethod === 'none' ? '不处理' : decimalMethod === 'round' ? '四舍五入' : decimalMethod === 'double_round' ? '双精度四舍五入' : decimalMethod === 'truncate' ? '截取' : '向上取整';
-    const modelMethodText = modelDecimalMethod === 'none' ? '不处理' : modelDecimalMethod === 'round' ? '四舍五入' : modelDecimalMethod === 'double_round' ? '双精度四舍五入' : modelDecimalMethod === 'truncate' ? '截取' : '向上取整';
     const compareModeText = compareMode === 'exact' ? '精确对比' : compareMode === 'tolerance' ? `容差对比(${toleranceValue})` : compareMode === 'last_digit' ? '最后一位差1不计异常' : '最后一位差2不计异常';
-    infoLine.textContent = `[INFO] 开始处理 - 接口小数: ${methodText}, 模型小数: ${modelMethodText}, 对比: ${compareModeText}`;
+    infoLine.textContent = `[INFO] 开始处理 - 接口小数: ${methodText}, 对比: ${compareModeText}`;
     outputPanel.appendChild(infoLine);
 
     try {
         const config = {
             file: file,
             method: decimalMethod,
-            model_method: modelDecimalMethod,
             compare_mode: compareMode,
             tolerance: toleranceValue,
             output_prefix: outputPrefix,

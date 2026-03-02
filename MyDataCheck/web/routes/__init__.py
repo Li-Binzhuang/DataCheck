@@ -16,6 +16,7 @@ def register_blueprints(app):
     from .pkl_routes import pkl_bp
     from .stop_routes import stop_bp
     from .batch_run_routes import batch_run_bp
+    from .download_routes import download_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
@@ -24,3 +25,4 @@ def register_blueprints(app):
     app.register_blueprint(pkl_bp)
     app.register_blueprint(stop_bp)
     app.register_blueprint(batch_run_bp)
+    app.register_blueprint(download_bp)

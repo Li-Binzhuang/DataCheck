@@ -12,7 +12,7 @@ Flask应用主入口模块
 
 作者: MyDataCheck Team
 创建时间: 2026-01
-最后更新: 2026-01-27
+最后更新: 2026-03-02
 """
 
 import os
@@ -26,6 +26,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from web.config import init_directories, MAX_CONTENT_LENGTH
 from web.routes import register_blueprints
 from common.auto_cleanup import startup_cleanup
+
+# ==================== 环境变量配置 ====================
+# 服务端口，默认5001
+SERVER_PORT = int(os.environ.get('SERVER_PORT', 5001))
+# 服务Host，默认0.0.0.0
+SERVER_HOST = os.environ.get('SERVER_HOST', '0.0.0.0')
+# 清理保留天数，默认3天
+CLEANUP_RETENTION_DAYS = int(os.environ.get('CLEANUP_RETENTION_DAYS', 3))
 
 
 def create_app():
@@ -62,8 +70,8 @@ def create_app():
     # 初始化目录：创建输入输出数据目录
     init_directories()
     
-    # zlf update: 启动时自动清理7天前的旧文件
-    startup_cleanup(retention_days=7)
+    # 启动定时清理任务（每日凌晨3点清理N天前的旧文件）
+    startup_cleanup(retention_days=CLEANUP_RETENTION_DAYS)
     
     # 注册蓝图：注册所有功能模块的路由
     register_blueprints(app)
@@ -118,14 +126,13 @@ def main():
         3. 显示启动信息
         4. 启动Web服务器
     
-    配置:
-        - 监听地址: 0.0.0.0（允许外部访问）
-        - 端口: 5000
-        - 调试模式: 关闭
-        - 多线程: 开启
+    环境变量:
+        - SERVER_HOST: 监听地址，默认0.0.0.0
+        - SERVER_PORT: 端口号，默认5001
+        - CLEANUP_RETENTION_DAYS: 清理保留天数，默认3天
     
     Note:
-        服务器启动后，可通过 http://127.0.0.1:5000 访问
+        服务器启动后，可通过配置的地址和端口访问
         按 Ctrl+C 可停止服务器
     """
     # 注册信号处理器：捕获Ctrl+C信号
@@ -139,14 +146,15 @@ def main():
     print("数据对比 - Web界面")
     print("=" * 80)
     print("服务器启动中...")
-    print("访问地址: http://127.0.0.1:5000")
+    print(f"监听地址: {SERVER_HOST}:{SERVER_PORT}")
+    print(f"清理策略: 每日凌晨3点清理{CLEANUP_RETENTION_DAYS}天前的数据")
     print("按 Ctrl+C 停止服务器")
     print("=" * 80)
     
     # 启动服务器
     app.run(
-        host='0.0.0.0',      # 监听所有网络接口
-        port=5001,           # 端口号
+        host=SERVER_HOST,    # 监听地址（环境变量配置）
+        port=SERVER_PORT,    # 端口号（环境变量配置）
         debug=False,         # 生产模式（关闭调试）
         threaded=True        # 启用多线程处理请求
     )

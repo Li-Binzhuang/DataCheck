@@ -17,11 +17,23 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../common'))
 
 def _open_output_folder(folder_path: str):
     """
-    自动打开输出文件夹
+    自动打开输出文件夹（仅本地开发环境有效）
     
     Args:
         folder_path: 文件夹路径
+        
+    Note:
+        服务器环境下此功能自动跳过
     """
+    # 服务器环境检测：无DISPLAY环境变量或在Docker中运行时跳过
+    if os.environ.get('DISABLE_OPEN_FOLDER') == '1':
+        return
+    if not os.environ.get('DISPLAY') and platform.system() == 'Linux':
+        return
+    # Docker环境检测
+    if os.path.exists('/.dockerenv'):
+        return
+        
     try:
         if platform.system() == "Darwin":  # macOS
             subprocess.run(["open", folder_path], check=True)
@@ -31,7 +43,8 @@ def _open_output_folder(folder_path: str):
             subprocess.run(["xdg-open", folder_path], check=True)
         print(f"📂 已打开输出文件夹: {folder_path}")
     except Exception as e:
-        print(f"⚠️ 无法自动打开文件夹: {e}")
+        # 静默处理，服务器环境下不显示警告
+        pass
 
 
 def generate_comparison_reports(

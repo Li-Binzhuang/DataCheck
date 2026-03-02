@@ -275,6 +275,8 @@ async function executeBatchRun() {
                         }
                         if (data.type === 'end') {
                             statusText.textContent = '完成';
+                            // 自动下载输出文件
+                            setTimeout(() => autoDownloadOutputFiles('batch_run', 2), 1000);
                         }
                     } catch (e) { }
                 }

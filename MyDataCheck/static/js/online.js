@@ -1032,6 +1032,8 @@ async function executeOnlineScenario(scenarioId) {
                             if (savedLoadingSpinner) {
                                 savedLoadingSpinner.style.display = 'none';
                             }
+                            // 自动下载输出文件
+                            setTimeout(() => autoDownloadOutputFiles('online_comparison', 2), 1000);
                             return;
                         }
 
@@ -1511,6 +1513,8 @@ function executeOnlineConfig() {
                             appendOutput('🎉 任务执行完成！', 'success', 'online');
                             document.getElementById('execute-btn-online').disabled = false;
                             document.getElementById('loading-spinner-online').style.display = 'none';
+                            // 自动下载输出文件
+                            setTimeout(() => autoDownloadOutputFiles('online_comparison', 2), 1000);
                             return;
                         }
 

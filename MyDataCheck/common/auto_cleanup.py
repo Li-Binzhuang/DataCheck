@@ -5,11 +5,13 @@
 
 功能说明:
     - 定期清理 inputdata、outputdata、logs 目录中的旧文件
-    - 在 Web 应用启动时自动执行
+    - 每日凌晨3点自动执行清理任务
+    - 清理3天前的数据
     - 支持配置保留天数
 
 作者: MyDataCheck Team
 创建时间: 2026-02-27
+更新时间: 2026-03-02 - 改为每日凌晨3点定时清理
 """
 
 import os
@@ -17,6 +19,7 @@ import time
 import threading
 from datetime import datetime, timedelta
 from typing import List, Tuple
+import schedule
 
 
 class AutoCleanup:
@@ -25,15 +28,17 @@ class AutoCleanup:
     
     功能:
         - 清理指定目录中超过保留天数的文件
+        - 每日凌晨3点自动执行
         - 支持排除特定文件（如 README.md）
         - 记录清理日志
     """
     
     # 默认配置
-    DEFAULT_RETENTION_DAYS = 7  # 默认保留7天
+    DEFAULT_RETENTION_DAYS = 3  # 默认保留3天
+    CLEANUP_TIME = "03:00"  # 每日凌晨3点执行
     EXCLUDED_FILES = {'.DS_Store', 'README.md', '.gitkeep', '__init__.py'}  # 排除的文件
     
-    # 需要清理的目录（相对于 MyDataCheck 目录）
+    # 需要清理的目录（相对于项目根目录）
     CLEANUP_DIRS = [
         'inputdata/api_comparison',
         'inputdata/data_comparison', 
@@ -46,8 +51,9 @@ class AutoCleanup:
         'logs',
     ]
     
-    _cleanup_done = False  # 标记是否已执行过清理
+    _scheduler_started = False  # 标记定时任务是否已启动
     _lock = threading.Lock()
+    _scheduler_thread = None
     
     @classmethod
     def cleanup_old_files(cls, retention_days: int = None, verbose: bool = True) -> Tuple[int, int]:
@@ -150,27 +156,62 @@ class AutoCleanup:
         return deleted_count, freed_space
     
     @classmethod
-    def startup_cleanup(cls, retention_days: int = None):
+    def _run_scheduler(cls):
         """
-        启动时清理（只执行一次）
+        运行定时任务调度器
+        """
+        while True:
+            schedule.run_pending()
+            time.sleep(60)  # 每分钟检查一次
+    
+    @classmethod
+    def _scheduled_cleanup(cls):
+        """
+        定时清理任务
+        """
+        try:
+            print(f"\n[AutoCleanup] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 开始执行定时清理任务...")
+            cls.cleanup_old_files(cls.DEFAULT_RETENTION_DAYS, verbose=True)
+        except Exception as e:
+            print(f"[AutoCleanup] 定时清理失败: {e}")
+    
+    @classmethod
+    def start_scheduler(cls, retention_days: int = None):
+        """
+        启动定时清理任务（每日凌晨3点执行）
         
         Args:
-            retention_days: 保留天数
+            retention_days: 保留天数，默认3天
         """
         with cls._lock:
-            if cls._cleanup_done:
+            if cls._scheduler_started:
+                print("[AutoCleanup] 定时任务已在运行中")
                 return
-            cls._cleanup_done = True
+            cls._scheduler_started = True
         
-        # 在后台线程执行清理，不阻塞启动
-        def do_cleanup():
-            try:
-                cls.cleanup_old_files(retention_days, verbose=True)
-            except Exception as e:
-                print(f"[AutoCleanup] 启动清理失败: {e}")
+        if retention_days is not None:
+            cls.DEFAULT_RETENTION_DAYS = retention_days
         
-        thread = threading.Thread(target=do_cleanup, daemon=True)
-        thread.start()
+        # 设置每日凌晨3点执行清理任务
+        schedule.every().day.at(cls.CLEANUP_TIME).do(cls._scheduled_cleanup)
+        
+        print(f"[AutoCleanup] 定时清理任务已启动")
+        print(f"[AutoCleanup] 执行时间: 每日 {cls.CLEANUP_TIME}")
+        print(f"[AutoCleanup] 保留天数: {cls.DEFAULT_RETENTION_DAYS} 天")
+        
+        # 在后台线程运行调度器
+        cls._scheduler_thread = threading.Thread(target=cls._run_scheduler, daemon=True)
+        cls._scheduler_thread.start()
+    
+    @classmethod
+    def startup_cleanup(cls, retention_days: int = None):
+        """
+        启动定时清理任务（兼容旧接口）
+        
+        Args:
+            retention_days: 保留天数，默认3天
+        """
+        cls.start_scheduler(retention_days)
     
     @classmethod
     def get_cleanup_stats(cls) -> dict:
@@ -215,12 +256,12 @@ class AutoCleanup:
 
 
 # 便捷函数
-def startup_cleanup(retention_days: int = 7):
-    """Web应用启动时调用"""
-    AutoCleanup.startup_cleanup(retention_days)
+def startup_cleanup(retention_days: int = 3):
+    """Web应用启动时调用，启动定时清理任务"""
+    AutoCleanup.start_scheduler(retention_days)
 
 
-def manual_cleanup(retention_days: int = 7) -> Tuple[int, int]:
+def manual_cleanup(retention_days: int = 3) -> Tuple[int, int]:
     """手动触发清理"""
     return AutoCleanup.cleanup_old_files(retention_days, verbose=True)
 
@@ -235,6 +276,16 @@ if __name__ == "__main__":
     for dir_path, info in stats.items():
         print(f"  {dir_path}: {info['files']} 个文件, {info['size_mb']} MB")
     
-    print("\n执行清理（7天前的文件）:")
-    deleted, freed = manual_cleanup(7)
+    print("\n执行清理（3天前的文件）:")
+    deleted, freed = manual_cleanup(3)
     print(f"\n总计: 删除 {deleted} 个文件, 释放 {freed / (1024*1024):.2f} MB")
+    
+    print("\n启动定时任务测试（每日凌晨3点执行）:")
+    startup_cleanup(3)
+    print("定时任务已启动，按 Ctrl+C 退出")
+    
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n测试结束")

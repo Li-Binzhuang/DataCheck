@@ -63,7 +63,8 @@ class TaskManager:
     
     # 日志配置
     MAX_MEMORY_LOGS = 1000  # 内存中保存的最大日志条数
-    LOG_DIR = "MyDataCheck/logs"  # 日志文件目录 (zlf update: 简化目录层级，移除tasks子目录)
+    # 日志目录：使用相对于项目根目录的路径
+    LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
     
     def __new__(cls):
         """单例模式：确保只有一个实例"""

@@ -252,6 +252,8 @@ async function executeCompare() {
                             completeLine.textContent = '🎉 任务执行完成！';
                             outputPanel.appendChild(completeLine);
                             outputPanel.scrollTop = outputPanel.scrollHeight;
+                            // 自动下载输出文件
+                            setTimeout(() => autoDownloadOutputFiles('data_comparison', 2), 1000);
                         } else if (data.type === 'error') {
                             statusIndicator.className = 'status-indicator error';
                             statusText.textContent = '执行失败';
@@ -695,6 +697,8 @@ async function executeDecimalProcess() {
                             completeLine.textContent = '🎉 处理完成！';
                             outputPanel.appendChild(completeLine);
                             outputPanel.scrollTop = outputPanel.scrollHeight;
+                            // 自动下载输出文件
+                            setTimeout(() => autoDownloadOutputFiles('data_comparison', 2), 1000);
                         } else if (data.type === 'error') {
                             statusIndicator.className = 'status-indicator error';
                             statusText.textContent = '执行失败';

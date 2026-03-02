@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mydatacheck:
+    build: .
+    container_name: mydatacheck
+    ports:
+      - "5001:5001"
+    volumes:
+      # 挂载数据目录，方便导入导出文件
+      - ./inputdata:/app/inputdata
+      - ./outputdata:/app/outputdata
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

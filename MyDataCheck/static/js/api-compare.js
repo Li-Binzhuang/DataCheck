@@ -823,6 +823,8 @@ function executeConfig() {
                                 }
                             });
                             document.getElementById('loading-spinner-api').style.display = 'none';
+                            // 自动下载输出文件
+                            setTimeout(() => autoDownloadOutputFiles('api_comparison', 2), 1000);
                             return;
                         }
 

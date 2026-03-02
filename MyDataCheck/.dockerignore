@@ -1,9 +1,19 @@
-# Python
+# Python 缓存
 __pycache__/
 *.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
 *$py.class
+
+# 虚拟环境
 .venv/
 venv/
+env/
+.Python
+
+# Python 包信息
 *.egg-info/
 
 # IDE
@@ -12,22 +22,31 @@ venv/
 *.swp
 *.swo
 
+# 编辑器临时文件
+*.tmp
+*.bak
+*~
+
 # macOS
 .DS_Store
+.~*
 
 # Git
 .git/
 .gitignore
 
-# 临时文件
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 日志文件
 *.log
-*.tmp
+logs/
 
-# 测试数据（可选，如需包含测试数据请删除这行）
-# inputdata/
-# outputdata/
+# 测试数据
+inputdata/
+outputdata/
 
-# 文档（可选）
+# 文档
 docs/
 
 # 备份
@@ -35,3 +54,7 @@ backups/
 
 # Kiro配置
 .kiro/
+
+# 大型数据文件（可根据需要调整）
+*.csv
+*.xlsx

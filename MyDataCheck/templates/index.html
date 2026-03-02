@@ -7,6 +7,7 @@
     <title>数据对比 - Web界面</title>
     <!-- 引入外部CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user-identity.css') }}">
 </head>
 
 <body>
@@ -19,6 +20,12 @@
             <div class="sidebar-header">
                 <h1>📊 数据对比平台</h1>
                 <p>Data Comparison Platform</p>
+                <!-- 用户信息显示 -->
+                <div class="user-info-bar">
+                    <span class="user-icon">👤</span>
+                    <span class="user-name" id="current-user-name">未登录</span>
+                    <button class="btn-switch-user" onclick="switchUser()">切换</button>
+                </div>
             </div>
 
             <div class="sidebar-menu">
@@ -646,6 +653,8 @@
     <!-- 引入外部JavaScript文件 -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/user-identity.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/task-notification.js') }}"></script>
     <script src="{{ url_for('static', filename='js/stop-control.js') }}"></script>
     <script src="{{ url_for('static', filename='js/task-recovery.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auto-download.js') }}"></script>

@@ -314,9 +314,14 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
         # 构建文件名前缀部分（如果配置了前缀）
         prefix_part = f"{output_file_prefix}_" if output_file_prefix else ""
         
-        # 自动生成输出文件名（保存到outputdata目录）
-        api_data_output_file = f"{prefix_part}{timestamp_suffix}_api_data.csv"
-        compare_output_file = f"{prefix_part}{timestamp_suffix}_compare.csv"
+        # 获取用户标识（从json_config中获取）
+        user_id = ""
+        if json_config and json_config.get('user_id'):
+            user_id = f"_{json_config.get('user_id')}"
+        
+        # 自动生成输出文件名（保存到outputdata目录）- 加入用户标识
+        api_data_output_file = f"{prefix_part}{timestamp_suffix}{user_id}_api_data.csv"
+        compare_output_file = f"{prefix_part}{timestamp_suffix}{user_id}_compare.csv"
         
         api_data_output_path = os.path.join(output_dir, api_data_output_file)
         compare_output_path = os.path.join(output_dir, compare_output_file)

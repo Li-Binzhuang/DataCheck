@@ -70,8 +70,12 @@ def execute_batch_run(config: dict, output_queue: Queue, task_id: str = None):
             print(f"❌ 错误: 输入文件不存在: {input_file}")
             return
         
+        # 获取用户标识
+        user_id = config.get('user_id', '')
+        user_suffix = f"_{user_id}" if user_id and user_id != 'anonymous' else ""
+        
         timestamp = datetime.now().strftime("%m%d%H%M")
-        output_file = f"{output_prefix}_{timestamp}.csv"
+        output_file = f"{output_prefix}_{timestamp}{user_suffix}.csv"
         output_path = os.path.join(BATCH_RUN_OUTPUT_DIR, output_file)
         
         print("=" * 60)
@@ -183,10 +187,15 @@ def execute_batch_run_api():
         from common.task_manager import TaskManager
         
         config = request.json.get('config', {})
+        user_id = request.json.get('user_id', 'anonymous')  # 获取用户标识
+        
         if not config:
             return jsonify({'success': False, 'error': '配置为空'})
         
-        task_id = TaskManager.create_task("跑数任务", "batch_run")
+        # 将用户标识注入配置
+        config['user_id'] = user_id
+        
+        task_id = TaskManager.create_task("跑数任务", "batch_run", user_id=user_id)
         output_queue = Queue()
         thread = Thread(target=execute_batch_run, args=(config, output_queue, task_id))
         thread.daemon = True

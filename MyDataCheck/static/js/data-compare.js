@@ -198,12 +198,15 @@ async function executeCompare() {
             output_full_data: document.getElementById('compare-output-full').checked
         };
 
+        // 获取当前用户标识
+        const userId = getUserId() || 'anonymous';
+
         const response = await fetch('/api/compare/execute', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ config: config })
+            body: JSON.stringify({ config: config, user_id: userId })
         });
 
         if (!response.ok) {
@@ -635,13 +638,17 @@ async function executeDecimalProcess() {
     outputPanel.appendChild(infoLine);
 
     try {
+        // 获取当前用户标识
+        const userId = getUserId() || 'anonymous';
+
         const config = {
             file: file,
             method: decimalMethod,
             compare_mode: compareMode,
             tolerance: toleranceValue,
             output_prefix: outputPrefix,
-            output_full_data: document.getElementById('decimal-output-full').checked
+            output_full_data: document.getElementById('decimal-output-full').checked,
+            user_id: userId
         };
 
         const response = await fetch('/api/compare/decimal/execute', {

@@ -790,12 +790,15 @@ function executeConfig() {
 
         const configJson = JSON.stringify(config);
 
+        // 获取当前用户标识
+        const userId = getUserId() || 'anonymous';
+
         fetch('/api/execute', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ config: configJson })
+            body: JSON.stringify({ config: configJson, user_id: userId })
         })
             .then(response => {
                 if (!response.ok) {

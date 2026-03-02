@@ -624,13 +624,16 @@ async function parseOnlineScenarioJSON(scenarioId) {
         const finalParseBtn = verifyParseBtn;
         const finalLoadingSpinner = loadingSpinner;
 
+        // 获取当前用户标识
+        const userId = getUserId() || 'anonymous';
+
         // 直接发送config对象，不需要双重JSON编码
         fetch('/api/parse/online', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ config: config })
+            body: JSON.stringify({ config: config, user_id: userId })
         })
             .then(response => {
                 if (!response.ok) {
@@ -969,13 +972,16 @@ async function executeOnlineScenario(scenarioId) {
             currentLoadingSpinner.style.display = 'inline-block';
         }
 
+        // 获取当前用户标识
+        const userId = getUserId() || 'anonymous';
+
         // 直接发送config对象，不需要双重JSON编码
         fetch('/api/execute/online', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ config: config })
+            body: JSON.stringify({ config: config, user_id: userId })
         })
             .then(response => {
                 if (!response.ok) {

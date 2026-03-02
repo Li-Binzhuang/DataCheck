@@ -127,9 +127,13 @@ def execute_compare_flow(config: dict, output_queue: Queue, task_id: str = None)
         now = datetime.now()
         timestamp_suffix = now.strftime("%m%d%H%M")
         
-        # 生成输出文件路径
+        # 获取用户标识
+        user_id = config.get('user_id', '')
+        user_suffix = f"_{user_id}" if user_id and user_id != 'anonymous' else ""
+        
+        # 生成输出文件路径（包含用户标识）
         output_prefix = config.get('output_prefix', 'compare')
-        output_base_path = os.path.join(compare_output_dir, f"{output_prefix}_{timestamp_suffix}")
+        output_base_path = os.path.join(compare_output_dir, f"{output_prefix}_{timestamp_suffix}{user_suffix}")
         
         # 传递输出全量数据的配置
         output_full_data = config.get('output_full_data', False)
@@ -213,14 +217,19 @@ def execute_compare():
         from common.task_manager import TaskManager
         
         config = request.json.get('config')
+        user_id = request.json.get('user_id', 'anonymous')  # 获取用户标识
+        
         if not config:
             return jsonify({'success': False, 'error': '配置数据为空'})
+        
+        # 将用户标识注入配置
+        config['user_id'] = user_id
         
         # 创建任务（支持刷新页面加载日志）
         task_name = "数据对比"
         if config.get('output_prefix'):
             task_name = f"数据对比 ({config['output_prefix']})"
-        task_id = TaskManager.create_task(task_name, "data_comparison")
+        task_id = TaskManager.create_task(task_name, "data_comparison", user_id=user_id)
         
         # 创建输出队列
         output_queue = Queue()
@@ -655,9 +664,13 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
         output_prefix = config.get('output_prefix', 'decimal_processed')
         output_full_data = config.get('output_full_data', False)
         
+        # 获取用户标识
+        user_id = config.get('user_id', '')
+        user_suffix = f"_{user_id}" if user_id and user_id != 'anonymous' else ""
+        
         # 输出完整处理结果（仅在配置开启时）
         if output_full_data:
-            full_output_path = os.path.join(compare_output_dir, f"{output_prefix}_full_{timestamp_suffix}.csv")
+            full_output_path = os.path.join(compare_output_dir, f"{output_prefix}_full_{timestamp_suffix}{user_suffix}.csv")
             df.to_csv(full_output_path, index=False, encoding='utf-8-sig')
             print(f"✅ 完整处理结果已保存: {full_output_path}")
         else:
@@ -665,7 +678,7 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
         
         # 输出差异记录
         if len(df_diff) > 0:
-            diff_output_path = os.path.join(compare_output_dir, f"{output_prefix}_diff_{timestamp_suffix}.csv")
+            diff_output_path = os.path.join(compare_output_dir, f"{output_prefix}_diff_{timestamp_suffix}{user_suffix}.csv")
             df_diff.to_csv(diff_output_path, index=False, encoding='utf-8-sig')
             print(f"✅ 差异记录已保存: {diff_output_path}")
         else:
@@ -708,10 +721,15 @@ def execute_decimal_process():
         from common.task_manager import TaskManager
         
         config = request.json.get('config')
+        user_id = request.json.get('user_id', 'anonymous')  # 获取用户标识
+        
         if not config:
             return jsonify({'success': False, 'error': '配置数据为空'})
         
-        task_id = TaskManager.create_task("小数位数处理", "decimal_process")
+        # 将用户标识注入配置
+        config['user_id'] = user_id
+        
+        task_id = TaskManager.create_task("小数位数处理", "decimal_process", user_id=user_id)
         output_queue = Queue()
         
         thread = Thread(target=execute_decimal_process_flow, args=(config, output_queue, task_id))

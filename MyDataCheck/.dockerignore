@@ -43,8 +43,8 @@ env/
 logs/
 
 # 测试数据
-inputdata/
-outputdata/
+# inputdata/
+# outputdata/
 
 # 文档
 docs/

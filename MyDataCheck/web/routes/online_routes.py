@@ -96,13 +96,17 @@ def execute_online_parse_only(config_json_str: str, output_queue: Queue, task_id
         now = datetime.now()
         timestamp_suffix = now.strftime("%m%d%H%M")
         
+        # 获取用户标识
+        user_id = config_data.get('user_id', '')
+        user_suffix = f"_{user_id}" if user_id and user_id != 'anonymous' else ""
+        
         # 构建文件路径（从inputdata目录读取）
         online_file_path = os.path.join(online_input_dir, online_file)
         offline_file_path = os.path.join(online_input_dir, offline_file) if offline_file else None
         
-        # 生成输出文件路径（保存到outputdata目录）
+        # 生成输出文件路径（保存到outputdata目录，包含用户标识）
         prefix_part = f"{output_prefix}_" if output_prefix else ""
-        parsed_online_csv = os.path.join(online_output_dir, f"{prefix_part}{timestamp_suffix}_解析后.csv")
+        parsed_online_csv = os.path.join(online_output_dir, f"{prefix_part}{timestamp_suffix}{user_suffix}_解析后.csv")
         
         print(f"\n开始解析JSON数据...")
         print(f"线上文件: {online_file_path}")
@@ -296,13 +300,17 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
         now = datetime.now()
         timestamp_suffix = now.strftime("%m%d%H%M")
         
+        # 获取用户标识
+        user_id = config_data.get('user_id', '')
+        user_suffix = f"_{user_id}" if user_id and user_id != 'anonymous' else ""
+        
         # 构建文件路径（从inputdata目录读取）
         online_file_path = os.path.join(online_input_dir, online_file)
         offline_file_path = os.path.join(online_input_dir, offline_file)
         
-        # 生成输出文件路径（保存到outputdata目录）
+        # 生成输出文件路径（保存到outputdata目录，包含用户标识）
         prefix_part = f"{output_prefix}_" if output_prefix else ""
-        output_base_path = os.path.join(online_output_dir, f"{prefix_part}{timestamp_suffix}_对比结果")
+        output_base_path = os.path.join(online_output_dir, f"{prefix_part}{timestamp_suffix}{user_suffix}_对比结果")
         
         print(f"\n开始执行线上灰度落数对比流程...")
         print(f"配置文件: {os.path.join(online_comparison_dir, 'config.json')}")
@@ -523,6 +531,10 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
         now = datetime.now()
         timestamp_suffix = now.strftime("%m%d%H%M")
         
+        # 获取用户标识
+        user_id = config_data.get('user_id', '')
+        user_suffix = f"_{user_id}" if user_id and user_id != 'anonymous' else ""
+        
         # 检查并动态加载模块
         if not os.path.exists(online_job_dir):
             raise FileNotFoundError(f"线上灰度落数对比模块目录不存在: {online_job_dir}")
@@ -580,9 +592,9 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
                 online_file_path = os.path.join(online_input_dir, online_file)
                 offline_file_path = os.path.join(online_input_dir, offline_file)
                 
-                # 生成输出文件路径（保存到outputdata目录）
+                # 生成输出文件路径（保存到outputdata目录，包含用户标识）
                 prefix_part = f"{output_prefix}_" if output_prefix else ""
-                output_base_path = os.path.join(online_output_dir, f"{prefix_part}{timestamp_suffix}_对比结果")
+                output_base_path = os.path.join(online_output_dir, f"{prefix_part}{timestamp_suffix}{user_suffix}_对比结果")
                 
                 # 检查输入文件是否存在
                 if not os.path.exists(online_file_path):
@@ -843,18 +855,22 @@ def parse_online():
         from common.task_manager import TaskManager
         
         config_data = request.json.get('config')
+        user_id = request.json.get('user_id', 'anonymous')  # 获取用户标识
+        
         if not config_data:
             return jsonify({'success': False, 'error': '配置数据为空'})
 
         # 如果是字典，转换为JSON字符串；如果已经是字符串，验证JSON格式
         if isinstance(config_data, dict):
+            config_data['user_id'] = user_id
             config_json_str = json.dumps(config_data)
         else:
-            # 验证JSON格式
-            json.loads(config_data)
-            config_json_str = config_data
+            # 验证JSON格式并注入用户标识
+            parsed = json.loads(config_data)
+            parsed['user_id'] = user_id
+            config_json_str = json.dumps(parsed)
 
-        task_id = TaskManager.create_task("线上JSON解析", "online_comparison")
+        task_id = TaskManager.create_task("线上JSON解析", "online_comparison", user_id=user_id)
         output_queue = Queue()
 
         thread = Thread(target=execute_online_parse_only, args=(config_json_str, output_queue, task_id))
@@ -924,6 +940,8 @@ def execute_online():
         from common.task_manager import TaskManager
         
         config_data = request.json.get('config')
+        user_id = request.json.get('user_id', 'anonymous')  # 获取用户标识
+        
         if not config_data:
             return jsonify({'success': False, 'error': '配置数据为空'})
         
@@ -938,6 +956,10 @@ def execute_online():
             except json.JSONDecodeError as e:
                 return jsonify({'success': False, 'error': f'配置JSON解析错误: {str(e)}'})
         
+        # 注入用户标识
+        if isinstance(config_data, dict):
+            config_data['user_id'] = user_id
+        
         # 判断是单场景还是多场景配置
         if isinstance(config_data, dict):
             if 'scenarios' in config_data:
@@ -951,7 +973,7 @@ def execute_online():
                     return jsonify({'success': False, 'error': '没有启用的场景'})
                 
                 task_name = f"线上灰度落数对比 ({len(enabled_scenarios)}个场景)"
-                task_id = TaskManager.create_task(task_name, "online_comparison")
+                task_id = TaskManager.create_task(task_name, "online_comparison", user_id=user_id)
                 output_queue = Queue()
                 
                 thread = Thread(target=execute_online_multi_scenario_flow, args=(config_data, output_queue, task_id))
@@ -960,7 +982,7 @@ def execute_online():
             else:
                 # 单场景模式（兼容旧格式）
                 print(f"[DEBUG] 单场景模式")
-                task_id = TaskManager.create_task("线上灰度落数对比", "online_comparison")
+                task_id = TaskManager.create_task("线上灰度落数对比", "online_comparison", user_id=user_id)
                 config_json_str = json.dumps(config_data)
                 output_queue = Queue()
                 thread = Thread(target=execute_online_comparison_flow, args=(config_json_str, output_queue, task_id))

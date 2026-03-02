@@ -250,7 +250,8 @@ def get_tasks():
         from common.task_manager import TaskManager
         
         status = request.args.get('status')  # 可选：过滤状态
-        tasks = TaskManager.get_all_tasks(status=status)
+        user_id = request.args.get('user_id')  # 可选：用户标识
+        tasks = TaskManager.get_all_tasks(status=status, user_id=user_id)
         
         return jsonify({
             'success': True,
@@ -442,11 +443,17 @@ def execute():
         from common.task_manager import TaskManager
         
         config_json_str = request.json.get('config')
+        user_id = request.json.get('user_id', 'anonymous')  # 获取用户标识
+        
         if not config_json_str:
             return jsonify({'success': False, 'error': '配置数据为空'})
 
         # 验证JSON格式
         config_data = json.loads(config_json_str)
+        
+        # 将用户标识注入配置中，供后续流程使用
+        config_data['user_id'] = user_id
+        config_json_str = json.dumps(config_data)
         
         # 创建任务
         task_name = "接口数据对比"
@@ -455,7 +462,7 @@ def execute():
             if enabled:
                 task_name = f"接口数据对比 ({len(enabled)}个场景)"
         
-        task_id = TaskManager.create_task(task_name, "api_comparison")
+        task_id = TaskManager.create_task(task_name, "api_comparison", user_id=user_id)
         
         # 注册停止控制
         StopController.register_task(task_name)

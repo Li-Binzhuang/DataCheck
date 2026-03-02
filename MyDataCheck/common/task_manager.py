@@ -84,13 +84,14 @@ class TaskManager:
             os.makedirs(self.LOG_DIR, exist_ok=True)
     
     @classmethod
-    def create_task(cls, task_name: str, task_type: str = "unknown") -> str:
+    def create_task(cls, task_name: str, task_type: str = "unknown", user_id: str = None) -> str:
         """
         创建一个新任务
         
         Args:
             task_name: 任务名称
             task_type: 任务类型（api_comparison, data_comparison等）
+            user_id: 用户标识（用于多用户隔离）
         
         Returns:
             str: 任务ID
@@ -102,6 +103,7 @@ class TaskManager:
             'task_id': task_id,
             'task_name': task_name,
             'task_type': task_type,
+            'user_id': user_id or 'anonymous',  # 用户标识
             'status': 'pending',
             'progress': 0,
             'total': 0,
@@ -120,7 +122,7 @@ class TaskManager:
         # 保存任务信息到文件
         instance._save_task_info(task_id)
         
-        print(f"[TaskManager] 任务已创建: {task_name} (ID: {task_id[:8]}...)")
+        print(f"[TaskManager] 任务已创建: {task_name} (ID: {task_id[:8]}..., 用户: {user_id or 'anonymous'})")
         return task_id
     
     @classmethod
@@ -243,12 +245,13 @@ class TaskManager:
                 return logs
     
     @classmethod
-    def get_all_tasks(cls, status: str = None) -> List[Dict[str, Any]]:
+    def get_all_tasks(cls, status: str = None, user_id: str = None) -> List[Dict[str, Any]]:
         """
         获取所有任务
         
         Args:
             status: 过滤状态（None表示全部）
+            user_id: 用户标识（None表示全部用户）
         
         Returns:
             list: 任务列表
@@ -258,6 +261,11 @@ class TaskManager:
         with instance._task_lock:
             tasks = list(instance._tasks.values())
             
+            # 按用户过滤
+            if user_id:
+                tasks = [t for t in tasks if t.get('user_id') == user_id]
+            
+            # 按状态过滤
             if status:
                 tasks = [t for t in tasks if t['status'] == status]
             

@@ -1,6 +1,6 @@
 {
   "api_url": "http://10.129.2.25:8080/riskanalysis/cdc/v3/creditos",
-  "input_csv_file": "cdc.csv",
+  "input_csv_file": "cdc_2.csv",
   "output_file_prefix": "consultas",
   "thread_count": 50,
   "timeout": 30,

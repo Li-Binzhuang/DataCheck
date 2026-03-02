@@ -245,11 +245,14 @@ async function executeBatchRun() {
         spinner.style.display = 'none';
     };
 
+    // 获取当前用户标识
+    const userId = getUserId() || 'anonymous';
+
     try {
         const response = await fetch('/api/batch-run/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config })
+            body: JSON.stringify({ config, user_id: userId })
         });
 
         if (!response.ok) {

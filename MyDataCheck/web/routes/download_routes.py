@@ -37,30 +37,67 @@ def download_file(filename):
         filename: 文件名（相对于outputdata目录）
     
     Query params:
-        module: 模块名 (api_comparison, online_comparison, data_comparison)
+        module: 模块名 (api_comparison, online_comparison, data_comparison, batch_run)
     """
     try:
-        module = request.args.get('module', 'api_comparison')
-        output_dir = OUTPUT_DIRS.get(module, API_OUTPUT_DIR)
+        module = request.args.get('module', '')
         
         # 安全检查：防止路径遍历攻击
         safe_filename = os.path.basename(filename)
-        file_path = os.path.join(output_dir, safe_filename)
         
-        if not os.path.exists(file_path):
-            return jsonify({'success': False, 'error': '文件不存在'}), 404
+        # 如果指定了模块，在该模块目录查找
+        if module and module in OUTPUT_DIRS:
+            output_dir = OUTPUT_DIRS[module]
+            file_path = os.path.join(output_dir, safe_filename)
+            if os.path.exists(file_path):
+                return send_file(
+                    file_path,
+                    as_attachment=True,
+                    download_name=safe_filename
+                )
         
-        # 检查文件是否在允许的目录内
-        real_path = os.path.realpath(file_path)
-        real_output_dir = os.path.realpath(output_dir)
-        if not real_path.startswith(real_output_dir):
-            return jsonify({'success': False, 'error': '非法路径'}), 403
+        # 如果没指定模块或文件不存在，在所有输出目录中查找
+        for dir_name, output_dir in OUTPUT_DIRS.items():
+            file_path = os.path.join(output_dir, safe_filename)
+            if os.path.exists(file_path):
+                # 检查文件是否在允许的目录内
+                real_path = os.path.realpath(file_path)
+                real_output_dir = os.path.realpath(output_dir)
+                if real_path.startswith(real_output_dir):
+                    return send_file(
+                        file_path,
+                        as_attachment=True,
+                        download_name=safe_filename
+                    )
         
-        return send_file(
-            file_path,
-            as_attachment=True,
-            download_name=safe_filename
-        )
+        return jsonify({'success': False, 'error': '文件不存在'}), 404
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# 添加简单的下载路由（兼容前端直接下载）
+@download_bp.route('/download/<path:filename>')
+def simple_download_file(filename):
+    """简单下载路由，自动在所有输出目录中查找文件"""
+    try:
+        safe_filename = os.path.basename(filename)
+        
+        # 在所有输出目录中查找
+        for dir_name, output_dir in OUTPUT_DIRS.items():
+            file_path = os.path.join(output_dir, safe_filename)
+            if os.path.exists(file_path):
+                real_path = os.path.realpath(file_path)
+                real_output_dir = os.path.realpath(output_dir)
+                if real_path.startswith(real_output_dir):
+                    return send_file(
+                        file_path,
+                        as_attachment=True,
+                        download_name=safe_filename
+                    )
+        
+        return jsonify({'success': False, 'error': '文件不存在'}), 404
+        
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -183,3 +220,98 @@ def format_size(size_bytes):
         return f"{size_bytes / (1024 * 1024):.1f} MB"
     else:
         return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+
+
+@download_bp.route('/api/task/<task_id>/files', methods=['GET'])
+def get_task_files(task_id):
+    """
+    获取指定任务的输出文件
+    
+    Args:
+        task_id: 任务ID
+    
+    Returns:
+        任务相关的输出文件列表
+    """
+    try:
+        from common.task_manager import TaskManager
+        
+        # 获取任务信息
+        task = TaskManager.get_task(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': '任务不存在'})
+        
+        # 获取任务类型对应的输出目录
+        task_type = task.get('task_type', 'api_comparison')
+        output_dir = OUTPUT_DIRS.get(task_type, API_OUTPUT_DIR)
+        
+        # 如果任务有记录输出文件，直接返回
+        if task.get('output_files'):
+            files = []
+            for f in task['output_files']:
+                file_path = os.path.join(output_dir, f) if not os.path.isabs(f) else f
+                if os.path.exists(file_path):
+                    stat = os.stat(file_path)
+                    files.append({
+                        'filename': os.path.basename(file_path),
+                        'path': os.path.basename(file_path),
+                        'size': stat.st_size,
+                        'size_human': format_size(stat.st_size),
+                        'module': task_type
+                    })
+            return jsonify({'success': True, 'files': files, 'task_id': task_id})
+        
+        # 否则，根据任务创建时间查找文件
+        created_at = task.get('created_at')
+        user_id = task.get('user_id', '')
+        
+        if not created_at:
+            return jsonify({'success': True, 'files': [], 'task_id': task_id})
+        
+        # 解析创建时间
+        try:
+            task_time = datetime.fromisoformat(created_at)
+            # 生成时间戳模式（与文件命名规则匹配）
+            timestamp_pattern = task_time.strftime("%m%d%H%M")
+        except:
+            return jsonify({'success': True, 'files': [], 'task_id': task_id})
+        
+        # 搜索匹配的文件
+        if not os.path.exists(output_dir):
+            return jsonify({'success': True, 'files': [], 'task_id': task_id})
+        
+        # 构建搜索模式
+        if user_id and user_id != 'anonymous':
+            # 优先匹配带用户标识的文件
+            pattern = f"*{timestamp_pattern}*{user_id}*.csv"
+        else:
+            pattern = f"*{timestamp_pattern}*.csv"
+        
+        matched_files = glob.glob(os.path.join(output_dir, pattern))
+        
+        # 如果没找到带用户标识的，尝试不带用户标识的
+        if not matched_files and user_id:
+            pattern = f"*{timestamp_pattern}*.csv"
+            matched_files = glob.glob(os.path.join(output_dir, pattern))
+        
+        files = []
+        for f in matched_files:
+            stat = os.stat(f)
+            files.append({
+                'filename': os.path.basename(f),
+                'path': os.path.basename(f),
+                'size': stat.st_size,
+                'size_human': format_size(stat.st_size),
+                'module': task_type
+            })
+        
+        # 按文件名排序
+        files.sort(key=lambda x: x['filename'])
+        
+        return jsonify({
+            'success': True,
+            'files': files,
+            'task_id': task_id
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})

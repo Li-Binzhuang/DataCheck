@@ -1,8 +1,13 @@
 # MyDataCheck Docker镜像
 # Python 3.12 + Flask Web应用
+# 支持多架构构建：amd64(x86_64) 和 arm64
 
-# 使用阿里云镜像源（国内网络更稳定）
-FROM python:3.12-slim
+# 使用官方Python镜像（支持多架构）
+FROM --platform=$TARGETPLATFORM python:3.12-slim
+
+# 声明构建参数（Docker Buildx自动传入）
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 
 # 设置工作目录
 WORKDIR /app
@@ -15,6 +20,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SERVER_PORT=5001 \
     CLEANUP_RETENTION_DAYS=3 \
     DISABLE_OPEN_FOLDER=1
+
+# 显示构建信息
+RUN echo "Building for platform: $TARGETPLATFORM on $BUILDPLATFORM"
 
 # 配置pip使用国内镜像源
 RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \

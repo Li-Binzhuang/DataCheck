@@ -1,0 +1,29 @@
+version: '3.8'
+
+# 开发环境配置 - ARM原生运行（高性能）
+# 使用方式: docker-compose -f docker-compose.dev.yml up -d
+
+services:
+  mydatacheck:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # 不指定平台，使用本机架构（ARM）
+    image: mydatacheck:dev-arm64
+    container_name: mydatacheck-dev
+    ports:
+      - "5001:5001"
+    volumes:
+      # 挂载数据目录
+      - ./inputdata:/app/inputdata
+      - ./outputdata:/app/outputdata
+      - ./logs:/app/logs
+      # 开发模式：挂载代码目录，支持热更新
+      - ./web:/app/web
+      - ./common:/app/common
+      - ./api_comparison:/app/api_comparison
+      - ./data_comparison:/app/data_comparison
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=development
+    restart: unless-stopped

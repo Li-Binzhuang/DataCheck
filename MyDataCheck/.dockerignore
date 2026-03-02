@@ -35,3 +35,15 @@ backups/
 
 # Kiro配置
 .kiro/
+
+# Docker相关
+docker-compose.*.yml
+Dockerfile.*
+*.tar.gz
+build-docker.sh
+DOCKER_*.md
+
+# 构建产物
+dist/
+build/
+*.egg-info/

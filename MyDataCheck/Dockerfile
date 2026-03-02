@@ -2,7 +2,7 @@
 # Python 3.12 + Flask Web应用
 
 # 使用阿里云镜像源（国内网络更稳定）
-FROM registry.cn-hangzhou.aliyuncs.com/library/python:3.12-slim
+FROM python:3.12-slim
 
 # 设置工作目录
 WORKDIR /app

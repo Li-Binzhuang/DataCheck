@@ -1,7 +1,8 @@
 # MyDataCheck Docker镜像
 # Python 3.12 + Flask Web应用
 
-FROM python:3.12-slim
+# 使用阿里云镜像源（国内网络更稳定）
+FROM registry.cn-hangzhou.aliyuncs.com/library/python:3.12-slim
 
 # 设置工作目录
 WORKDIR /app
@@ -14,6 +15,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SERVER_PORT=5001 \
     CLEANUP_RETENTION_DAYS=3 \
     DISABLE_OPEN_FOLDER=1
+
+# 配置pip使用国内镜像源
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
+    && pip config set global.trusted-host mirrors.aliyun.com
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \

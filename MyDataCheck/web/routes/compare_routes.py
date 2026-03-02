@@ -20,7 +20,7 @@ from web.config import (
     API_OUTPUT_DIR, ONLINE_OUTPUT_DIR, COMPARE_OUTPUT_DIR,
     API_INPUT_DIR, ONLINE_INPUT_DIR, COMPARE_INPUT_DIR, DATA_COMPARISON_DIR
 )
-from web.utils import OutputCapture
+from web.utils import OutputCapture, TaskOutputCapture
 
 compare_bp = Blueprint('compare_routes', __name__)
 
@@ -31,21 +31,27 @@ compare_input_dir = COMPARE_INPUT_DIR
 compare_output_dir = COMPARE_OUTPUT_DIR
 
 
-def execute_compare_flow(config: dict, output_queue: Queue):
+def execute_compare_flow(config: dict, output_queue: Queue, task_id: str = None):
     """
     执行数据对比流程（在单独线程中运行）
     
     Args:
         config: 配置字典
         output_queue: 输出队列
+        task_id: 任务ID（用于日志持久化，支持刷新页面加载日志）
     """
     import time
     start_time = time.time()
     
-    # 设置输出捕获
-    capture = OutputCapture(output_queue)
+    from common.task_manager import TaskManager
+    
+    # 设置输出捕获（同时保存到TaskManager支持刷新加载日志）
+    capture = TaskOutputCapture(output_queue, task_id)
     
     try:
+        if task_id:
+            TaskManager.update_task(task_id, status="running", current_step="开始执行")
+        
         # 重定向stdout和stderr
         sys.stdout = capture
         sys.stderr = capture
@@ -142,10 +148,17 @@ def execute_compare_flow(config: dict, output_queue: Queue):
         print(f"\n✅ 数据对比执行成功！")
         print(f"⏱️ 本次执行耗时: {time_str}")
         
+        if task_id:
+            TaskManager.update_task(task_id, status="completed", current_step="✅ 执行完成")
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
+        
     except Exception as e:
         print(f"❌ 执行错误: {str(e)}")
         import traceback
         traceback.print_exc()
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     finally:
         # 恢复原始输出
         sys.stdout = capture.original_stdout
@@ -197,21 +210,29 @@ def upload_compare_file():
 def execute_compare():
     """执行数据对比"""
     try:
+        from common.task_manager import TaskManager
+        
         config = request.json.get('config')
         if not config:
             return jsonify({'success': False, 'error': '配置数据为空'})
+        
+        # 创建任务（支持刷新页面加载日志）
+        task_name = "数据对比"
+        if config.get('output_prefix'):
+            task_name = f"数据对比 ({config['output_prefix']})"
+        task_id = TaskManager.create_task(task_name, "data_comparison")
         
         # 创建输出队列
         output_queue = Queue()
         
         # 在单独线程中执行
-        thread = Thread(target=execute_compare_flow, args=(config, output_queue))
+        thread = Thread(target=execute_compare_flow, args=(config, output_queue, task_id))
         thread.daemon = True
         thread.start()
         
         def generate():
             """生成流式输出"""
-            yield f"data: {json.dumps({'type': 'start', 'message': '开始执行数据对比...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'start', 'message': '开始执行数据对比...', 'task_id': task_id})}\n\n"
             
             # 实时读取输出队列
             while True:
@@ -246,7 +267,7 @@ def execute_compare():
                     yield f"data: {json.dumps({'type': 'error', 'message': f'输出错误: {str(e)}'})}\n\n"
                     break
             
-            yield f"data: {json.dumps({'type': 'end', 'message': '执行完成'})}\n\n"
+            yield f"data: {json.dumps({'type': 'end', 'message': '执行完成', 'task_id': task_id})}\n\n"
         
         return Response(
             stream_with_context(generate()),
@@ -494,21 +515,26 @@ def is_diff_ignorable(model_value, diff_value, compare_mode='exact', tolerance=0
         return False
 
 
-def execute_decimal_process_flow(config: dict, output_queue: Queue):
+def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str = None):
     """
     执行小数位数处理流程
     
     Args:
         config: 配置字典
         output_queue: 输出队列
+        task_id: 任务ID（用于日志持久化）
     """
     import pandas as pd
     import time
     start_time = time.time()
     
-    capture = OutputCapture(output_queue)
+    from common.task_manager import TaskManager
+    capture = TaskOutputCapture(output_queue, task_id)
     
     try:
+        if task_id:
+            TaskManager.update_task(task_id, status="running", current_step="开始执行")
+        
         sys.stdout = capture
         sys.stderr = capture
         
@@ -658,10 +684,17 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue):
         print(f"\n✅ 小数位数处理完成！")
         print(f"⏱️ 本次执行耗时: {time_str}")
         
+        if task_id:
+            TaskManager.update_task(task_id, status="completed", current_step="✅ 执行完成")
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
+        
     except Exception as e:
         print(f"❌ 执行错误: {str(e)}")
         import traceback
         traceback.print_exc()
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     finally:
         sys.stdout = capture.original_stdout
         sys.stderr = capture.original_stderr
@@ -672,18 +705,21 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue):
 def execute_decimal_process():
     """执行小数位数处理"""
     try:
+        from common.task_manager import TaskManager
+        
         config = request.json.get('config')
         if not config:
             return jsonify({'success': False, 'error': '配置数据为空'})
         
+        task_id = TaskManager.create_task("小数位数处理", "decimal_process")
         output_queue = Queue()
         
-        thread = Thread(target=execute_decimal_process_flow, args=(config, output_queue))
+        thread = Thread(target=execute_decimal_process_flow, args=(config, output_queue, task_id))
         thread.daemon = True
         thread.start()
         
         def generate():
-            yield f"data: {json.dumps({'type': 'start', 'message': '开始执行小数位数处理...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'start', 'message': '开始执行小数位数处理...', 'task_id': task_id})}\n\n"
             
             while True:
                 try:
@@ -712,7 +748,7 @@ def execute_decimal_process():
                     yield f"data: {json.dumps({'type': 'error', 'message': f'输出错误: {str(e)}'})}\n\n"
                     break
             
-            yield f"data: {json.dumps({'type': 'end', 'message': '执行完成'})}\n\n"
+            yield f"data: {json.dumps({'type': 'end', 'message': '执行完成', 'task_id': task_id})}\n\n"
         
         return Response(
             stream_with_context(generate()),
@@ -725,6 +761,3 @@ def execute_decimal_process():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-
-

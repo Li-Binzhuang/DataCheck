@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from web.config import SCRIPT_DIR
-from web.utils import OutputCapture
+from web.utils import OutputCapture, TaskOutputCapture
 
 batch_run_bp = Blueprint('batch_run_routes', __name__)
 
@@ -31,14 +31,18 @@ os.makedirs(BATCH_RUN_INPUT_DIR, exist_ok=True)
 os.makedirs(BATCH_RUN_OUTPUT_DIR, exist_ok=True)
 
 
-def execute_batch_run(config: dict, output_queue: Queue):
+def execute_batch_run(config: dict, output_queue: Queue, task_id: str = None):
     """执行跑数任务"""
     import time
     start_time = time.time()
     
-    capture = OutputCapture(output_queue)
+    from common.task_manager import TaskManager
+    capture = TaskOutputCapture(output_queue, task_id)
     
     try:
+        if task_id:
+            TaskManager.update_task(task_id, status="running", current_step="开始执行")
+        
         sys.stdout = capture
         sys.stderr = capture
         
@@ -104,10 +108,17 @@ def execute_batch_run(config: dict, output_queue: Queue):
         print(f"⏱️ 本次执行耗时: {time_str}")
         print("=" * 60)
         
+        if task_id:
+            TaskManager.update_task(task_id, status="completed", current_step="✅ 执行完成")
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
+        
     except Exception as e:
         print(f"❌ 执行错误: {str(e)}")
         import traceback
         traceback.print_exc()
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     finally:
         sys.stdout = capture.original_stdout
         sys.stderr = capture.original_stderr
@@ -169,18 +180,21 @@ def upload_batch_run_file():
 def execute_batch_run_api():
     """执行跑数任务"""
     try:
+        from common.task_manager import TaskManager
+        
         config = request.json.get('config', {})
         if not config:
             return jsonify({'success': False, 'error': '配置为空'})
         
+        task_id = TaskManager.create_task("跑数任务", "batch_run")
         output_queue = Queue()
-        thread = Thread(target=execute_batch_run, args=(config, output_queue))
+        thread = Thread(target=execute_batch_run, args=(config, output_queue, task_id))
         thread.daemon = True
         thread.start()
         
         def generate():
             try:
-                yield f"data: {json.dumps({'type': 'start', 'message': '开始执行...'})}\n\n"
+                yield f"data: {json.dumps({'type': 'start', 'message': '开始执行...', 'task_id': task_id})}\n\n"
                 
                 while True:
                     try:
@@ -202,7 +216,7 @@ def execute_batch_run_api():
                                     break
                             break
                 
-                yield f"data: {json.dumps({'type': 'end', 'message': '执行完成'})}\n\n"
+                yield f"data: {json.dumps({'type': 'end', 'message': '执行完成', 'task_id': task_id})}\n\n"
             except GeneratorExit:
                 # 客户端断开连接，正常退出
                 pass

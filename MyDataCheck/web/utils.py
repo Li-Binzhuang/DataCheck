@@ -98,6 +98,39 @@ class OutputCapture:
             self.buffer = ""
 
 
+class TaskOutputCapture(OutputCapture):
+    """
+    带任务日志持久化的输出捕获类
+    
+    在 OutputCapture 基础上，同时将输出保存到 TaskManager，
+    支持刷新页面后加载执行日志。
+    
+    Args:
+        output_queue: 输出队列（用于SSE实时推送）
+        task_id: 任务ID（用于TaskManager日志持久化，None则不保存）
+    """
+    
+    def __init__(self, output_queue: Queue, task_id: str = None):
+        super().__init__(output_queue)
+        self.task_id = task_id
+    
+    def write(self, text):
+        super().write(text)
+        if self.task_id and text.strip():
+            try:
+                from common.task_manager import TaskManager
+                level = "info"
+                if "错误" in text or "❌" in text or "失败" in text:
+                    level = "error"
+                elif "成功" in text or "✅" in text or "完成" in text:
+                    level = "success"
+                elif "警告" in text or "⚠️" in text:
+                    level = "warning"
+                TaskManager.add_log(self.task_id, text.strip(), level)
+            except Exception:
+                pass
+
+
 def stream_response_generator(output_queue: Queue, thread):
     """
     生成流式响应（SSE格式）

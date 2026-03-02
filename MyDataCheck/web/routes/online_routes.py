@@ -20,7 +20,7 @@ from web.config import (
     API_OUTPUT_DIR, ONLINE_OUTPUT_DIR, COMPARE_OUTPUT_DIR,
     API_INPUT_DIR, ONLINE_INPUT_DIR, COMPARE_INPUT_DIR, ONLINE_COMPARISON_DIR
 )
-from web.utils import OutputCapture
+from web.utils import OutputCapture, TaskOutputCapture
 
 online_bp = Blueprint('online_routes', __name__)
 
@@ -51,18 +51,22 @@ spec_report.loader.exec_module(report_generator_module)
 generate_reports = report_generator_module.generate_reports
 
 
-def execute_online_parse_only(config_json_str: str, output_queue: Queue):
+def execute_online_parse_only(config_json_str: str, output_queue: Queue, task_id: str = None):
     """
     只执行JSON解析（不执行对比）
     
     Args:
         config_json_str: JSON配置字符串
         output_queue: 输出队列
+        task_id: 任务ID（用于日志持久化）
     """
-    # 设置输出捕获
-    capture = OutputCapture(output_queue)
+    from common.task_manager import TaskManager
+    capture = TaskOutputCapture(output_queue, task_id)
     
     try:
+        if task_id:
+            TaskManager.update_task(task_id, status="running", current_step="开始解析")
+        
         # 重定向stdout和stderr
         sys.stdout = capture
         sys.stderr = capture
@@ -199,10 +203,20 @@ def execute_online_parse_only(config_json_str: str, output_queue: Queue):
         
     except json.JSONDecodeError as e:
         print(f"❌ JSON解析错误: {str(e)}")
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     except Exception as e:
         print(f"❌ 执行错误: {str(e)}")
         import traceback
         traceback.print_exc()
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
+    else:
+        if task_id:
+            TaskManager.update_task(task_id, status="completed", current_step="✅ 解析完成")
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     finally:
         # 恢复原始输出
         sys.stdout = capture.original_stdout
@@ -213,21 +227,25 @@ def execute_online_parse_only(config_json_str: str, output_queue: Queue):
 
 
 
-def execute_online_comparison_flow(config_json_str: str, output_queue: Queue):
+def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, task_id: str = None):
     """
     执行线上灰度落数对比流程（在单独线程中运行）
     
     Args:
         config_json_str: JSON配置字符串
         output_queue: 输出队列
+        task_id: 任务ID（用于日志持久化）
     """
     import time
     start_time = time.time()
     
-    # 设置输出捕获
-    capture = OutputCapture(output_queue)
+    from common.task_manager import TaskManager
+    capture = TaskOutputCapture(output_queue, task_id)
     
     try:
+        if task_id:
+            TaskManager.update_task(task_id, status="running", current_step="开始执行")
+        
         # 重定向stdout和stderr
         sys.stdout = capture
         sys.stderr = capture
@@ -435,12 +453,22 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue):
         print(f"⏱️ 本次执行耗时: {time_str}")
         print(f"{'='*80}")
         
+        if task_id:
+            TaskManager.update_task(task_id, status="completed", current_step="✅ 执行完成")
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
+        
     except json.JSONDecodeError as e:
         print(f"❌ JSON解析错误: {str(e)}")
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     except Exception as e:
         print(f"❌ 执行错误: {str(e)}")
         import traceback
         traceback.print_exc()
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     finally:
         # 恢复原始输出
         sys.stdout = capture.original_stdout
@@ -451,21 +479,25 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue):
 
 
 
-def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue):
+def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, task_id: str = None):
     """
     执行线上灰度落数对比多场景流程（在单独线程中运行）
     
     Args:
         config_data: 配置字典（包含scenarios数组）
         output_queue: 输出队列
+        task_id: 任务ID（用于日志持久化）
     """
     import time
     start_time = time.time()
     
-    # 设置输出捕获
-    capture = OutputCapture(output_queue)
+    from common.task_manager import TaskManager
+    capture = TaskOutputCapture(output_queue, task_id)
     
     try:
+        if task_id:
+            TaskManager.update_task(task_id, status="running", current_step="开始执行")
+        
         # 重定向stdout和stderr
         sys.stdout = capture
         sys.stderr = capture
@@ -658,10 +690,17 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue):
         print(f"⏱️ 本次执行耗时: {time_str}")
         print("="*60)
         
+        if task_id:
+            TaskManager.update_task(task_id, status="completed", current_step="✅ 执行完成")
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
+        
     except Exception as e:
         print(f"❌ 执行错误: {str(e)}")
         import traceback
         traceback.print_exc()
+        if task_id:
+            TaskManager.update_task(task_id, status="failed", error_message=str(e))
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
     finally:
         # 恢复原始输出
         sys.stdout = capture.original_stdout
@@ -801,6 +840,8 @@ def upload_online_file():
 def parse_online():
     """只执行JSON解析（不执行对比）"""
     try:
+        from common.task_manager import TaskManager
+        
         config_data = request.json.get('config')
         if not config_data:
             return jsonify({'success': False, 'error': '配置数据为空'})
@@ -813,17 +854,16 @@ def parse_online():
             json.loads(config_data)
             config_json_str = config_data
 
-        # 创建输出队列
+        task_id = TaskManager.create_task("线上JSON解析", "online_comparison")
         output_queue = Queue()
 
-        # 在单独线程中执行
-        thread = Thread(target=execute_online_parse_only, args=(config_json_str, output_queue))
+        thread = Thread(target=execute_online_parse_only, args=(config_json_str, output_queue, task_id))
         thread.daemon = True
         thread.start()
         
         def generate():
             """生成流式输出"""
-            yield f"data: {json.dumps({'type': 'start', 'message': '开始解析JSON...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'start', 'message': '开始解析JSON...', 'task_id': task_id})}\n\n"
             
             # 实时读取输出队列
             while True:
@@ -858,7 +898,7 @@ def parse_online():
                     yield f"data: {json.dumps({'type': 'error', 'message': f'输出错误: {str(e)}'})}\n\n"
                     break
             
-            yield f"data: {json.dumps({'type': 'end', 'message': '解析完成'})}\n\n"
+            yield f"data: {json.dumps({'type': 'end', 'message': '解析完成', 'task_id': task_id})}\n\n"
         
         return Response(
             stream_with_context(generate()),
@@ -881,6 +921,8 @@ def parse_online():
 def execute_online():
     """执行线上灰度落数对比流程（支持单场景或多场景）"""
     try:
+        from common.task_manager import TaskManager
+        
         config_data = request.json.get('config')
         if not config_data:
             return jsonify({'success': False, 'error': '配置数据为空'})
@@ -908,19 +950,20 @@ def execute_online():
                 if not enabled_scenarios:
                     return jsonify({'success': False, 'error': '没有启用的场景'})
                 
-                # 创建输出队列
+                task_name = f"线上灰度落数对比 ({len(enabled_scenarios)}个场景)"
+                task_id = TaskManager.create_task(task_name, "online_comparison")
                 output_queue = Queue()
                 
-                # 在单独线程中执行多场景流程
-                thread = Thread(target=execute_online_multi_scenario_flow, args=(config_data, output_queue))
+                thread = Thread(target=execute_online_multi_scenario_flow, args=(config_data, output_queue, task_id))
                 thread.daemon = True
                 thread.start()
             else:
                 # 单场景模式（兼容旧格式）
                 print(f"[DEBUG] 单场景模式")
+                task_id = TaskManager.create_task("线上灰度落数对比", "online_comparison")
                 config_json_str = json.dumps(config_data)
                 output_queue = Queue()
-                thread = Thread(target=execute_online_comparison_flow, args=(config_json_str, output_queue))
+                thread = Thread(target=execute_online_comparison_flow, args=(config_json_str, output_queue, task_id))
                 thread.daemon = True
                 thread.start()
         else:
@@ -929,7 +972,7 @@ def execute_online():
         # 生成流式输出
         def generate():
             """生成流式输出"""
-            yield f"data: {json.dumps({'type': 'start', 'message': '开始执行...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'start', 'message': '开始执行...', 'task_id': task_id})}\n\n"
             
             # 实时读取输出队列
             while True:
@@ -964,7 +1007,7 @@ def execute_online():
                     yield f"data: {json.dumps({'type': 'error', 'message': f'输出错误: {str(e)}'})}\n\n"
                     break
             
-            yield f"data: {json.dumps({'type': 'end', 'message': '执行完成'})}\n\n"
+            yield f"data: {json.dumps({'type': 'end', 'message': '执行完成', 'task_id': task_id})}\n\n"
         
         return Response(
             stream_with_context(generate()),

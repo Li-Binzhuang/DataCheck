@@ -20,7 +20,7 @@ from web.config import (
     API_OUTPUT_DIR, ONLINE_OUTPUT_DIR, COMPARE_OUTPUT_DIR,
     API_INPUT_DIR, ONLINE_INPUT_DIR, COMPARE_INPUT_DIR
 )
-from web.utils import OutputCapture
+from web.utils import OutputCapture, TaskOutputCapture
 
 api_bp = Blueprint('api_routes', __name__)
 
@@ -61,26 +61,6 @@ def execute_comparison_flow(config_json_str: str, output_queue: Queue, task_id: 
     from common.task_manager import TaskManager
     
     # 设置输出捕获（同时发送到队列和任务管理器）
-    class TaskOutputCapture(OutputCapture):
-        def __init__(self, output_queue, task_id):
-            super().__init__(output_queue)
-            self.task_id = task_id
-        
-        def write(self, text):
-            # 调用父类方法（发送到队列）
-            super().write(text)
-            # 同时保存到任务管理器
-            if self.task_id and text.strip():
-                # 判断日志级别
-                level = "info"
-                if "错误" in text or "❌" in text or "失败" in text:
-                    level = "error"
-                elif "成功" in text or "✅" in text or "完成" in text:
-                    level = "success"
-                elif "警告" in text or "⚠️" in text:
-                    level = "warning"
-                TaskManager.add_log(self.task_id, text.strip(), level)
-    
     capture = TaskOutputCapture(output_queue, task_id)
     
     try:
@@ -184,8 +164,8 @@ def execute_comparison_flow(config_json_str: str, output_queue: Queue, task_id: 
                 progress=len(enabled_scenarios),
                 current_step="✅ 执行完成"
             )
-            # 清理任务日志，只保留摘要（最后10条）
-            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=True)
+            # 执行结束后清除日志记录
+            TaskManager.cleanup_completed_task_logs(task_id, keep_summary=False)
         
     except json.JSONDecodeError as e:
         print(f"❌ JSON解析错误: {str(e)}")

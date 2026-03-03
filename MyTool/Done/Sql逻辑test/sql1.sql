@@ -7,18 +7,15 @@ with target_user as (
     where pt ='${dt}' -- yyymmdd格式
     and replace(substr(create_time,1,10) ,'-', '')  ='${dt}'
 )
-
-
 -- PART 1 : 第一部分特征
-
 -- 2）调用实时特征时，对应用户历史订单行为（基于还款计划）；
--- and t2.update_time < t1.create_time   --约束查询之前该用户的还款计划数据
--- and (t2.settled_time is null or t2.settled_time < t1.create_time)   --约束查询之前该用户的还款计划数据
--- 在贷款订单逻辑：(t4.settled_time is null or t4.settled_time>t3.use_create_time)
--- 逾期账单的逻辑：t3.loan_end_date < substr(t3.use_create_time,1,10) and (t3.settled_time is null or substr(t3.settled_time,1,10)> t3.loan_end_date)
--- 在贷续借订单逻辑：(t4.settled_time is null or t4.settled_time>t3.use_create_time) and t3.order_asc_rank>1
--- 到期账单逻辑：t3.loan_end_date <= substr(t3.use_create_time,1,10)
--- 提前结清：t3.settled_time < t3.use_create_time and substr(t3.settled_time,1,10) < t3.loan_end_date
+-- and t2.update_time < t1.create_time   --窗口之前该用户的还款计划数据
+-- and (t2.settled_time is null or t2.settled_time < t1.create_time)   --窗口之前该用户的还款计划数据
+-- 在贷款订单逻辑：(t4.settled_time is null or t4.settled_time>t3.use_create_time) 未还或窗口期后还的
+-- 在贷续借订单逻辑：(t4.settled_time is null or t4.settled_time>t3.use_create_time) and t3.order_asc_rank>1 除了第一笔订单,未还或窗口期后还的
+-- 逾期账单的逻辑：t3.loan_end_date < substr(t3.use_create_time,1,10) and (t3.settled_time is null or substr(t3.settled_time,1,10)> t3.loan_end_date) 已过期未还 or 过期后还的
+-- 到期账单逻辑：t3.loan_end_date <= substr(t3.use_create_time,1,10) 已过期所有
+-- 提前结清：t3.settled_time < t3.use_create_time and substr(t3.settled_time,1,10) < t3.loan_end_date 已提前还
 
 select * from (
 select t3.apply_id

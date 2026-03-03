@@ -3,7 +3,7 @@
 # 支持多架构构建：amd64(x86_64) 和 arm64
 
 # 使用官方Python镜像（支持多架构）
-FROM --platform=$TARGETPLATFORM python:3.12-slim
+FROM python:3.12-slim
 
 # 声明构建参数（Docker Buildx自动传入）
 ARG TARGETPLATFORM

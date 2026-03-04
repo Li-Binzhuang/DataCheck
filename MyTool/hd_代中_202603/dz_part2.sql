@@ -1,16 +1,30 @@
+------------------------------------------------------------------------------------------
+-- 所属主题:：国际金融/ 贷中特征 feature etl
+-- author：凡西，2026.2.27
+-- 事项：贷中部分订单类特征开发，分组名称：MEXICO_MULTI_LOAN_IN_LOAN_ORDER
+-- 备注：此次开发用于补充年前剩余60+未完成部分的开发
+
+-- 重要提示：为了方便回溯测试 核对数据，我们以下的sql均以【每天发起用信申请的用户 + 用信申请时间】作为计算特征的目标人群；真实场景中以【调用特征用户当时的实际业务时间为准】
+------------------------------------------------------------------------------------------
+
+
+
 --------------PART 1：先构建两个临时表，target_user、target_user_credit_loan_repay_info
+
+
+
 -- 1）先构建一个用户样本；sql中以【每天发起用信申请的用户 + 用信申请时间】作为计算特征的目标人群；真实场景中以【调用特征用户当时的实际业务时间为准】
--- target_user只是服务于实时特征上线前，和后端结果回溯上线使用 窗口数据(cust_no,use_create_time)；
+-- target_user只是服务于实时特征上线前，和后端结果回溯上线使用；
 with target_user as (
     select create_time as use_create_time,cust_no
     from hive_idc.oversea.ods_mx_aprv_approve_use_credit_apply_df
     where pt ='${dt}' ---yyymmdd格式
     and replace(substr(create_time,1,10) ,'-', '')  ='${dt}'
 ),
--- 基于 target_user 中的用户和时间，我们把用户的授信、借款、还款的订单都拉出来，形成一个临时表，主要服务于在贷订单行为的统计；
+-- 基于target_user中的用户和时间，我们把用户的授信、借款、还款的订单都拉出来，形成一个临时表，主要服务于在贷订单行为的统计；
 target_user_credit_loan_repay_info as (
-    select t3.* 
-          ---以下针对在贷未结清的订单参与dense_rank排序 --未还或窗口之后还的订单正序/倒序
+    select t3.*
+          ---以下针对在贷未结清的订单参与dense_rank排序
           ,case when t4.settled_time is null or t4.settled_time>t3.use_create_time then dense_rank()over(partition by t3.cust_no,t3.use_create_time order by t3.create_time asc) else null end as order_asc_rank ---升序排序，1即为最远一笔
           ,case when t4.settled_time is null or t4.settled_time>t3.use_create_time then dense_rank()over(partition by t3.cust_no,t3.use_create_time order by t3.create_time desc) else null end as order_desc_rank ---降序排序，1即为最近一笔
           ---以下针对所有订单参与dense_rank排序
@@ -39,8 +53,8 @@ target_user_credit_loan_repay_info as (
             ,t2.id
             ,t2.loan_no
             ,t2.settled_time
-            ,t2.create_time    
-            ,t2.repaid_principal      
+            ,t2.create_time
+            ,t2.repaid_principal
             ,t2.periods
             ,t2.loan_end_date
             ,t2.loan_start_date
@@ -119,7 +133,6 @@ on t3.cust_no = t9.cust_no and t3.use_create_time = t9.use_create_time
 )
 
 --------------PART 2：特征计算模块，针对multi_loan_in_loan_order 和multi_loan_order_info_部分逻辑复杂的特征进行计算
-select * from (
 select m1.use_create_time
       ,m1.cust_no
       ,max(if(m1.order_desc_rank=1, m1.creditlimit_use_ratio, null)) as multi_loan_in_loan_order_recentfirst_creditusageratio
@@ -397,6 +410,6 @@ left join (
     group by use_create_time,cust_no
 ) as m9
 on m1.cust_no = m9.cust_no and m1.use_create_time = m9.use_create_time
-group by m1.use_create_time,m1.cust_no) t
+group by m1.use_create_time,m1.cust_no
 
 

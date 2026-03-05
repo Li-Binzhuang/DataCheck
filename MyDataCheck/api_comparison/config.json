@@ -4,12 +4,12 @@
       "name": "hd",
       "enabled": true,
       "description": "hd",
-      "input_csv_file": "hd_p0_0303_03051943_zz_compare_analysis_report.csv",
+      "input_csv_file": "p0_0303.csv",
       "output_file_prefix": "hd_p0_0303",
       "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
       "thread_count": 150,
       "timeout": 10,
-      "batch_size": 50,
+      "batch_size": 500,
       "convert_feature_to_number": true,
       "add_one_second": false,
       "calculate_difference": false,
@@ -35,7 +35,7 @@
   "global_config": {
     "default_thread_count": 150,
     "default_timeout": 10,
-    "default_batch_size": 50,
+    "default_batch_size": 500,
     "default_convert_feature_to_number": true,
     "default_ignore_default_fill": true
   },

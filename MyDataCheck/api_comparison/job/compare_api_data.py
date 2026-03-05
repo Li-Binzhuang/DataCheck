@@ -30,12 +30,14 @@ class DataComparator:
         feature_start_column: int = 4,  # 特征开始列（E列，索引4）
         add_one_second: bool = False,  # 是否在请求接口时加1秒
         calculate_difference: bool = False,  # 是否计算差值
+        api_params: list = None,  # 接口参数配置列表
     ):
         self.param1_column = param1_column
         self.param2_column = param2_column
         self.feature_start_column = feature_start_column
         self.add_one_second = add_one_second
         self.calculate_difference = calculate_difference
+        self.api_params = api_params or []
     
     def _normalize_timestamp(self, time_str: str) -> str:
         """标准化时间戳格式，确保毫秒精度一致"""
@@ -425,7 +427,8 @@ class DataComparator:
             results, 
             self.feature_start_column,
             has_time_now=(time_now_idx_api is not None),  # 传递是否有time_now字段的信息
-            calculate_difference=self.calculate_difference  # 传递差值计算配置
+            calculate_difference=self.calculate_difference,  # 传递差值计算配置
+            api_params=self.api_params  # 传递接口参数配置
         )
         print(f"✅ 分析报告文件写入完成")
         
@@ -681,7 +684,8 @@ class DataComparator:
             results,
             self.feature_start_column,
             has_time_now=False,  # 内存模式下没有time_now
-            calculate_difference=self.calculate_difference  # 传递差值计算配置
+            calculate_difference=self.calculate_difference,  # 传递差值计算配置
+            api_params=self.api_params  # 传递接口参数配置
         )
         print(f"✅ 分析报告文件写入完成")
         

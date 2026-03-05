@@ -23,6 +23,7 @@ def write_analysis_record_csv(
     feature_start_column: int,
     has_time_now: bool = False,
     calculate_difference: bool = False,
+    api_params: list = None,
 ):
     """
     写入分析记录文件（CSV格式）- 使用流式写入优化内存，根据配置决定是否计算差值
@@ -35,6 +36,7 @@ def write_analysis_record_csv(
         feature_start_column: 特征开始列索引
         has_time_now: 接口数据中是否包含time_now字段
         calculate_difference: 是否计算差值（CSV值 - API值）
+        api_params: 接口参数配置列表
     """
     # 确保输出目录存在
     output_dir = os.path.dirname(output_path)
@@ -44,17 +46,27 @@ def write_analysis_record_csv(
         except Exception as e:
             print(f"创建目录失败: {output_dir}, 错误: {e}")
 
-    # 构建输出表头（根据配置决定是否包含"差值"列）
+    # 获取入参字段名（从 api_params 配置中获取）
+    param_names = []
+    if api_params:
+        for param in api_params:
+            param_names.append(param.get("param_name", ""))
+    
+    # 如果没有配置 api_params，使用默认字段名
+    if not param_names:
+        param_names = ["cust_no", "use_credit_apply_id"]
+    
+    # 构建输出表头（使用入参字段名）
     if calculate_difference:
         if has_time_now:
-            output_headers = ["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值", "差值", "time_now"]
+            output_headers = ["特征名"] + param_names + ["CSV值", "API值", "差值", "time_now"]
         else:
-            output_headers = ["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值", "差值"]
+            output_headers = ["特征名"] + param_names + ["CSV值", "API值", "差值"]
     else:
         if has_time_now:
-            output_headers = ["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值", "time_now"]
+            output_headers = ["特征名"] + param_names + ["CSV值", "API值", "time_now"]
         else:
-            output_headers = ["特征名", "cust_no", "use_credit_apply_id", "use_create_time", "CSV值", "API值"]
+            output_headers = ["特征名"] + param_names + ["CSV值", "API值"]
     
     # 使用流式写入，逐行处理，不在内存中累积所有异常记录
     with CSVStreamWriter(output_path, output_headers) as writer:
@@ -65,10 +77,24 @@ def write_analysis_record_csv(
             
             result = results[i]
             comparison_results = result.get("comparison_results", {})
-            cust_no = result.get("cust_no", "")
-            use_create_time = result.get("use_create_time", "")
-            use_credit_apply_id = result.get("use_credit_apply_id", "")
             time_now_value = result.get("time_now", "")
+            
+            # 获取入参值（从原始行数据中根据 api_params 配置获取）
+            param_values = []
+            if api_params and i < len(rows):
+                for param in api_params:
+                    column_index = param.get("column_index", 0)
+                    if column_index < len(rows[i]):
+                        param_values.append(rows[i][column_index])
+                    else:
+                        param_values.append("")
+            
+            # 如果没有配置 api_params，使用旧的逻辑（兼容性）
+            if not param_values:
+                cust_no = result.get("cust_no", "")
+                use_create_time = result.get("use_create_time", "")
+                use_credit_apply_id = result.get("use_credit_apply_id", "")
+                param_values = [cust_no, use_credit_apply_id, use_create_time]
 
             # 遍历所有特征
             for j in range(feature_start_column, len(headers)):
@@ -86,6 +112,9 @@ def write_analysis_record_csv(
                     api_value = feature_result.get("api_value", None)
                     api_value_str = "null" if api_value is None else str(api_value)
                     
+                    # 构建行数据：特征名 + 入参值 + CSV值 + API值 + [差值] + [time_now]
+                    row = [header] + param_values + [csv_value, api_value_str]
+                    
                     # 根据配置决定是否计算差值
                     if calculate_difference:
                         # 计算差值（CSV值 - API值），保留6位小数
@@ -96,17 +125,11 @@ def write_analysis_record_csv(
                         except (ValueError, TypeError):
                             # 如果无法转换为数字，差值设为空字符串
                             difference = ""
-                        
-                        if has_time_now:
-                            row = [header, cust_no, use_credit_apply_id, use_create_time, csv_value, api_value_str, difference, time_now_value]
-                        else:
-                            row = [header, cust_no, use_credit_apply_id, use_create_time, csv_value, api_value_str, difference]
-                    else:
-                        # 不计算差值
-                        if has_time_now:
-                            row = [header, cust_no, use_credit_apply_id, use_create_time, csv_value, api_value_str, time_now_value]
-                        else:
-                            row = [header, cust_no, use_credit_apply_id, use_create_time, csv_value, api_value_str]
+                        row.append(difference)
+                    
+                    # 如果有 time_now 字段，添加到最后
+                    if has_time_now:
+                        row.append(time_now_value)
                     
                     writer.write_row(row)
 

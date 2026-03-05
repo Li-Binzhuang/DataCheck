@@ -408,15 +408,21 @@ class StreamingComparator:
         with open(analysis_path, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
             
+            # 获取入参字段名（从 api_params 配置中获取）
+            param_names = []
+            if self.api_params:
+                for param in self.api_params:
+                    param_names.append(param.get("param_name", ""))
+            
+            # 如果没有配置 api_params，使用默认字段名
+            if not param_names:
+                param_names = ["applyId", "request_time"]
+            
             # 写入表头（根据配置决定是否包含"差值"列）
             if self.calculate_difference:
-                analysis_headers = [
-                    "特征名", "applyId", "request_time", "CSV值", "API值", "差值"
-                ]
+                analysis_headers = ["特征名"] + param_names + ["CSV值", "API值", "差值"]
             else:
-                analysis_headers = [
-                    "特征名", "applyId", "request_time", "CSV值", "API值"
-                ]
+                analysis_headers = ["特征名"] + param_names + ["CSV值", "API值"]
             writer.writerow(analysis_headers)
             
             # 分批处理
@@ -455,6 +461,21 @@ class StreamingComparator:
                         apply_id = comparison_result["apply_id"]  # 使用 apply_id
                         has_mismatch = comparison_result["has_mismatch"]
                         comparison_results = comparison_result["comparison_results"]
+                        original_row = comparison_result.get("row", [])  # 获取原始行数据
+                        
+                        # 获取入参值（从原始行数据中根据 api_params 配置获取）
+                        param_values = []
+                        if self.api_params:
+                            for param in self.api_params:
+                                column_index = param.get("column_index", 0)
+                                if column_index < len(original_row):
+                                    param_values.append(original_row[column_index])
+                                else:
+                                    param_values.append("")
+                        
+                        # 如果没有配置 api_params，使用旧的逻辑（兼容性）
+                        if not param_values:
+                            param_values = [apply_id, use_create_time]
                         
                         # 更新特征统计（只统计成功的行）
                         for header in feature_headers:
@@ -470,6 +491,9 @@ class StreamingComparator:
                                 csv_value = feature_data.get("csv_value", "")
                                 api_value = feature_data.get("api_value", "")
                                 
+                                # 构建行数据：特征名 + 入参值 + CSV值 + API值 + [差值]
+                                row_data = [feature_name] + param_values + [csv_value, api_value]
+                                
                                 # 根据配置决定是否计算差值
                                 if self.calculate_difference:
                                     # 计算差值（CSV值 - API值），保留6位小数
@@ -480,24 +504,9 @@ class StreamingComparator:
                                     except (ValueError, TypeError):
                                         # 如果无法转换为数字，差值设为空字符串
                                         difference = ""
-                                    
-                                    writer.writerow([
-                                        feature_name,
-                                        apply_id,           # applyId
-                                        use_create_time,    # request_time
-                                        csv_value,
-                                        api_value,
-                                        difference          # 差值
-                                    ])
-                                else:
-                                    # 不计算差值
-                                    writer.writerow([
-                                        feature_name,
-                                        apply_id,           # applyId
-                                        use_create_time,    # request_time
-                                        csv_value,
-                                        api_value
-                                    ])
+                                    row_data.append(difference)
+                                
+                                writer.writerow(row_data)
                 
                 # 每批处理完后立即释放内存
                 gc.collect()

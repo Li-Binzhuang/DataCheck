@@ -101,7 +101,7 @@ def fetch_api_data_step(csv_file_path: str, output_file_path: str, api_url: str,
 def compare_data_step(original_csv_path: str, api_data_csv_path: str, output_csv_path: str,
                       cust_no_column: int, use_create_time_column: int, feature_start_column: int,
                       add_one_second: bool = False, output_merged_data: bool = True,
-                      calculate_difference: bool = False):
+                      calculate_difference: bool = False, api_params: list = None):
     """
     对比数据
     
@@ -115,6 +115,7 @@ def compare_data_step(original_csv_path: str, api_data_csv_path: str, output_csv
         add_one_second: 是否在请求接口时加1秒
         output_merged_data: 是否输出全量数据合并文件
         calculate_difference: 是否计算差值
+        api_params: 接口参数配置列表
     """
     print(f"\n{'='*80}")
     print(f"步骤2: 数据对比")
@@ -128,7 +129,8 @@ def compare_data_step(original_csv_path: str, api_data_csv_path: str, output_csv
     
     # 创建对比器
     comparator = DataComparator(
-        cust_no_column, use_create_time_column, feature_start_column, add_one_second, calculate_difference
+        cust_no_column, use_create_time_column, feature_start_column, add_one_second, 
+        calculate_difference, api_params
     )
     
     # 执行对比
@@ -186,7 +188,8 @@ def compare_data_in_memory_step(original_csv_path: str, output_csv_path: str, ap
     
     # 创建对比器
     comparator = DataComparator(
-        cust_no_column, use_create_time_column, feature_start_column, add_one_second
+        cust_no_column, use_create_time_column, feature_start_column, add_one_second, 
+        calculate_difference=False, api_params=api_params
     )
     
     # 直接在内存中对比
@@ -418,7 +421,8 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
                     feature_start_column,
                     add_one_second,
                     output_merged_data=True,  # 完整模式输出全量合并
-                    calculate_difference=calculate_difference  # 传递差值计算配置
+                    calculate_difference=calculate_difference,  # 传递差值计算配置
+                    api_params=api_params  # 传递接口参数配置
                 )
                 gc.collect()
                 

@@ -44,8 +44,8 @@
 - **description**：场景描述（可选）
 - **sql_file**：Sql文件名（必填，文件应放在`inputdata/data_comparison/`目录）
 - **api_file**：接口文件名（必填，文件应放在`inputdata/data_comparison/`目录）
-- **sql_key_column**：Sql文件的主键列索引（从0开始，A列=0，B列=1...）
-- **api_key_column**：接口文件的主键列索引（从0开始）
+- **sql_key_column**：Sql文件的主键列索引（从0开始，A列=0，B列=1...），支持单列(数字)或多列(数组)
+- **api_key_column**：接口文件的主键列索引（从0开始），支持单列(数字)或多列(数组)
 - **sql_feature_start**：Sql文件特征列起始索引（从0开始）
 - **api_feature_start**：接口文件特征列起始索引（从0开始）
 - **convert_feature_to_number**：是否转换特征值为数值（true/false）
@@ -86,7 +86,7 @@ python execute_data_comparison.py
 
 ## 配置示例
 
-### 示例1：基本配置
+### 示例1：基本配置（单列主键）
 
 ```json
 {
@@ -111,6 +111,35 @@ python execute_data_comparison.py
     "default_api_key_column": 0,
     "default_sql_feature_start": 1,
     "default_api_feature_start": 1
+  }
+}
+```
+
+### 示例1-2：多列主键配置
+
+```json
+{
+  "scenarios": [
+    {
+      "name": "多列主键对比",
+      "enabled": true,
+      "description": "使用第1列和第2列作为组合主键",
+      "sql_file": "sql_data.csv",
+      "api_file": "api_data.csv",
+      "sql_key_column": [0, 1],
+      "api_key_column": [0, 1],
+      "sql_feature_start": 2,
+      "api_feature_start": 2,
+      "convert_feature_to_number": true,
+      "output_prefix": "multi_key_compare"
+    }
+  ],
+  "global_config": {
+    "default_convert_feature_to_number": true,
+    "default_sql_key_column": [0, 1],
+    "default_api_key_column": [0, 1],
+    "default_sql_feature_start": 2,
+    "default_api_feature_start": 2
   }
 }
 ```
@@ -182,6 +211,8 @@ python execute_data_comparison.py
 
 ### Q: 如何指定主键列？
 A: 使用`sql_key_column`和`api_key_column`指定列索引（从0开始）
+   - 单列主键：使用数字，如 `"sql_key_column": 0`
+   - 多列主键：使用数组，如 `"sql_key_column": [0, 1]` 表示第1列和第2列组合作为主键
 
 ### Q: 如何跳过某些列？
 A: 使用`sql_feature_start`和`api_feature_start`指定特征列的起始位置

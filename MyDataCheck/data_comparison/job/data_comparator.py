@@ -54,8 +54,8 @@ def _convert_string_to_number_fast(value: Any) -> Any:
 def compare_two_files(
     sql_file_path: str,
     api_file_path: str,
-    sql_key_column: int,
-    api_key_column: int,
+    sql_key_column,
+    api_key_column,
     sql_feature_start: int = 1,
     api_feature_start: int = 1,
     convert_feature_to_number: bool = True
@@ -67,12 +67,13 @@ def compare_two_files(
     - 使用字典索引替代嵌套循环，时间复杂度从O(n²)降到O(n)
     - 预先构建所有映射关系，避免重复计算
     - 批量输出进度信息，减少I/O开销
+    - 支持多列主键组合
     
     Args:
         sql_file_path: Sql文件路径
         api_file_path: 接口文件路径
-        sql_key_column: Sql文件的主键列索引（从0开始）
-        api_key_column: 接口文件的主键列索引（从0开始）
+        sql_key_column: Sql文件的主键列索引（从0开始），支持单列(int)或多列(list)
+        api_key_column: 接口文件的主键列索引（从0开始），支持单列(int)或多列(list)
         sql_feature_start: Sql文件特征列起始索引（从0开始）
         api_feature_start: 接口文件特征列起始索引（从0开始）
         convert_feature_to_number: 是否转换特征值为数值类型（默认True）
@@ -80,11 +81,15 @@ def compare_two_files(
     Returns:
         包含对比结果的字典
     """
+    # 标准化主键列为列表格式
+    sql_key_columns = sql_key_column if isinstance(sql_key_column, list) else [sql_key_column]
+    api_key_columns = api_key_column if isinstance(api_key_column, list) else [api_key_column]
+    
     print(f"\n[优化版] 开始对比两个文件")
     print(f"Sql文件: {sql_file_path}")
     print(f"接口文件: {api_file_path}")
-    print(f"Sql文件主键列索引: {sql_key_column}")
-    print(f"接口文件主键列索引: {api_key_column}")
+    print(f"Sql文件主键列索引: {sql_key_columns}")
+    print(f"接口文件主键列索引: {api_key_columns}")
     print(f"Sql文件特征列起始索引: {sql_feature_start}")
     print(f"接口文件特征列起始索引: {api_feature_start}")
     print(f"转换特征值为数值: {convert_feature_to_number}")
@@ -95,14 +100,16 @@ def compare_two_files(
     headers_api, rows_api = read_csv_with_encoding(api_file_path)
     
     # 验证主键列索引
-    if sql_key_column < 0 or sql_key_column >= len(headers_sql):
-        raise ValueError(f"Sql文件主键列索引无效: {sql_key_column}，文件共有 {len(headers_sql)} 列")
+    for idx in sql_key_columns:
+        if idx < 0 or idx >= len(headers_sql):
+            raise ValueError(f"Sql文件主键列索引无效: {idx}，文件共有 {len(headers_sql)} 列")
     
-    if api_key_column < 0 or api_key_column >= len(headers_api):
-        raise ValueError(f"接口文件主键列索引无效: {api_key_column}，文件共有 {len(headers_api)} 列")
+    for idx in api_key_columns:
+        if idx < 0 or idx >= len(headers_api):
+            raise ValueError(f"接口文件主键列索引无效: {idx}，文件共有 {len(headers_api)} 列")
     
-    sql_key_name = headers_sql[sql_key_column]
-    api_key_name = headers_api[api_key_column]
+    sql_key_name = "+".join([headers_sql[idx] for idx in sql_key_columns])
+    api_key_name = "+".join([headers_api[idx] for idx in api_key_columns])
     
     print(f"Sql文件: {len(rows_sql)} 行, {len(headers_sql)} 列, 主键: {sql_key_name}")
     print(f"接口文件: {len(rows_api)} 行, {len(headers_api)} 列, 主键: {api_key_name}")
@@ -118,20 +125,38 @@ def compare_two_files(
     print("\n[2/5] 构建索引...")
     sql_index = {}  # {key_value: row}
     for row in rows_sql:
-        if sql_key_column < len(row) and row[sql_key_column] is not None:
-            key_value = str(row[sql_key_column]).strip()
-            if key_value:
-                sql_index[key_value] = row
+        # 构建组合主键
+        key_parts = []
+        valid_key = True
+        for idx in sql_key_columns:
+            if idx < len(row) and row[idx] is not None:
+                key_parts.append(str(row[idx]).strip())
+            else:
+                valid_key = False
+                break
+        
+        if valid_key and all(key_parts):
+            key_value = "||".join(key_parts)  # 使用||作为分隔符
+            sql_index[key_value] = row
     
     print(f"Sql文件索引: {len(sql_index)} 条记录")
     
     # 构建接口文件的索引字典
     api_index = {}  # {key_value: row}
     for row in rows_api:
-        if api_key_column < len(row) and row[api_key_column] is not None:
-            key_value = str(row[api_key_column]).strip()
-            if key_value:
-                api_index[key_value] = row
+        # 构建组合主键
+        key_parts = []
+        valid_key = True
+        for idx in api_key_columns:
+            if idx < len(row) and row[idx] is not None:
+                key_parts.append(str(row[idx]).strip())
+            else:
+                valid_key = False
+                break
+        
+        if valid_key and all(key_parts):
+            key_value = "||".join(key_parts)  # 使用||作为分隔符
+            api_index[key_value] = row
     
     print(f"接口文件索引: {len(api_index)} 条记录")
     
@@ -217,15 +242,22 @@ def compare_two_files(
             progress = (row_idx_api / len(rows_api)) * 100
             print(f"  进度: {row_idx_api}/{len(rows_api)} ({progress:.1f}%)")
         
-        if api_key_column >= len(row_api):
-            continue
+        # 构建组合主键
+        key_parts = []
+        valid_key = True
+        for idx in api_key_columns:
+            if idx < len(row_api) and row_api[idx] is not None:
+                key_parts.append(str(row_api[idx]).strip())
+            else:
+                valid_key = False
+                break
         
-        key_value_api = str(row_api[api_key_column]).strip() if row_api[api_key_column] is not None else ""
-        
-        if not key_value_api:
+        if not valid_key or not all(key_parts):
             unmatched_count += 1
             unmatched_rows.append(row_api)
             continue
+        
+        key_value_api = "||".join(key_parts)
         
         # [优化5] 使用字典查找 - O(1)时间复杂度
         sql_row = sql_index.get(key_value_api)
@@ -363,10 +395,10 @@ def compare_two_files(
         "sql_only_count": sql_only_count,
         "rows_sql": rows_sql,
         "rows_api": rows_api,
-        "sql_key_column": sql_key_column,
-        "api_key_column": api_key_column,
+        "sql_key_column": sql_key_columns,
+        "api_key_column": api_key_columns,
         "sql_feature_start": sql_feature_start,
         "api_feature_start": api_feature_start,
-        "key_column_name": headers_api[api_key_column] if api_key_column < len(headers_api) else "主键值",
+        "key_column_name": api_key_name,
         "time_column_name": headers_api[time_idx_api] if time_idx_api is not None and time_idx_api < len(headers_api) else "时间"
     }

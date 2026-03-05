@@ -5,6 +5,44 @@ let compareFile2 = null;
 let isExecutingCompare = false;
 let fileInputMode = 'upload'; // 'upload' 或 'path'
 
+/**
+ * 解析主键列输入
+ * 支持单列(数字)或多列(逗号分隔的数字)
+ * @param {string} input - 输入字符串
+ * @returns {number|number[]} - 单列返回数字，多列返回数组
+ */
+function parseKeyColumns(input) {
+    const trimmed = input.trim();
+
+    // 检查是否包含逗号
+    if (trimmed.includes(',')) {
+        // 多列主键：分割并转换为数字数组
+        const columns = trimmed.split(',')
+            .map(s => s.trim())
+            .filter(s => s !== '')
+            .map(s => parseInt(s))
+            .filter(n => !isNaN(n) && n >= 0);
+
+        return columns.length > 0 ? columns : 0;
+    } else {
+        // 单列主键：直接转换为数字
+        const num = parseInt(trimmed);
+        return isNaN(num) || num < 0 ? 0 : num;
+    }
+}
+
+/**
+ * 格式化主键列显示
+ * @param {number|number[]} keyColumn - 主键列配置
+ * @returns {string} - 格式化后的字符串
+ */
+function formatKeyColumns(keyColumn) {
+    if (Array.isArray(keyColumn)) {
+        return keyColumn.join(',');
+    }
+    return String(keyColumn);
+}
+
 // 切换文件输入模式
 function toggleFileInputMode() {
     const mode = document.querySelector('input[name="file-input-mode"]:checked').value;
@@ -189,8 +227,8 @@ async function executeCompare() {
         const config = {
             file1: file1,
             file2: file2,
-            key_column_1: parseInt(document.getElementById('compare-key-column-1').value) || 0,
-            key_column_2: parseInt(document.getElementById('compare-key-column-2').value) || 0,
+            key_column_1: parseKeyColumns(document.getElementById('compare-key-column-1').value),
+            key_column_2: parseKeyColumns(document.getElementById('compare-key-column-2').value),
             feature_start_1: parseInt(document.getElementById('compare-feature-start-1').value) || 1,
             feature_start_2: parseInt(document.getElementById('compare-feature-start-2').value) || 1,
             output_prefix: document.getElementById('compare-output-prefix').value || 'compare',
@@ -306,8 +344,8 @@ async function saveCompareConfig() {
                 description: "通过Web界面保存的配置",
                 sql_file: compareFile1 || "",
                 api_file: compareFile2 || "",
-                sql_key_column: parseInt(document.getElementById('compare-key-column-1').value) || 0,
-                api_key_column: parseInt(document.getElementById('compare-key-column-2').value) || 0,
+                sql_key_column: parseKeyColumns(document.getElementById('compare-key-column-1').value),
+                api_key_column: parseKeyColumns(document.getElementById('compare-key-column-2').value),
                 sql_feature_start: parseInt(document.getElementById('compare-feature-start-1').value) || 1,
                 api_feature_start: parseInt(document.getElementById('compare-feature-start-2').value) || 1,
                 convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
@@ -315,8 +353,8 @@ async function saveCompareConfig() {
             }],
             global_config: {
                 default_convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
-                default_sql_key_column: parseInt(document.getElementById('compare-key-column-1').value) || 0,
-                default_api_key_column: parseInt(document.getElementById('compare-key-column-2').value) || 0,
+                default_sql_key_column: parseKeyColumns(document.getElementById('compare-key-column-1').value),
+                default_api_key_column: parseKeyColumns(document.getElementById('compare-key-column-2').value),
                 default_sql_feature_start: parseInt(document.getElementById('compare-feature-start-1').value) || 1,
                 default_api_feature_start: parseInt(document.getElementById('compare-feature-start-2').value) || 1
             }
@@ -373,8 +411,8 @@ async function loadCompareConfig(forceLoad = false) {
             if (config.global_config) {
                 const gc = config.global_config;
                 console.log('[DEBUG] 加载全局配置:', gc);
-                document.getElementById('compare-key-column-1').value = gc.default_sql_key_column || 0;
-                document.getElementById('compare-key-column-2').value = gc.default_api_key_column || 0;
+                document.getElementById('compare-key-column-1').value = formatKeyColumns(gc.default_sql_key_column || 0);
+                document.getElementById('compare-key-column-2').value = formatKeyColumns(gc.default_api_key_column || 0);
                 document.getElementById('compare-feature-start-1').value = gc.default_sql_feature_start || 1;
                 document.getElementById('compare-feature-start-2').value = gc.default_api_feature_start || 1;
                 document.getElementById('compare-convert-feature').checked = gc.default_convert_feature_to_number !== false;
@@ -411,11 +449,11 @@ async function loadCompareConfig(forceLoad = false) {
 
                 // 更新其他配置
                 if (scenario.sql_key_column !== undefined) {
-                    document.getElementById('compare-key-column-1').value = scenario.sql_key_column;
+                    document.getElementById('compare-key-column-1').value = formatKeyColumns(scenario.sql_key_column);
                     console.log('[DEBUG] 设置SQL关键列:', scenario.sql_key_column);
                 }
                 if (scenario.api_key_column !== undefined) {
-                    document.getElementById('compare-key-column-2').value = scenario.api_key_column;
+                    document.getElementById('compare-key-column-2').value = formatKeyColumns(scenario.api_key_column);
                     console.log('[DEBUG] 设置API关键列:', scenario.api_key_column);
                 }
                 if (scenario.sql_feature_start !== undefined) {

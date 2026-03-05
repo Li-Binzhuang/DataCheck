@@ -24,7 +24,7 @@ data_comparison/
 - 支持大文件处理
 
 ### 2. 配置选项
-- **主键列配置**：分别配置Sql文件和接口文件的主键列索引
+- **主键列配置**：分别配置Sql文件和接口文件的主键列索引，支持单列或多列组合主键
 - **特征列配置**：分别配置两个文件的特征起始列索引
 - **转换功能**：可选择是否将特征值转换为数值类型
 - **输出前缀**：自定义输出文件名前缀
@@ -108,12 +108,29 @@ generate_reports(
 - `enabled`: 是否启用该场景
 - `sql_file`: Sql文件名（位于inputdata/data_comparison/）
 - `api_file`: 接口文件名（位于inputdata/data_comparison/）
-- `sql_key_column`: Sql文件主键列索引（从0开始）
-- `api_key_column`: 接口文件主键列索引（从0开始）
+- `sql_key_column`: Sql文件主键列索引（从0开始），支持单列(数字)或多列(数组)
+- `api_key_column`: 接口文件主键列索引（从0开始），支持单列(数字)或多列(数组)
 - `sql_feature_start`: Sql文件特征起始列索引
 - `api_feature_start`: 接口文件特征起始列索引
 - `convert_feature_to_number`: 是否转换特征值为数值
 - `output_prefix`: 输出文件前缀
+
+### 多列主键配置示例
+```json
+{
+  "name": "多列主键示例",
+  "enabled": true,
+  "sql_file": "file1.csv",
+  "api_file": "file2.csv",
+  "sql_key_column": [0, 1],
+  "api_key_column": [0, 1],
+  "sql_feature_start": 2,
+  "api_feature_start": 2,
+  "convert_feature_to_number": true,
+  "output_prefix": "multi_key_compare"
+}
+```
+详细说明请参考：[多列主键快速参考](MULTI_KEY_QUICK_REFERENCE.md)
 
 ## 输入输出
 
@@ -155,11 +172,15 @@ outputdata/data_comparison/
 5. **文件格式**：确保CSV文件格式正确，XLSX文件不包含多个sheet
 
 ## 相关文档
+- [多列主键快速参考](MULTI_KEY_QUICK_REFERENCE.md) - 多列主键配置快速指南
+- [多列主键更新说明](MULTI_KEY_UPDATE.md) - 详细的多列主键功能说明
+- [配置指南](CONFIG_GUIDE.md) - 完整的配置文件说明
 - [数据对比功能说明](../md/数据对比功能说明.md)
 - [数据对比功能完整更新记录](../md/数据对比功能完整更新记录.md)
 - [数据对比转换功能快速参考](../数据对比转换功能快速参考.md)
 
 ## 版本历史
+- v2.0.0 (2026-03-05): 支持单列或多列组合主键
 - v1.4.0 (2026-01-26): 修复引号处理问题，优化转换逻辑
 - v1.3.0: 优化主键值获取逻辑
 - v1.2.0: 界面优化和cust_no字段修复

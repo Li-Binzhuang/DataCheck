@@ -653,7 +653,8 @@ function collectConfig() {
             default_thread_count: globalThreadCount,
             default_timeout: globalTimeout,
             default_batch_size: globalBatchSize,
-            default_convert_feature_to_number: getGlobalChecked('global_convert_feature', true)
+            default_convert_feature_to_number: getGlobalChecked('global_convert_feature', true),
+            default_ignore_default_fill: getGlobalChecked('global_ignore_default_fill', false)
         },
         output_config: {
             output_intermediate_files: getGlobalChecked('output_intermediate_files', true)
@@ -694,6 +695,11 @@ async function loadConfig() {
             if (globalConvertFeatureElem) {
                 globalConvertFeatureElem.checked = config.global_config?.default_convert_feature_to_number !== false;
                 console.log('[DEBUG] 设置特征转换:', globalConvertFeatureElem.checked);
+            }
+            const globalIgnoreDefaultFillElem = document.getElementById('global_ignore_default_fill');
+            if (globalIgnoreDefaultFillElem) {
+                globalIgnoreDefaultFillElem.checked = config.global_config?.default_ignore_default_fill === true;
+                console.log('[DEBUG] 设置忽略默认填充值:', globalIgnoreDefaultFillElem.checked);
             }
 
             // 加载输出控制配置

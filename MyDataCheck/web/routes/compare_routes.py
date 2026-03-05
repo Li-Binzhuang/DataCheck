@@ -64,6 +64,7 @@ def execute_compare_flow(config: dict, output_queue: Queue, task_id: str = None)
         print(f"[INFO] 模型特征表特征起始列: {config['feature_start_1']}")
         print(f"[INFO] 接口/灰度/从库特征表特征起始列: {config['feature_start_2']}")
         print(f"[INFO] 转换特征值为数值: {config.get('convert_feature_to_number', False)}")
+        print(f"[INFO] 忽略默认填充值: {config.get('ignore_default_fill', False)}")
         print(f"[INFO] 输出全量数据: {config.get('output_full_data', False)}")
         
         # 构建文件路径 - 支持直接路径模式
@@ -110,7 +111,8 @@ def execute_compare_flow(config: dict, output_queue: Queue, task_id: str = None)
             config['key_column_2'],
             config['feature_start_1'],
             config['feature_start_2'],
-            config.get('convert_feature_to_number', True)
+            config.get('convert_feature_to_number', True),
+            config.get('ignore_default_fill', False)
         )
         
         # 生成报告
@@ -526,7 +528,15 @@ def is_diff_ignorable(model_value, diff_value, compare_mode='exact', tolerance=0
 
 def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str = None):
     """
-    执行小数位数处理流程
+    执行小数位数处理流程（优化版）
+    
+    处理逻辑：
+    1. 读取CSV文件
+    2. 指定源列（需要处理的列）和参考列（提供小数位数的列）
+    3. 根据参考列的小数位数处理源列的值
+    4. 将处理后的值插入到源列后面作为新列
+    5. 对比处理后的列和参考列
+    6. 输出有差异的数据
     
     Args:
         config: 配置字典
@@ -548,8 +558,20 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
         sys.stderr = capture
         
         print("[INFO] 开始执行小数位数处理...")
-        print(f"[INFO] 差异明细文件: {config['file']}")
-        print(f"[INFO] 小数处理方式: {'不处理小数' if config['method'] == 'none' else '四舍五入' if config['method'] == 'round' else '双精度四舍五入' if config['method'] == 'double_round' else '截取' if config['method'] == 'truncate' else '向上取整'}")
+        print(f"[INFO] 输入文件: {config['file']}")
+        print(f"[INFO] 源列（需要处理的列）: {config.get('source_column', '未指定')}")
+        print(f"[INFO] 参考列（提供小数位数的列）: {config.get('reference_column', '未指定')}")
+        
+        method = config.get('method', 'round')
+        method_name = {
+            'none': '不处理小数',
+            'round': '四舍五入',
+            'double_round': '双精度四舍五入',
+            'truncate': '截取',
+            'ceil': '向上取整'
+        }.get(method, method)
+        print(f"[INFO] 小数处理方式: {method_name}")
+        
         compare_mode = config.get('compare_mode', 'exact')
         tolerance = config.get('tolerance', 0.01)
         if compare_mode == 'exact':
@@ -580,30 +602,30 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
         # 读取CSV文件
         print("[INFO] 正在读取文件...")
         df = pd.read_csv(file_path)
-        print(f"[INFO] 读取到 {len(df)} 条记录")
+        print(f"[INFO] 读取到 {len(df)} 条记录，{len(df.columns)} 列")
+        print(f"[INFO] 列名: {', '.join(df.columns.tolist())}")
         
-        # 查找必要的列
-        # 列名可能为：模型特征表值 或 模型特征样本值、接口/灰度/从库值
-        model_col = None
-        api_col = None
+        # 获取源列和参考列
+        source_column = config.get('source_column')
+        reference_column = config.get('reference_column')
         
-        for col in df.columns:
-            if ('模型特征' in col) and ('值' in col) and ('处理' not in col) and ('差异' not in col):
-                model_col = col
-            elif ('接口' in col or '灰度' in col or '从库' in col) and '值' in col and '处理' not in col and '差异' not in col:
-                api_col = col
+        if not source_column or not reference_column:
+            raise ValueError("必须指定源列和参考列")
         
-        if model_col is None:
-            raise ValueError("未找到'模型特征样本值'或'模型特征表值'列，请确认文件格式")
-        if api_col is None:
-            raise ValueError("未找到'接口/灰度/从库值'列，请确认文件格式")
+        if source_column not in df.columns:
+            raise ValueError(f"源列 '{source_column}' 不存在于文件中")
         
-        print(f"[INFO] 模型特征值列: {model_col}")
-        print(f"[INFO] 接口值列: {api_col}")
+        if reference_column not in df.columns:
+            raise ValueError(f"参考列 '{reference_column}' 不存在于文件中")
         
-        # 新增列名
-        processed_col = f"{api_col}-处理小数"
-        diff_col = "差异值"
+        print(f"[INFO] 源列: {source_column}")
+        print(f"[INFO] 参考列: {reference_column}")
+        
+        # 新列名：源列名 + 处理方式后缀
+        processed_column = f"{source_column}-{method_name}"
+        diff_column = "差异值"
+        
+        print(f"[INFO] 处理后的新列名: {processed_column}")
         
         # 处理每一行
         print("[INFO] 正在处理小数位数...")
@@ -611,16 +633,16 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
         diff_values = []
         
         for idx, row in df.iterrows():
-            model_val = row[model_col]
-            api_val = row[api_col]
+            source_val = row[source_column]
+            reference_val = row[reference_column]
             
-            # 处理接口值
-            processed_val = process_decimal_value(api_val, model_val, config['method'])
+            # 处理源列的值
+            processed_val = process_decimal_value(source_val, reference_val, method)
             processed_values.append(processed_val)
             
-            # 计算差异值
+            # 计算差异值（参考列 - 处理后的列）
             try:
-                diff = float(model_val) - float(processed_val)
+                diff = float(reference_val) - float(processed_val)
                 # 保留合理的小数位数，避免浮点数精度问题
                 diff = round(diff, 10)
                 diff_values.append(diff)
@@ -630,24 +652,29 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
             if (idx + 1) % 1000 == 0:
                 print(f"[INFO] 已处理 {idx + 1} 条记录...")
         
-        # 添加新列
-        df[processed_col] = processed_values
-        df[diff_col] = diff_values
+        # 找到源列的位置
+        source_col_idx = df.columns.tolist().index(source_column)
+        
+        # 在源列后面插入处理后的列
+        df.insert(source_col_idx + 1, processed_column, processed_values)
+        
+        # 在最后添加差异值列
+        df[diff_column] = diff_values
         
         print(f"[INFO] 处理完成，共 {len(df)} 条记录")
         
         # 根据对比方式筛选差异记录
         if compare_mode == 'exact':
             # 精确对比：差异不为0的记录
-            df_diff = df[df[diff_col] != 0].copy()
+            df_diff = df[df[diff_column] != 0].copy()
             print(f"[INFO] 精确对比 - 差异不为0的记录: {len(df_diff)} 条")
         else:
             # 容差对比或最后一位差1不计异常
             diff_mask = []
             for idx, row in df.iterrows():
-                model_val = row[model_col]
-                diff_val = row[diff_col]
-                is_ignorable = is_diff_ignorable(model_val, diff_val, compare_mode, tolerance)
+                reference_val = row[reference_column]
+                diff_val = row[diff_column]
+                is_ignorable = is_diff_ignorable(reference_val, diff_val, compare_mode, tolerance)
                 diff_mask.append(not is_ignorable)
             
             df_diff = df[diff_mask].copy()
@@ -673,6 +700,7 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
             full_output_path = os.path.join(compare_output_dir, f"{output_prefix}_full_{timestamp_suffix}{user_suffix}.csv")
             df.to_csv(full_output_path, index=False, encoding='utf-8-sig')
             print(f"✅ 完整处理结果已保存: {full_output_path}")
+            print(f"   包含列: {', '.join(df.columns.tolist())}")
         else:
             print(f"[INFO] 跳过全量处理结果文件生成（未勾选输出选项）")
         
@@ -681,6 +709,8 @@ def execute_decimal_process_flow(config: dict, output_queue: Queue, task_id: str
             diff_output_path = os.path.join(compare_output_dir, f"{output_prefix}_diff_{timestamp_suffix}{user_suffix}.csv")
             df_diff.to_csv(diff_output_path, index=False, encoding='utf-8-sig')
             print(f"✅ 差异记录已保存: {diff_output_path}")
+            print(f"   差异记录数: {len(df_diff)} 条")
+            print(f"   包含列: {', '.join(df_diff.columns.tolist())}")
         else:
             print("✅ 没有差异记录")
         

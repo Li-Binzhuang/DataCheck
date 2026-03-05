@@ -1,12 +1,12 @@
 {
   "scenarios": [
     {
-      "name": "bz",
+      "name": "hd",
       "enabled": true,
-      "description": "bz",
-      "input_csv_file": "cdcboss_features_all.csv",
-      "output_file_prefix": "bz_cdcboss_All",
-      "api_url": "http://10.129.2.25:8081/riskanalysis/Cdc/features",
+      "description": "hd",
+      "input_csv_file": "hd_p0_0303_03051943_zz_compare_analysis_report.csv",
+      "output_file_prefix": "hd_p0_0303",
+      "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
       "thread_count": 150,
       "timeout": 10,
       "batch_size": 50,
@@ -14,17 +14,17 @@
       "add_one_second": false,
       "calculate_difference": false,
       "column_config": {
-        "feature_start_column": 2
+        "feature_start_column": 3
       },
       "api_params": [
         {
-          "param_name": "applyId",
-          "column_index": 0,
+          "param_name": "custNo",
+          "column_index": 1,
           "is_time_field": false
         },
         {
-          "param_name": "baseTime",
-          "column_index": 1,
+          "param_name": "dateTimeStr",
+          "column_index": 2,
           "is_time_field": true,
           "add_t_separator": true,
           "convert_date_to_time": true
@@ -36,7 +36,8 @@
     "default_thread_count": 150,
     "default_timeout": 10,
     "default_batch_size": 50,
-    "default_convert_feature_to_number": true
+    "default_convert_feature_to_number": true,
+    "default_ignore_default_fill": true
   },
   "output_config": {
     "output_intermediate_files": false

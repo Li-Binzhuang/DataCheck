@@ -77,7 +77,8 @@ def compare_two_files(
     api_key_column: int,
     sql_feature_start: int = 1,
     api_feature_start: int = 1,
-    convert_feature_to_number: bool = True
+    convert_feature_to_number: bool = True,
+    ignore_default_fill: bool = False
 ):
     """
     对比两个CSV/XLSX文件（性能优化版）
@@ -95,6 +96,7 @@ def compare_two_files(
         sql_feature_start: Sql文件特征列起始索引（从0开始）
         api_feature_start: 接口文件特征列起始索引（从0开始）
         convert_feature_to_number: 是否转换特征值为数值类型（默认True）
+        ignore_default_fill: 是否忽略默认填充值（-999和null视为一致，默认False）
     
     Returns:
         包含对比结果的字典
@@ -267,7 +269,7 @@ def compare_two_files(
             is_match = False
             
             if api_idx is not None and sql_idx is not None:
-                if compare_values(api_value, sql_value, feature_name):
+                if compare_values(api_value, sql_value, feature_name, ignore_default_fill):
                     is_match = True
                 else:
                     has_diff = True

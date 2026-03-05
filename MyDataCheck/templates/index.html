@@ -39,7 +39,7 @@
                 </div>
                 <div class="menu-item" onclick="switchPage('compare')">
                     <span class="icon">📊</span>
-                    <span>数据对比</span>
+                    <span>csv数据对比</span>
                 </div>
                 <div class="menu-item" onclick="switchPage('pkl')">
                     <span class="icon">📦</span>
@@ -97,6 +97,17 @@
                                     <input type="checkbox" id="global_convert_feature" checked>
                                     <label for="global_convert_feature" style="margin: 0;">默认转换特征值为数值</label>
                                 </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="global_ignore_default_fill">
+                                    <label for="global_ignore_default_fill" style="margin: 0;">忽略默认填充值</label>
+                                </div>
+                                <p
+                                    style="color: #666; font-size: 11px; margin-top: 5px; margin-left: 22px; line-height: 1.4;">
+                                    💡 勾选后，-999 和 null 会被视为一致（默认不勾选）
+                                </p>
                             </div>
 
                             <!-- 输出控制配置 -->
@@ -180,7 +191,7 @@
             <!-- 数据对比页面 -->
             <div id="page-compare" class="content-section">
                 <div class="page-header">
-                    <h2>📊 数据对比</h2>
+                    <h2>📊 csv数据对比</h2>
                     <p>对比两个CSV/XLSX文件的数据差异</p>
                 </div>
 
@@ -286,6 +297,17 @@
 
                         <div class="form-group">
                             <div class="checkbox-group">
+                                <input type="checkbox" id="compare-ignore-default-fill">
+                                <label for="compare-ignore-default-fill" style="margin: 0;">忽略默认填充值</label>
+                            </div>
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                                勾选后，-999 和 null 会被视为一致（默认不勾选）
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
                                 <input type="checkbox" id="compare-output-full">
                                 <label for="compare-output-full" style="margin: 0;">输出全量数据合并文件</label>
                             </div>
@@ -328,7 +350,7 @@
                     <div class="panel">
                         <h3>🔢小数处理工具</h3>
                         <p style="color: #666; font-size: 12px; margin-bottom: 15px;">
-                            上传差异明细文件，根据模型特征值的小数位数处理接口值，重新计算差异
+                            上传CSV文件，指定源列和参考列，根据参考列的小数位数处理源列的值
                         </p>
                         <div id="alert-container-decimal"></div>
 
@@ -352,7 +374,7 @@
                         <!-- 上传文件模式 -->
                         <div id="decimal-upload-mode-container">
                             <div class="form-group">
-                                <label>差异明细文件 (CSV):</label>
+                                <label>CSV文件:</label>
                                 <input type="file" id="decimal-diff-file" accept=".csv"
                                     onchange="handleDecimalFileSelect(this)">
                                 <div class="file-info" id="file-info-decimal">未选择文件</div>
@@ -362,24 +384,44 @@
                         <!-- 服务器路径模式 -->
                         <div id="decimal-path-mode-container" style="display: none;">
                             <div class="form-group">
-                                <label>差异明细文件路径:</label>
-                                <input type="text" id="decimal-file-path" placeholder="如: /data/diff_detail.csv"
+                                <label>CSV文件路径:</label>
+                                <input type="text" id="decimal-file-path" placeholder="如: /data/data.csv"
                                     onchange="handleDecimalPathInput()">
                                 <p style="color: #666; font-size: 10px; margin-top: 3px;">
                                     输入服务器上的绝对路径或相对于inputdata/data_comparison的路径</p>
                             </div>
                         </div>
 
+                        <!-- 列选择 -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>源列（需要处理的列）:</label>
+                                <input type="text" id="decimal-source-column" placeholder="如: API值"
+                                    style="width: 100%;">
+                                <p style="color: #666; font-size: 10px; margin-top: 3px;">
+                                    输入需要进行小数处理的列名
+                                </p>
+                            </div>
+                            <div class="form-group">
+                                <label>参考列（提供小数位数的列）:</label>
+                                <input type="text" id="decimal-reference-column" placeholder="如: CSV值"
+                                    style="width: 100%;">
+                                <p style="color: #666; font-size: 10px; margin-top: 3px;">
+                                    输入提供小数位数标准的列名
+                                </p>
+                            </div>
+                        </div>
+
                         <div class="form-group">
-                            <label>接口小数处理:</label>
+                            <label>小数处理方式:</label>
                             <div class="radio-group"
                                 style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 5px;">
                                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                    <input type="radio" name="decimal-method" value="none" checked>
+                                    <input type="radio" name="decimal-method" value="none">
                                     <span>不处理</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                    <input type="radio" name="decimal-method" value="round">
+                                    <input type="radio" name="decimal-method" value="round" checked>
                                     <span>四舍五入</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
@@ -396,7 +438,7 @@
                                 </label>
                             </div>
                             <p style="color: #666; font-size: 10px; margin-top: 5px; line-height: 1.4;">
-                                处理"接口/灰度/从库值"列，按模型特征样本值的小数位数进行处理
+                                根据参考列的小数位数处理源列的值
                             </p>
                         </div>
 
@@ -434,8 +476,8 @@
                             <p style="color: #666; font-size: 10px; margin-top: 5px; line-height: 1.4;">
                                 💡 精确对比：差异为0才不计为差异<br>
                                 💡 容差对比：差异绝对值在容差范围内的不计为差异<br>
-                                💡 最后一位差1不计异常：根据模型特征值的小数位数，最后一位允许±1误差<br>
-                                💡 最后一位差2不计异常：根据模型特征值的小数位数，最后一位允许±2误差
+                                💡 最后一位差1不计异常：根据参考列的小数位数，最后一位允许±1误差<br>
+                                💡 最后一位差2不计异常：根据参考列的小数位数，最后一位允许±2误差
                             </p>
                         </div>
 
@@ -464,10 +506,12 @@
 
                         <div
                             style="margin-top: 10px; padding: 8px; background: #e8f4fd; border-radius: 4px; font-size: 11px; color: #0066cc; line-height: 1.5;">
-                            <strong>📋 功能说明：</strong><br>
-                            1. 新增"接口/灰度/从库值-处理小数"列：按模型特征值的小数位数处理接口值<br>
-                            2. 新增"差异值"列：模型特征表值 - 处理后的接口值<br>
-                            3. 输出差异不为0的记录到新CSV文件
+                            <strong>📋 处理流程：</strong><br>
+                            1. 上传CSV文件<br>
+                            2. 指定源列（需要处理的列）和参考列（提供小数位数的列）<br>
+                            3. 根据参考列的小数位数处理源列的值<br>
+                            4. 处理后的值插入到源列后面作为新列（列名=源列名+处理方式）<br>
+                            5. 对比处理后的列和参考列，输出有差异的记录
                         </div>
                     </div>
 

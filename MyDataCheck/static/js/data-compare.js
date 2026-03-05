@@ -233,6 +233,7 @@ async function executeCompare() {
             feature_start_2: parseInt(document.getElementById('compare-feature-start-2').value) || 1,
             output_prefix: document.getElementById('compare-output-prefix').value || 'compare',
             convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
+            ignore_default_fill: document.getElementById('compare-ignore-default-fill').checked,
             output_full_data: document.getElementById('compare-output-full').checked
         };
 
@@ -644,9 +645,18 @@ async function executeDecimalProcess() {
     } else {
         file = decimalDiffFile;
         if (!file) {
-            showAlert('请先上传差异明细文件', 'error', 'compare');
+            showAlert('请先上传CSV文件', 'error', 'compare');
             return;
         }
+    }
+
+    // 获取列名
+    const sourceColumn = document.getElementById('decimal-source-column').value.trim();
+    const referenceColumn = document.getElementById('decimal-reference-column').value.trim();
+
+    if (!sourceColumn || !referenceColumn) {
+        showAlert('请指定源列和参考列', 'error', 'compare');
+        return;
     }
 
     isExecutingDecimal = true;
@@ -672,7 +682,7 @@ async function executeDecimalProcess() {
     infoLine.className = 'output-line info';
     const methodText = decimalMethod === 'none' ? '不处理' : decimalMethod === 'round' ? '四舍五入' : decimalMethod === 'double_round' ? '双精度四舍五入' : decimalMethod === 'truncate' ? '截取' : '向上取整';
     const compareModeText = compareMode === 'exact' ? '精确对比' : compareMode === 'tolerance' ? `容差对比(${toleranceValue})` : compareMode === 'last_digit' ? '最后一位差1不计异常' : '最后一位差2不计异常';
-    infoLine.textContent = `[INFO] 开始处理 - 接口小数: ${methodText}, 对比: ${compareModeText}`;
+    infoLine.textContent = `[INFO] 开始处理 - 源列: ${sourceColumn}, 参考列: ${referenceColumn}, 处理方式: ${methodText}, 对比: ${compareModeText}`;
     outputPanel.appendChild(infoLine);
 
     try {
@@ -681,6 +691,8 @@ async function executeDecimalProcess() {
 
         const config = {
             file: file,
+            source_column: sourceColumn,
+            reference_column: referenceColumn,
             method: decimalMethod,
             compare_mode: compareMode,
             tolerance: toleranceValue,

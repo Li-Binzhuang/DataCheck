@@ -43,6 +43,7 @@ class StreamingComparator:
         api_params: Optional[List[Dict[str, Any]]] = None,
         batch_size: int = 50,  # 批次大小（每批处理多少行）
         calculate_difference: bool = False,  # 是否计算差值
+        ignore_default_fill: bool = False,  # 是否忽略默认填充值
     ):
         """
         初始化流式对比器
@@ -58,6 +59,7 @@ class StreamingComparator:
             api_params: 接口参数配置列表
             batch_size: 批次大小（每批处理多少行）
             calculate_difference: 是否计算差值（CSV值 - API值）
+            ignore_default_fill: 是否忽略默认填充值（-999和null视为一致）
         """
         self.api_url = api_url
         self.param1_column = param1_column
@@ -68,6 +70,7 @@ class StreamingComparator:
         self.add_one_second = add_one_second
         self.batch_size = batch_size
         self.calculate_difference = calculate_difference
+        self.ignore_default_fill = ignore_default_fill
         
         # 处理接口参数配置
         if api_params:
@@ -198,20 +201,26 @@ class StreamingComparator:
         use_create_time = ""
         apply_id = ""
         
-        # 从 api_result 中获取原始值
+        # 从 api_result 中获取原始值和请求参数
         original_values = api_result.get("original_values", {})
         request_params = api_result.get("request_params", {})
         
         # 尝试获取客户号（custNo 或 applyId）
         cust_no = original_values.get("custNo", original_values.get("applyId", ""))
         
-        # 尝试获取时间字段
-        use_create_time = request_params.get("baseTime", original_values.get("baseTime", ""))
+        # 获取实际发送给接口的时间参数（从request_params中获取）
+        # 这是接口入参中实际使用的baseTime值
+        use_create_time = request_params.get("baseTime", "")
         
-        # 优先从接口入参中获取 applyId
-        apply_id = original_values.get("applyId", original_values.get("apply_id", ""))
+        # 获取实际发送给接口的applyId参数（从request_params中获取）
+        # 优先从request_params中获取，这是接口入参中实际使用的值
+        apply_id = request_params.get("applyId", request_params.get("apply_id", ""))
         
-        # 如果接口入参中没有，尝试从 CSV 列中查找
+        # 如果request_params中没有，尝试从original_values中获取
+        if not apply_id:
+            apply_id = original_values.get("applyId", original_values.get("apply_id", ""))
+        
+        # 如果还是没有，尝试从 CSV 列中查找
         if not apply_id:
             apply_id_fields = ['apply_id', 'applyId', 'use_credit_id', 'use_credit_apply_id', 'loan_no', 'ua_id', 'ua_no']
             for field_name in apply_id_fields:
@@ -244,7 +253,7 @@ class StreamingComparator:
             api_value = self.fetcher._find_feature_value_in_api_response(api_data, header)
             
             # 比较值
-            is_match = compare_values(csv_value, api_value, header)
+            is_match = compare_values(csv_value, api_value, header, self.ignore_default_fill)
             
             if not is_match:
                 has_mismatch = True

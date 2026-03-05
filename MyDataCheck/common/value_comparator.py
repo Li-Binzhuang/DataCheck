@@ -43,7 +43,7 @@ def _normalize_scientific_notation(value: Any) -> Any:
         return value
 
 
-def compare_values(csv_value: Any, api_value: Any, header: str = "") -> bool:
+def compare_values(csv_value: Any, api_value: Any, header: str = "", ignore_default_fill: bool = False) -> bool:
     """
     比较CSV值和接口值是否一致
 
@@ -51,6 +51,7 @@ def compare_values(csv_value: Any, api_value: Any, header: str = "") -> bool:
         csv_value: CSV中的值
         api_value: 接口返回的值
         header: 字段名（用于特殊处理）
+        ignore_default_fill: 是否忽略默认填充值（-999和null视为一致）
 
     Returns:
         如果一致返回True，否则返回False
@@ -61,6 +62,38 @@ def compare_values(csv_value: Any, api_value: Any, header: str = "") -> bool:
 
     api_str_check = str(api_value).strip().lower() if api_value is not None else ""
     api_null = api_value is None or api_str_check in ["null", "none", ""]
+
+    # 如果启用了忽略默认填充值选项
+    if ignore_default_fill:
+        # 检查是否为默认填充值 -999
+        csv_is_default = False
+        api_is_default = False
+        
+        # 检查CSV值是否为 -999 或 null
+        if csv_null:
+            csv_is_default = True
+        else:
+            try:
+                csv_num = float(str(csv_value).strip())
+                if csv_num == -999:
+                    csv_is_default = True
+            except (ValueError, TypeError):
+                pass
+        
+        # 检查API值是否为 -999 或 null
+        if api_null:
+            api_is_default = True
+        else:
+            try:
+                api_num = float(str(api_value).strip())
+                if api_num == -999:
+                    api_is_default = True
+            except (ValueError, TypeError):
+                pass
+        
+        # 如果两个值都是默认填充值（-999或null），则认为一致
+        if csv_is_default and api_is_default:
+            return True
 
     # 如果CSV值为null且API值也为null，则认为一致
     if csv_null and api_null:

@@ -58,7 +58,8 @@ def compare_two_files(
     api_key_column,
     sql_feature_start: int = 1,
     api_feature_start: int = 1,
-    convert_feature_to_number: bool = True
+    convert_feature_to_number: bool = True,
+    ignore_default_fill: bool = False
 ):
     """
     对比两个CSV/XLSX文件（性能优化版）
@@ -77,6 +78,7 @@ def compare_two_files(
         sql_feature_start: Sql文件特征列起始索引（从0开始）
         api_feature_start: 接口文件特征列起始索引（从0开始）
         convert_feature_to_number: 是否转换特征值为数值类型（默认True）
+        ignore_default_fill: 是否忽略默认填充值（-999和null视为一致，默认False）
     
     Returns:
         包含对比结果的字典
@@ -93,6 +95,7 @@ def compare_two_files(
     print(f"Sql文件特征列起始索引: {sql_feature_start}")
     print(f"接口文件特征列起始索引: {api_feature_start}")
     print(f"转换特征值为数值: {convert_feature_to_number}")
+    print(f"忽略默认填充值: {ignore_default_fill}")
     
     # 读取两个文件
     print("\n[1/5] 读取文件...")
@@ -303,7 +306,7 @@ def compare_two_files(
             # 判断差异（以Sql文件为基准）
             if sql_idx is not None and api_idx is not None:
                 # 特征在两个文件中都存在，比较值
-                if not compare_values(api_value, sql_value, feature_name):
+                if not compare_values(api_value, sql_value, feature_name, ignore_default_fill):
                     differences_dict[(key_value, feature_name)] = (api_value, sql_value, cust_no, time_value)
             elif sql_idx is not None:
                 # 特征在Sql文件中存在，在接口文件中不存在

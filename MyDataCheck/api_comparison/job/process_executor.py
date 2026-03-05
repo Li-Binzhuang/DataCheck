@@ -200,7 +200,7 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
                            cust_no_column: int, use_create_time_column: int,
                            thread_count: int, timeout: int,
                            feature_start_column: int, add_one_second: bool, api_params: list,
-                           batch_size: int = 50, calculate_difference: bool = False):
+                           batch_size: int = 50, calculate_difference: bool = False, ignore_default_fill: bool = False):
     """
     流式对比：边请求边对比边写入（最优方案，内存占用降低80-90%）
     
@@ -217,6 +217,7 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
         api_params: 接口参数配置列表
         batch_size: 批次大小
         calculate_difference: 是否计算差值
+        ignore_default_fill: 是否忽略默认填充值（-999和null视为一致）
     """
     print(f"\n{'='*80}")
     print(f"流式对比模式: 边请求边对比边写入")
@@ -226,6 +227,7 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
     print(f"  批次大小: {batch_size}")
     print(f"  输入文件: {os.path.basename(original_csv_path)}")
     print(f"  计算差值: {'是' if calculate_difference else '否'}")
+    print(f"  忽略默认填充值: {'是' if ignore_default_fill else '否'}")
     print(f"{'='*80}")
     
     # 创建流式对比器
@@ -239,7 +241,8 @@ def streaming_compare_step(original_csv_path: str, output_csv_path: str, api_url
         add_one_second=add_one_second,
         api_params=api_params,
         batch_size=batch_size,
-        calculate_difference=calculate_difference
+        calculate_difference=calculate_difference,
+        ignore_default_fill=ignore_default_fill
     )
     
     # 执行流式对比
@@ -283,6 +286,8 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
         batch_size = scenario_config.get('batch_size', global_config.get('default_batch_size', 50))
         convert_feature_to_number = scenario_config.get('convert_feature_to_number', 
                                                          global_config.get('default_convert_feature_to_number', True))
+        ignore_default_fill = scenario_config.get('ignore_default_fill',
+                                                   global_config.get('default_ignore_default_fill', False))
         add_one_second = scenario_config.get('add_one_second', global_config.get('default_add_one_second', True))
         calculate_difference = scenario_config.get('calculate_difference', False)  # 默认不计算差值
         column_config = scenario_config.get('column_config', {})
@@ -434,7 +439,8 @@ def execute_single_scenario(scenario_config: Dict, global_config: Dict, script_d
                     add_one_second,
                     api_params,
                     batch_size=batch_size,  # 使用配置的批次大小
-                    calculate_difference=calculate_difference  # 传递差值计算配置
+                    calculate_difference=calculate_difference,  # 传递差值计算配置
+                    ignore_default_fill=ignore_default_fill  # 传递忽略默认填充值配置
                 )
                 gc.collect()
             

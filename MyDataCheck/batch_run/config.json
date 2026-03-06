@@ -1,7 +1,7 @@
 {
   "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
-  "input_csv_file": "cdc_2.csv",
-  "output_file_prefix": "p0",
+  "input_csv_file": "dd3f90e0-57a0-48b1-ac2c-b2941a7b86f3-1.csv",
+  "output_file_prefix": "444",
   "thread_count": 100,
   "timeout": 10,
   "api_params": [
@@ -13,7 +13,7 @@
     },
     {
       "param_name": "dateTimeStr",
-      "column_index": 2,
+      "column_index": 0,
       "is_time_field": true,
       "use_t_separator": false
     }

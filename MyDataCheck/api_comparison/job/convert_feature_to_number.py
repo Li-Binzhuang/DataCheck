@@ -70,6 +70,10 @@ class FeatureValueConverter:
         """
         转换接口返回数据中data字段内的特征值为数值类型
         
+        支持两种结构：
+        1. data.features 包含特征字段（优先）
+        2. data 直接包含特征字段
+        
         Args:
             api_response: 接口返回的JSON数据
         
@@ -84,25 +88,47 @@ class FeatureValueConverter:
         
         # 如果存在data字段且是字典类型
         if "data" in converted_response and isinstance(converted_response["data"], dict):
-            converted_data = {}
+            data_field = converted_response["data"].copy()
             converted_count = 0
             unchanged_count = 0
             
-            for key, value in converted_response["data"].items():
-                # 尝试将值转换为数字
-                converted_value = self._convert_string_to_number(value)
+            # 优先处理 data.features 结构
+            if "features" in data_field and isinstance(data_field["features"], dict):
+                converted_features = {}
+                for key, value in data_field["features"].items():
+                    # 尝试将值转换为数字
+                    converted_value = self._convert_string_to_number(value)
+                    
+                    if isinstance(converted_value, (int, float)) and not isinstance(value, (int, float)):
+                        # 成功转换为数字
+                        converted_features[key] = converted_value
+                        converted_count += 1
+                    else:
+                        # 无法转换或已经是数字，保持原值
+                        converted_features[key] = value
+                        if not isinstance(value, (int, float)):
+                            unchanged_count += 1
                 
-                if isinstance(converted_value, (int, float)) and not isinstance(value, (int, float)):
-                    # 成功转换为数字
-                    converted_data[key] = converted_value
-                    converted_count += 1
-                else:
-                    # 无法转换或已经是数字，保持原值
-                    converted_data[key] = value
-                    if not isinstance(value, (int, float)):
-                        unchanged_count += 1
-            
-            converted_response["data"] = converted_data
+                data_field["features"] = converted_features
+                converted_response["data"] = data_field
+            else:
+                # 如果没有 features 字段，直接处理 data 中的字段
+                converted_data = {}
+                for key, value in data_field.items():
+                    # 尝试将值转换为数字
+                    converted_value = self._convert_string_to_number(value)
+                    
+                    if isinstance(converted_value, (int, float)) and not isinstance(value, (int, float)):
+                        # 成功转换为数字
+                        converted_data[key] = converted_value
+                        converted_count += 1
+                    else:
+                        # 无法转换或已经是数字，保持原值
+                        converted_data[key] = value
+                        if not isinstance(value, (int, float)):
+                            unchanged_count += 1
+                
+                converted_response["data"] = converted_data
             
             print(f"  转换统计: 成功转换 {converted_count} 个特征值为数值, {unchanged_count} 个保持原值")
         

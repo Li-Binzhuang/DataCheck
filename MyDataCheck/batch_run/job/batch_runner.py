@@ -101,14 +101,26 @@ class BatchRunner:
             return {"_error": str(e)}
 
     def extract_features(self, api_response: Dict[str, Any]) -> Dict[str, Any]:
-        """从接口响应中提取特征值（data字段中的所有字段）"""
+        """
+        从接口响应中提取特征值
+        
+        支持两种结构：
+        1. data.features 包含特征字段（优先）
+        2. data 直接包含特征字段
+        """
         if not api_response or "_error" in api_response:
             return {}
         
         data = api_response.get("data", {})
-        if isinstance(data, dict):
-            return data
-        return {}
+        if not isinstance(data, dict):
+            return {}
+        
+        # 优先检查 data.features 结构
+        if "features" in data and isinstance(data["features"], dict):
+            return data["features"]
+        
+        # 如果没有 features 字段，直接返回 data
+        return data
 
     def process_row(self, row_index: int, row: List[str], headers: List[str]) -> Dict[str, Any]:
         """处理单行数据"""

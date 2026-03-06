@@ -509,7 +509,15 @@
                         <div class="button-group">
                             <button class="btn-primary" onclick="executeDecimalProcess()" id="btn-execute-decimal"
                                 disabled style="flex: 1;">▶️ 执行处理</button>
-                            <button class="btn-danger" onclick="clearOutput('decimal')">🗑️ 清空输出</button>
+                            <button class="btn-success" onclick="saveDecimalConfig()">💾 保存配置</button>
+                                <button class="btn-secondary" onclick="loadDecimalConfig(true)">📂 加载配置</button>
+                                <button class="btn-danger" onclick="clearOutput('decimal')">🗑️ 清空输出</button>
+                        </div>
+
+                        <div
+                            style="margin-top: 8px; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; font-size: 10px; color: #666; line-height: 1.4;">
+                            <strong>💡 提示：</strong>配置将保存到 <code
+                                style="background: #e0e0e0; padding: 1px 4px; border-radius: 2px;">data_comparison/decimal_config.json</code>
                         </div>
 
                         <div

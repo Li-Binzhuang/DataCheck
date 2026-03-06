@@ -782,3 +782,165 @@ async function executeDecimalProcess() {
         loadingSpinner.style.display = 'none';
     }
 }
+
+// ========== 小数处理配置保存和加载 ==========
+
+/**
+ * 保存小数处理配置
+ */
+async function saveDecimalConfig() {
+    try {
+        console.log('[DEBUG] 开始保存小数处理配置...');
+
+        // 获取当前配置
+        const config = {
+            file_path: decimalDiffFile || "",
+            source_column: document.getElementById('decimal-source-column').value.trim(),
+            reference_column: document.getElementById('decimal-reference-column').value.trim(),
+            decimal_method: document.querySelector('input[name="decimal-method"]:checked').value,
+            compare_mode: document.querySelector('input[name="compare-mode"]:checked').value,
+            tolerance_value: parseFloat(document.getElementById('tolerance-value').value) || 0.01,
+            output_prefix: document.getElementById('decimal-output-prefix').value || 'decimal_processed',
+            output_full_data: document.getElementById('decimal-output-full').checked,
+            file_input_mode: decimalFileInputMode
+        };
+
+        console.log('[DEBUG] 配置数据:', config);
+
+        const response = await fetch('/api/compare/decimal/config/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(config)
+        });
+
+        console.log('[DEBUG] 响应状态:', response.status);
+
+        const data = await response.json();
+        console.log('[DEBUG] 响应数据:', data);
+
+        if (data.success) {
+            showAlert('✅ 配置保存成功！保存到 data_comparison/decimal_config.json', 'success', 'decimal');
+            console.log('[SUCCESS] 配置保存成功');
+        } else {
+            showAlert('❌ 配置保存失败: ' + data.error, 'error', 'decimal');
+            console.error('[ERROR] 配置保存失败:', data.error);
+        }
+    } catch (error) {
+        showAlert('❌ 配置保存失败: ' + error.message, 'error', 'decimal');
+        console.error('[ERROR] 配置保存异常:', error);
+    }
+}
+
+/**
+ * 加载小数处理配置
+ * @param {boolean} forceLoad - 是否强制从配置加载（覆盖当前上传的文件）
+ */
+async function loadDecimalConfig(forceLoad = false) {
+    try {
+        console.log('[DEBUG] 开始加载小数处理配置... forceLoad:', forceLoad);
+
+        const response = await fetch('/api/compare/decimal/config/load', {
+            method: 'GET'
+        });
+
+        console.log('[DEBUG] 响应状态:', response.status);
+
+        const data = await response.json();
+        console.log('[DEBUG] 响应数据:', data);
+
+        if (data.success && data.config) {
+            const config = data.config;
+            console.log('[DEBUG] 配置内容:', config);
+
+            // 加载文件路径
+            if (config.file_path) {
+                if (forceLoad || !decimalDiffFile) {
+                    decimalDiffFile = config.file_path;
+                    document.getElementById('file-info-decimal').textContent = `配置中的文件: ${config.file_path}`;
+                    document.getElementById('file-info-decimal').style.color = '#667eea';
+                    console.log('[DEBUG] 从配置加载文件:', config.file_path);
+                } else {
+                    console.log('[DEBUG] 文件已有上传文件，跳过配置加载:', decimalDiffFile);
+                }
+            }
+
+            // 加载列配置
+            if (config.source_column) {
+                document.getElementById('decimal-source-column').value = config.source_column;
+            }
+            if (config.reference_column) {
+                document.getElementById('decimal-reference-column').value = config.reference_column;
+            }
+
+            // 加载处理方式
+            if (config.decimal_method) {
+                const methodRadio = document.querySelector(`input[name="decimal-method"][value="${config.decimal_method}"]`);
+                if (methodRadio) {
+                    methodRadio.checked = true;
+                }
+            }
+
+            // 加载对比方式
+            if (config.compare_mode) {
+                const compareModeRadio = document.querySelector(`input[name="compare-mode"][value="${config.compare_mode}"]`);
+                if (compareModeRadio) {
+                    compareModeRadio.checked = true;
+                }
+                // 触发容差输入框显示/隐藏
+                toggleToleranceInput();
+            }
+
+            // 加载容差值
+            if (config.tolerance_value !== undefined) {
+                document.getElementById('tolerance-value').value = config.tolerance_value;
+            }
+
+            // 加载输出配置
+            if (config.output_prefix) {
+                document.getElementById('decimal-output-prefix').value = config.output_prefix;
+            }
+            if (config.output_full_data !== undefined) {
+                document.getElementById('decimal-output-full').checked = config.output_full_data;
+            }
+
+            // 加载文件输入模式
+            if (config.file_input_mode) {
+                decimalFileInputMode = config.file_input_mode;
+                const modeRadio = document.querySelector(`input[name="decimal-file-input-mode"][value="${config.file_input_mode}"]`);
+                if (modeRadio) {
+                    modeRadio.checked = true;
+                    toggleDecimalFileInputMode();
+                }
+            }
+
+            // 检查是否可以执行
+            checkDecimalReady();
+
+            showAlert('✅ 配置加载成功！', 'success', 'decimal');
+            console.log('[SUCCESS] 配置加载成功');
+        } else {
+            showAlert('⚠️ 未找到保存的配置', 'warning', 'decimal');
+            console.log('[INFO] 未找到保存的配置');
+        }
+    } catch (error) {
+        showAlert('❌ 配置加载失败: ' + error.message, 'error', 'decimal');
+        console.error('[ERROR] 配置加载异常:', error);
+    }
+}
+
+// 页面加载时自动加载配置（如果存在）
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        // 延迟500ms加载配置，确保页面元素已完全初始化
+        setTimeout(() => {
+            loadDecimalConfig();
+        }, 500);
+    });
+} else {
+    // DOM已经加载完成
+    setTimeout(() => {
+        loadDecimalConfig();
+    }, 500);
+}

@@ -1,0 +1,11 @@
+{
+  "file_path": "",
+  "source_column": "22",
+  "reference_column": "33",
+  "decimal_method": "round",
+  "compare_mode": "exact",
+  "tolerance_value": 0.01,
+  "output_prefix": "333",
+  "output_full_data": false,
+  "file_input_mode": "upload"
+}

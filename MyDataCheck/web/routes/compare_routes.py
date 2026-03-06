@@ -809,3 +809,55 @@ def execute_decimal_process():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+# ========== 小数处理配置保存和加载路由 ==========
+
+@compare_bp.route('/api/compare/decimal/config/save', methods=['POST'])
+def save_decimal_config():
+    """保存小数处理配置"""
+    try:
+        print("[DEBUG] 收到保存小数处理配置请求")
+        
+        config_data = request.json
+        if not config_data:
+            print("[ERROR] 配置数据为空")
+            return jsonify({'success': False, 'error': '配置数据为空'})
+        
+        print(f"[DEBUG] 配置数据: {json.dumps(config_data, ensure_ascii=False, indent=2)}")
+        
+        # 配置文件路径
+        config_path = os.path.join(data_comparison_dir, "decimal_config.json")
+        print(f"[DEBUG] 配置文件路径: {config_path}")
+        
+        # 保存配置
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config_data, f, ensure_ascii=False, indent=2)
+        
+        print("[SUCCESS] 小数处理配置保存成功")
+        return jsonify({'success': True, 'message': '✅ 配置保存成功'})
+    except Exception as e:
+        print(f"[ERROR] 配置保存失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@compare_bp.route('/api/compare/decimal/config/load', methods=['GET'])
+def load_decimal_config():
+    """加载小数处理配置"""
+    try:
+        # 配置文件路径
+        config_path = os.path.join(data_comparison_dir, "decimal_config.json")
+        
+        # 检查配置文件是否存在
+        if not os.path.exists(config_path):
+            return jsonify({'success': False, 'error': '配置文件不存在'})
+        
+        # 加载配置
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        return jsonify({'success': True, 'config': config})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})

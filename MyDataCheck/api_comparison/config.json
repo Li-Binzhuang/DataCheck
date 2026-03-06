@@ -1,15 +1,77 @@
 {
   "scenarios": [
     {
-      "name": "hd",
+      "name": "2",
       "enabled": true,
-      "description": "hd",
-      "input_csv_file": "p0_0303.csv",
-      "output_file_prefix": "hd_p0_0303",
+      "description": "2",
+      "input_csv_file": "b4f254eb-8bb9-4d80-9f45-465413c5e0e1-1.csv",
+      "output_file_prefix": "hd_p22",
       "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
       "thread_count": 150,
       "timeout": 10,
-      "batch_size": 500,
+      "batch_size": 1000,
+      "convert_feature_to_number": true,
+      "add_one_second": false,
+      "calculate_difference": false,
+      "column_config": {
+        "feature_start_column": 3
+      },
+      "api_params": [
+        {
+          "param_name": "custNo",
+          "column_index": 1,
+          "is_time_field": false
+        },
+        {
+          "param_name": "dateTimeStr",
+          "column_index": 0,
+          "is_time_field": true,
+          "add_t_separator": true,
+          "convert_date_to_time": true
+        }
+      ]
+    },
+    {
+      "name": "p1",
+      "enabled": false,
+      "description": "p1",
+      "input_csv_file": "p1_0304.csv",
+      "output_file_prefix": "hd_p1",
+      "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
+      "thread_count": 150,
+      "timeout": 10,
+      "batch_size": 1000,
+      "convert_feature_to_number": true,
+      "add_one_second": false,
+      "calculate_difference": false,
+      "column_config": {
+        "feature_start_column": 3
+      },
+      "api_params": [
+        {
+          "param_name": "custNo",
+          "column_index": 1,
+          "is_time_field": false
+        },
+        {
+          "param_name": "dateTimeStr",
+          "column_index": 2,
+          "is_time_field": true,
+          "add_t_separator": true,
+          "convert_date_to_time": true
+        }
+      ]
+    },
+    {
+      "name": "p2",
+      "enabled": false,
+      "description": "p2",
+      "input_csv_file": "p2_0304.csv",
+      "output_file_prefix": "hd_p2",
+      "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
+      "thread_count": 150,
+      "timeout": 10,
+      "batch_size": 1000,
       "convert_feature_to_number": true,
       "add_one_second": false,
       "calculate_difference": false,
@@ -35,7 +97,7 @@
   "global_config": {
     "default_thread_count": 150,
     "default_timeout": 10,
-    "default_batch_size": 500,
+    "default_batch_size": 1000,
     "default_convert_feature_to_number": true,
     "default_ignore_default_fill": true
   },

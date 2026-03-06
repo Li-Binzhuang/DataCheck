@@ -41,8 +41,12 @@
                     <span class="icon">📊</span>
                     <span>csv数据对比</span>
                 </div>
+                <div class="menu-item" onclick="switchPage('decimal')">
+                    <span class="icon">�</span>
+                    <span>小数处理工具</span>
+                </div>
                 <div class="menu-item" onclick="switchPage('pkl')">
-                    <span class="icon">📦</span>
+                    <span class="icon">�</span>
                     <span>PKL文件解析</span>
                 </div>
                 <div class="menu-item" onclick="switchPage('batch-run')">
@@ -344,14 +348,18 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- 小数位数处理功能模块 -->
-                <div class="content-grid" style="margin-top: 20px;">
+            <!-- 小数处理工具页面 -->
+            <div id="page-decimal" class="content-section">
+                <div class="page-header">
+                    <h2>🔢 小数处理工具</h2>
+                    <p>上传CSV文件，指定源列和参考列，根据参考列的小数位数处理源列的值</p>
+                </div>
+
+                <div class="content-grid">
                     <div class="panel">
-                        <h3>🔢小数处理工具</h3>
-                        <p style="color: #666; font-size: 12px; margin-bottom: 15px;">
-                            上传CSV文件，指定源列和参考列，根据参考列的小数位数处理源列的值
-                        </p>
+                        <h3>📝 处理配置</h3>
                         <div id="alert-container-decimal"></div>
 
                         <!-- 文件输入方式切换 -->

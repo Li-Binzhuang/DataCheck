@@ -1,9 +1,9 @@
 {
-  "api_url": "http://10.129.2.25:8080/riskanalysis/cdc/v3/creditos",
+  "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
   "input_csv_file": "cdc_2.csv",
-  "output_file_prefix": "consultas",
-  "thread_count": 50,
-  "timeout": 30,
+  "output_file_prefix": "p0",
+  "thread_count": 100,
+  "timeout": 10,
   "api_params": [
     {
       "param_name": "custNo",
@@ -12,15 +12,9 @@
       "use_t_separator": false
     },
     {
-      "param_name": "baseTime",
+      "param_name": "dateTimeStr",
       "column_index": 2,
       "is_time_field": true,
-      "use_t_separator": false
-    },
-    {
-      "param_name": "applyId",
-      "column_index": 0,
-      "is_time_field": false,
       "use_t_separator": false
     }
   ]

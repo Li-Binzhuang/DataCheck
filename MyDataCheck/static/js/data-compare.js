@@ -255,6 +255,7 @@ async function executeCompare() {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let savedTaskId = null; // 保存taskId
 
         while (true) {
             const { done, value } = await reader.read();
@@ -268,7 +269,12 @@ async function executeCompare() {
                     try {
                         const data = JSON.parse(line.substring(6));
 
-                        if (data.type === 'output') {
+                        if (data.type === 'start') {
+                            // 保存task_id
+                            if (data.task_id) {
+                                savedTaskId = data.task_id;
+                            }
+                        } else if (data.type === 'output') {
                             const outputLine = document.createElement('div');
                             outputLine.className = 'output-line';
                             outputLine.textContent = data.message;
@@ -295,8 +301,8 @@ async function executeCompare() {
                             completeLine.textContent = '🎉 任务执行完成！';
                             outputPanel.appendChild(completeLine);
                             outputPanel.scrollTop = outputPanel.scrollHeight;
-                            // 自动下载输出文件
-                            setTimeout(() => autoDownloadOutputFiles('data_comparison', 2), 1000);
+                            // 自动下载输出文件，使用保存的taskId
+                            setTimeout(() => autoDownloadOutputFiles('data_comparison', 2, savedTaskId), 1000);
                         } else if (data.type === 'error') {
                             statusIndicator.className = 'status-indicator error';
                             statusText.textContent = '执行失败';

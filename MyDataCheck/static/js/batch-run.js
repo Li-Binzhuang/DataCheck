@@ -261,6 +261,7 @@ async function executeBatchRun() {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let savedTaskId = null; // 保存taskId
 
         while (true) {
             const { done, value } = await reader.read();
@@ -273,13 +274,19 @@ async function executeBatchRun() {
                 if (line.startsWith('data: ')) {
                     try {
                         const data = JSON.parse(line.slice(6));
+
+                        // 保存task_id
+                        if (data.type === 'start' && data.task_id) {
+                            savedTaskId = data.task_id;
+                        }
+
                         if (data.message) {
                             appendBatchRunOutput(data.message, data.type);
                         }
                         if (data.type === 'end') {
                             statusText.textContent = '完成';
-                            // 自动下载输出文件
-                            setTimeout(() => autoDownloadOutputFiles('batch_run', 2), 1000);
+                            // 自动下载输出文件，使用保存的taskId
+                            setTimeout(() => autoDownloadOutputFiles('batch_run', 2, savedTaskId), 1000);
                         }
                     } catch (e) { }
                 }

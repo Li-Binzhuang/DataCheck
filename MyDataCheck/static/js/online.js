@@ -4,14 +4,15 @@ async function handleOnlineFileSelect(fileType, input) {
     const file = input.files[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv')) {
-        showAlert('只支持CSV文件', 'error', 'online');
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+        showAlert('只支持CSV和XLSX文件', 'error', 'online');
         input.value = '';
         return;
     }
 
     const fileInfo = document.getElementById(`file-info-${fileType}`);
-    fileInfo.textContent = `上传中: ${file.name}...`;
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    fileInfo.textContent = `上传中: ${file.name}${isXlsx ? ' (将自动转换为CSV)' : ''}...`;
     fileInfo.style.color = '#667eea';
 
     try {
@@ -122,20 +123,20 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
             <h3 style="margin: 0 0 10px 0; color: #17a2b8; font-size: 14px;">步骤1：JSON解析配置</h3>
             
             <div class="form-group">
-                <label>离线文件 (CSV/PKL):</label>
-                <input type="file" class="online-scenario-offline-file" accept=".csv,.pkl" onchange="handleOnlineScenarioFileSelect('${scenarioId}', 'offline', this)">
+                <label>样本文件 (CSV/PKL/XLSX):</label>
+                <input type="file" class="online-scenario-offline-file" accept=".csv,.pkl,.xlsx" onchange="handleOnlineScenarioFileSelect('${scenarioId}', 'offline', this)">
                 <input type="hidden" class="online-scenario-offline-filename" value="${scenario.offline_file || ''}">
                 <div class="file-info" id="file-info-${scenarioId}-offline" style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                    ${scenario.offline_file ? `当前文件: ${scenario.offline_file}` : '未选择文件（支持CSV和PKL文件）'}
+                    ${scenario.offline_file ? `当前文件: ${scenario.offline_file}` : '未选择文件（支持CSV、PKL和XLSX文件）'}
                 </div>
             </div>
             
             <div class="form-group">
-                <label>线上文件 (CSV/PKL):</label>
-                <input type="file" class="online-scenario-online-file" accept=".csv,.pkl" onchange="handleOnlineScenarioFileSelect('${scenarioId}', 'online', this)">
+                <label>灰度落数文件 (CSV/PKL/XLSX):</label>
+                <input type="file" class="online-scenario-online-file" accept=".csv,.pkl,.xlsx" onchange="handleOnlineScenarioFileSelect('${scenarioId}', 'online', this)">
                 <input type="hidden" class="online-scenario-online-filename" value="${scenario.online_file || ''}">
                 <div class="file-info" id="file-info-${scenarioId}-online" style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                    ${scenario.online_file ? `当前文件: ${scenario.online_file}` : '未选择文件（支持CSV和PKL文件）'}
+                    ${scenario.online_file ? `当前文件: ${scenario.online_file}` : '未选择文件（支持CSV、PKL和XLSX文件）'}
                 </div>
             </div>
             
@@ -331,16 +332,17 @@ async function handleOnlineScenarioFileSelect(scenarioId, fileType, input) {
     const file = input.files[0];
     if (!file) return;
 
-    // 支持CSV和PKL文件
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.pkl')) {
-        showAlert('只支持CSV和PKL文件', 'error', 'online');
+    // 支持CSV、PKL和XLSX文件
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.pkl') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+        showAlert('只支持CSV、PKL和XLSX文件', 'error', 'online');
         input.value = '';
         return;
     }
 
     const fileInfo = document.getElementById(`file-info-${scenarioId}-${fileType}`);
     const isPkl = file.name.endsWith('.pkl');
-    fileInfo.textContent = `上传中: ${file.name}${isPkl ? ' (将自动转换为CSV)' : ''}...`;
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    fileInfo.textContent = `上传中: ${file.name}${isPkl || isXlsx ? ' (将自动转换为CSV)' : ''}...`;
     fileInfo.style.color = '#667eea';
 
     try {

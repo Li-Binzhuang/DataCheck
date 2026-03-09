@@ -60,12 +60,12 @@ function addScenario(scenarioData = null, isFirst = false) {
         </div>
 
         <div class="form-group">
-            <label>输入CSV/PKL文件:</label>
-            <input type="file" class="scenario-file-input" accept=".csv,.pkl" 
+            <label>输入CSV/PKL/XLSX文件:</label>
+            <input type="file" class="scenario-file-input" accept=".csv,.pkl,.xlsx" 
                    onchange="handleFileSelect('${scenarioId}', this)">
             <input type="hidden" class="scenario-filename" value="${scenario.input_csv_file}">
             <div class="file-info" id="file-info-${scenarioId}" style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                ${scenario.input_csv_file ? `当前文件: ${scenario.input_csv_file}` : '未选择文件（支持CSV和PKL文件，PKL将自动转换为CSV）'}
+                ${scenario.input_csv_file ? `当前文件: ${scenario.input_csv_file}` : '未选择文件（支持CSV、PKL和XLSX文件，PKL和XLSX将自动转换为CSV）'}
             </div>
         </div>
 
@@ -475,16 +475,17 @@ async function handleFileSelect(scenarioId, input) {
     const file = input.files[0];
     if (!file) return;
 
-    // 支持CSV和PKL文件
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.pkl')) {
-        showAlert('只支持CSV和PKL文件', 'error', 'api');
+    // 支持CSV、PKL和XLSX文件
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.pkl') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+        showAlert('只支持CSV、PKL和XLSX文件', 'error', 'api');
         input.value = '';
         return;
     }
 
     const fileInfo = document.getElementById(`file-info-${scenarioId}`);
     const isPkl = file.name.endsWith('.pkl');
-    fileInfo.textContent = `上传中: ${file.name}${isPkl ? ' (将自动转换为CSV)' : ''}...`;
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    fileInfo.textContent = `上传中: ${file.name}${isPkl || isXlsx ? ' (将自动转换为CSV)' : ''}...`;
     fileInfo.style.color = '#667eea';
 
     try {

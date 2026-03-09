@@ -94,7 +94,7 @@ async function handleCompareFileSelect(fileNum, input) {
     const file = input.files[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
         showAlert('只支持CSV和XLSX文件', 'error', 'compare');
         input.value = '';
         return;
@@ -104,7 +104,8 @@ async function handleCompareFileSelect(fileNum, input) {
 
     // 显示文件大小
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB)...`;
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB)${isXlsx ? ' - 将自动转换为CSV' : ''}...`;
     fileInfo.style.color = '#667eea';
 
     try {
@@ -564,15 +565,16 @@ async function handleDecimalFileSelect(input) {
     const file = input.files[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv')) {
-        showAlert('只支持CSV文件', 'error', 'compare');
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+        showAlert('只支持CSV和XLSX文件', 'error', 'compare');
         input.value = '';
         return;
     }
 
     const fileInfo = document.getElementById('file-info-decimal');
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB)...`;
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    fileInfo.textContent = `上传中: ${file.name} (${fileSizeMB}MB)${isXlsx ? ' - 将自动转换为CSV' : ''}...`;
     fileInfo.style.color = '#667eea';
 
     try {

@@ -189,7 +189,7 @@ def upload_compare_file():
             return jsonify({'success': False, 'error': '文件名为空'})
         
         # 支持CSV和XLSX文件
-        if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+        if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
             # 确保文件名安全
             filename = secure_filename(file.filename)
             # 添加文件编号前缀
@@ -198,6 +198,25 @@ def upload_compare_file():
             
             # 保存文件
             file.save(file_path)
+            
+            # 如果是xlsx文件，自动转换为csv
+            if filename.endswith('.xlsx') or filename.endswith('.xls'):
+                from common.csv_tool import convert_xlsx_to_csv
+                success, message, csv_path = convert_xlsx_to_csv(file_path, output_to_outputdata=False)
+                if success:
+                    csv_filename = os.path.basename(csv_path)
+                    return jsonify({
+                        'success': True,
+                        'filename': csv_filename,
+                        'original_filename': filename,
+                        'converted': True,
+                        'message': f'XLSX文件已转换为CSV: {csv_filename}'
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'XLSX文件转换失败: {message}'
+                    })
             
             return jsonify({
                 'success': True,
@@ -377,11 +396,30 @@ def upload_decimal_file():
         if file.filename == '':
             return jsonify({'success': False, 'error': '文件名为空'})
         
-        if file and file.filename.endswith('.csv'):
+        if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
             filename = secure_filename(file.filename)
             filename = f"decimal_{filename}"
             file_path = os.path.join(compare_input_dir, filename)
             file.save(file_path)
+            
+            # 如果是xlsx文件，自动转换为csv
+            if filename.endswith('.xlsx') or filename.endswith('.xls'):
+                from common.csv_tool import convert_xlsx_to_csv
+                success, message, csv_path = convert_xlsx_to_csv(file_path, output_to_outputdata=False)
+                if success:
+                    csv_filename = os.path.basename(csv_path)
+                    return jsonify({
+                        'success': True,
+                        'filename': csv_filename,
+                        'original_filename': filename,
+                        'converted': True,
+                        'message': f'XLSX文件已转换为CSV: {csv_filename}'
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'XLSX文件转换失败: {message}'
+                    })
             
             return jsonify({
                 'success': True,
@@ -389,7 +427,7 @@ def upload_decimal_file():
                 'message': f'文件上传成功: {filename}'
             })
         else:
-            return jsonify({'success': False, 'error': '只支持CSV文件'})
+            return jsonify({'success': False, 'error': '只支持CSV和XLSX文件'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 

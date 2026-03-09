@@ -382,8 +382,8 @@
                         <!-- 上传文件模式 -->
                         <div id="decimal-upload-mode-container">
                             <div class="form-group">
-                                <label>CSV文件:</label>
-                                <input type="file" id="decimal-diff-file" accept=".csv"
+                                <label>CSV/XLSX文件:</label>
+                                <input type="file" id="decimal-diff-file" accept=".csv,.xlsx"
                                     onchange="handleDecimalFileSelect(this)">
                                 <div class="file-info" id="file-info-decimal">未选择文件</div>
                             </div>
@@ -510,8 +510,8 @@
                             <button class="btn-primary" onclick="executeDecimalProcess()" id="btn-execute-decimal"
                                 disabled style="flex: 1;">▶️ 执行处理</button>
                             <button class="btn-success" onclick="saveDecimalConfig()">💾 保存配置</button>
-                                <button class="btn-secondary" onclick="loadDecimalConfig(true)">📂 加载配置</button>
-                                <button class="btn-danger" onclick="clearOutput('decimal')">🗑️ 清空输出</button>
+                            <button class="btn-secondary" onclick="loadDecimalConfig(true)">📂 加载配置</button>
+                            <button class="btn-danger" onclick="clearOutput('decimal')">🗑️ 清空输出</button>
                         </div>
 
                         <div
@@ -644,7 +644,7 @@
                         <div class="form-group">
                             <label>上传新文件:</label>
                             <div style="display: flex; gap: 10px;">
-                                <input type="file" id="batch-run-file-upload" accept=".csv" style="flex: 1;">
+                                <input type="file" id="batch-run-file-upload" accept=".csv,.xlsx" style="flex: 1;">
                                 <button class="btn-success" onclick="uploadBatchRunFile()" style="padding: 6px 12px;">📤
                                     上传</button>
                             </div>

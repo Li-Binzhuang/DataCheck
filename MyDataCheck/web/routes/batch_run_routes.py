@@ -160,7 +160,7 @@ def save_batch_run_config():
 
 @batch_run_bp.route('/api/batch-run/upload', methods=['POST'])
 def upload_batch_run_file():
-    """上传CSV文件"""
+    """上传CSV或XLSX文件"""
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': '没有文件'})
@@ -169,13 +169,17 @@ def upload_batch_run_file():
         if file.filename == '':
             return jsonify({'success': False, 'error': '文件名为空'})
         
-        if file and file.filename.endswith('.csv'):
+        # 支持CSV和XLSX文件
+        allowed_extensions = ['.csv', '.xlsx', '.xls']
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        
+        if file and file_ext in allowed_extensions:
             filename = secure_filename(file.filename)
             file_path = os.path.join(BATCH_RUN_INPUT_DIR, filename)
             file.save(file_path)
             return jsonify({'success': True, 'filename': filename})
         
-        return jsonify({'success': False, 'error': '只支持CSV文件'})
+        return jsonify({'success': False, 'error': '只支持CSV和XLSX文件'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -247,12 +251,13 @@ def execute_batch_run_api():
 
 @batch_run_bp.route('/api/batch-run/files', methods=['GET'])
 def list_batch_run_files():
-    """列出输入目录中的CSV文件"""
+    """列出输入目录中的CSV和XLSX文件"""
     try:
         files = []
         if os.path.exists(BATCH_RUN_INPUT_DIR):
             for f in os.listdir(BATCH_RUN_INPUT_DIR):
-                if f.endswith('.csv'):
+                # 支持CSV和XLSX文件
+                if f.endswith('.csv') or f.endswith('.xlsx') or f.endswith('.xls'):
                     path = os.path.join(BATCH_RUN_INPUT_DIR, f)
                     size = os.path.getsize(path)
                     files.append({'name': f, 'size': size})

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 CSV工具模块
-功能：提供CSV文件读取、写入等通用功能（支持流式处理）
+功能：提供CSV文件读取、写入等通用功能（支持流式处理，支持XLSX文件）
 """
 
 import csv
@@ -12,10 +12,10 @@ from typing import List, Tuple, Iterator, Optional
 
 def read_csv_with_encoding(file_path: str) -> Tuple[List[str], List[List[str]]]:
     """
-    通用CSV文件读取函数，自动尝试多种编码
+    通用文件读取函数，支持CSV和XLSX格式，自动尝试多种编码
     
     Args:
-        file_path: CSV文件路径
+        file_path: CSV或XLSX文件路径
     
     Returns:
         (表头列表, 数据行列表)
@@ -23,7 +23,37 @@ def read_csv_with_encoding(file_path: str) -> Tuple[List[str], List[List[str]]]:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"文件不存在: {file_path}")
     
-    # 尝试多种编码方式
+    # 检查文件扩展名
+    file_ext = os.path.splitext(file_path)[1].lower()
+    
+    # 如果是XLSX文件，使用openpyxl读取
+    if file_ext in ['.xlsx', '.xls']:
+        try:
+            import openpyxl
+            workbook = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+            sheet = workbook.active
+            
+            headers = []
+            rows = []
+            
+            # 读取所有行
+            for i, row in enumerate(sheet.iter_rows(values_only=True)):
+                if i == 0:
+                    # 第一行作为表头，转换为字符串
+                    headers = [str(cell) if cell is not None else '' for cell in row]
+                else:
+                    # 数据行，转换为字符串
+                    rows.append([str(cell) if cell is not None else '' for cell in row])
+            
+            workbook.close()
+            print(f"XLSX文件读取成功: {file_path}, 共 {len(rows)} 行")
+            return headers, rows
+        except ImportError:
+            raise Exception("读取XLSX文件需要安装 openpyxl 库，请运行: pip install openpyxl")
+        except Exception as e:
+            raise Exception(f"读取XLSX文件失败: {str(e)}")
+    
+    # CSV文件，尝试多种编码方式
     encodings = ["utf-8", "gbk", "gb2312", "latin-1", "cp1252", "utf-8-sig"]
     
     for encoding in encodings:
@@ -38,7 +68,7 @@ def read_csv_with_encoding(file_path: str) -> Tuple[List[str], List[List[str]]]:
                 for row in reader:
                     rows.append(row)
             
-            print(f"文件读取成功: {file_path}, 使用编码: {encoding}, 共 {len(rows)} 行")
+            print(f"CSV文件读取成功: {file_path}, 使用编码: {encoding}, 共 {len(rows)} 行")
             return headers, rows
         except UnicodeDecodeError:
             continue
@@ -250,3 +280,59 @@ class CSVBatchWriter:
             self.writer.writerows(self.buffer)  # 批量写入
             self.file_handle.flush()
             self.buffer.clear()
+
+
+def convert_xlsx_to_csv(xlsx_file_path: str, csv_file_path: str = None, output_to_outputdata: bool = True) -> Tuple[bool, str, Optional[str]]:
+    """
+    将XLSX文件转换为CSV文件
+    
+    Args:
+        xlsx_file_path: XLSX文件路径
+        csv_file_path: CSV文件输出路径（可选，默认根据output_to_outputdata参数决定）
+        output_to_outputdata: 是否输出到outputdata目录（默认True）
+    
+    Returns:
+        tuple: (success, message, csv_path)
+    """
+    try:
+        import openpyxl
+    except ImportError:
+        return False, "需要安装openpyxl库，请运行: pip install openpyxl", None
+    
+    try:
+        # 如果没有指定csv路径，根据参数决定输出位置
+        if csv_file_path is None:
+            if output_to_outputdata:
+                # 将inputdata替换为outputdata
+                if 'inputdata' in xlsx_file_path:
+                    csv_file_path = xlsx_file_path.replace('inputdata', 'outputdata').rsplit('.', 1)[0] + '.csv'
+                else:
+                    # 如果路径中没有inputdata，则在同目录生成
+                    csv_file_path = xlsx_file_path.rsplit('.', 1)[0] + '.csv'
+            else:
+                # 使用xlsx文件同目录同名
+                csv_file_path = xlsx_file_path.rsplit('.', 1)[0] + '.csv'
+        
+        # 确保输出目录存在
+        output_dir = os.path.dirname(csv_file_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+        
+        # 读取XLSX文件
+        workbook = openpyxl.load_workbook(xlsx_file_path, read_only=True, data_only=True)
+        sheet = workbook.active
+        
+        # 写入CSV文件
+        with open(csv_file_path, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.writer(f)
+            for row in sheet.iter_rows(values_only=True):
+                # 转换为字符串，处理None值
+                csv_row = [str(cell) if cell is not None else '' for cell in row]
+                writer.writerow(csv_row)
+        
+        workbook.close()
+        
+        return True, f"成功转换: {os.path.basename(csv_file_path)}", csv_file_path
+        
+    except Exception as e:
+        return False, f"转换失败: {str(e)}", None

@@ -798,7 +798,7 @@ def save_online_config():
 
 @online_bp.route('/api/upload/online', methods=['POST'])
 def upload_online_file():
-    """上传CSV或PKL文件（线上灰度落数对比）"""
+    """上传CSV、XLSX或PKL文件（线上灰度落数对比）"""
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': '没有文件'})
@@ -807,8 +807,11 @@ def upload_online_file():
         if file.filename == '':
             return jsonify({'success': False, 'error': '文件名为空'})
         
-        # 支持CSV和PKL文件
-        if file and (file.filename.endswith('.csv') or file.filename.endswith('.pkl')):
+        # 支持CSV、XLSX和PKL文件
+        allowed_extensions = ['.csv', '.xlsx', '.xls', '.pkl']
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        
+        if file and file_ext in allowed_extensions:
             # 确保文件名安全
             filename = secure_filename(file.filename)
             file_path = os.path.join(online_input_dir, filename)
@@ -818,6 +821,7 @@ def upload_online_file():
             
             # 如果是pkl文件，自动转换为csv
             if filename.endswith('.pkl'):
+                from common.pkl_converter import convert_pkl_to_csv
                 success, message, csv_path = convert_pkl_to_csv(file_path)
                 if success:
                     csv_filename = os.path.basename(csv_path)
@@ -833,6 +837,24 @@ def upload_online_file():
                         'success': False,
                         'error': f'PKL文件转换失败: {message}'
                     })
+            # 如果是xlsx文件，自动转换为csv
+            elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+                from common.csv_tool import convert_xlsx_to_csv
+                success, message, csv_path = convert_xlsx_to_csv(file_path)
+                if success:
+                    csv_filename = os.path.basename(csv_path)
+                    return jsonify({
+                        'success': True,
+                        'filename': csv_filename,
+                        'original_filename': filename,
+                        'converted': True,
+                        'message': f'XLSX文件已转换为CSV: {csv_filename}'
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'XLSX文件转换失败: {message}'
+                    })
             else:
                 return jsonify({
                     'success': True,
@@ -841,7 +863,7 @@ def upload_online_file():
                     'message': f'文件上传成功: {filename}'
                 })
         else:
-            return jsonify({'success': False, 'error': '只支持CSV和PKL文件'})
+            return jsonify({'success': False, 'error': '只支持CSV、XLSX和PKL文件'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 

@@ -1,10 +1,10 @@
 {
   "scenarios": [
     {
-      "name": "2",
+      "name": "场景名称",
       "enabled": true,
-      "description": "2",
-      "input_csv_file": "b4f254eb-8bb9-4d80-9f45-465413c5e0e1-1.csv",
+      "description": "场景描述",
+      "input_csv_file": "result1_20260309_111142.csv",
       "output_file_prefix": "hd_p22",
       "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
       "thread_count": 150,

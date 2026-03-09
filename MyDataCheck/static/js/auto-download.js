@@ -1,13 +1,90 @@
 // ========== 自动下载功能 ==========
 
+// 下载记录的localStorage key
+const DOWNLOAD_HISTORY_KEY = 'myDataCheck_downloadHistory';
+
+/**
+ * 获取下载历史记录
+ */
+function getDownloadHistory() {
+    try {
+        const data = localStorage.getItem(DOWNLOAD_HISTORY_KEY);
+        return data ? JSON.parse(data) : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+/**
+ * 标记文件已下载
+ * @param {string} filename - 文件名
+ * @param {string} module - 模块名
+ */
+function markFileDownloaded(filename, module) {
+    try {
+        const history = getDownloadHistory();
+        const key = `${module}:${filename}`;
+        history[key] = {
+            filename,
+            module,
+            downloadTime: new Date().toISOString()
+        };
+        localStorage.setItem(DOWNLOAD_HISTORY_KEY, JSON.stringify(history));
+    } catch (e) {
+        console.error('[AutoDownload] 保存下载记录失败:', e);
+    }
+}
+
+/**
+ * 检查文件是否已下载
+ * @param {string} filename - 文件名
+ * @param {string} module - 模块名
+ */
+function isFileDownloaded(filename, module) {
+    const history = getDownloadHistory();
+    const key = `${module}:${filename}`;
+    return !!history[key];
+}
+
+/**
+ * 清理过期的下载记录（超过7天）
+ */
+function cleanupDownloadHistory() {
+    try {
+        const history = getDownloadHistory();
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        let cleaned = false;
+        for (const key in history) {
+            const record = history[key];
+            if (record.downloadTime) {
+                const downloadTime = new Date(record.downloadTime);
+                if (downloadTime < sevenDaysAgo) {
+                    delete history[key];
+                    cleaned = true;
+                }
+            }
+        }
+
+        if (cleaned) {
+            localStorage.setItem(DOWNLOAD_HISTORY_KEY, JSON.stringify(history));
+        }
+    } catch (e) {
+        console.error('[AutoDownload] 清理下载记录失败:', e);
+    }
+}
+
 /**
  * 任务完成后自动下载输出文件
  * @param {string} module - 模块名 (api_comparison, online_comparison, data_comparison)
  * @param {number} minutes - 获取最近多少分钟内的文件
+ * @param {string} taskId - 任务ID（可选），如果提供则自动标记任务为已下载
  */
-async function autoDownloadOutputFiles(module, minutes = 2) {
+async function autoDownloadOutputFiles(module, minutes = 2, taskId = null) {
     try {
         console.log(`[AutoDownload] 开始获取 ${module} 模块的输出文件...`);
+        console.log(`[AutoDownload] taskId: ${taskId}`);
 
         const response = await fetch('/api/latest-output-files', {
             method: 'POST',
@@ -26,21 +103,63 @@ async function autoDownloadOutputFiles(module, minutes = 2) {
 
         if (files.length === 0) {
             console.log('[AutoDownload] 没有找到需要下载的文件');
+            // 即使没有文件，如果提供了taskId，也标记任务为已下载
+            if (taskId) {
+                if (typeof markTaskDownloaded === 'function') {
+                    markTaskDownloaded(taskId);
+                    console.log(`[AutoDownload] 任务已标记为已下载（无文件）: ${taskId}`);
+                } else {
+                    console.error('[AutoDownload] markTaskDownloaded 函数不存在');
+                }
+            }
             return;
         }
 
-        console.log(`[AutoDownload] 找到 ${files.length} 个文件，开始下载...`);
+        // 过滤掉已下载的文件
+        const undownloadedFiles = files.filter(file => !isFileDownloaded(file.filename, module));
+
+        if (undownloadedFiles.length === 0) {
+            console.log(`[AutoDownload] 所有文件已下载，跳过重复下载`);
+            // 即使文件已下载，如果提供了taskId，也标记任务为已下载
+            if (taskId) {
+                if (typeof markTaskDownloaded === 'function') {
+                    markTaskDownloaded(taskId);
+                    console.log(`[AutoDownload] 任务已标记为已下载（文件已下载）: ${taskId}`);
+                } else {
+                    console.error('[AutoDownload] markTaskDownloaded 函数不存在');
+                }
+            }
+            return;
+        }
+
+        console.log(`[AutoDownload] 找到 ${undownloadedFiles.length} 个未下载的文件，开始下载...`);
 
         // 显示下载提示
-        showDownloadNotification(files);
+        showDownloadNotification(undownloadedFiles);
 
         // 依次下载文件（间隔500ms，避免浏览器阻止）
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        for (let i = 0; i < undownloadedFiles.length; i++) {
+            const file = undownloadedFiles[i];
             setTimeout(() => {
                 downloadFile(file.filename, module);
+                markFileDownloaded(file.filename, module);
             }, i * 500);
         }
+
+        // 如果提供了taskId，标记任务为已下载
+        if (taskId) {
+            if (typeof markTaskDownloaded === 'function') {
+                markTaskDownloaded(taskId);
+                console.log(`[AutoDownload] 任务已标记为已下载: ${taskId}`);
+            } else {
+                console.error('[AutoDownload] markTaskDownloaded 函数不存在');
+            }
+        } else {
+            console.warn('[AutoDownload] 未提供 taskId，无法标记任务为已下载');
+        }
+
+        // 清理过期记录
+        cleanupDownloadHistory();
 
     } catch (error) {
         console.error('[AutoDownload] 自动下载失败:', error);

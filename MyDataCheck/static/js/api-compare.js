@@ -815,6 +815,7 @@ function executeConfig() {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
+                let savedTaskId = null; // 保存taskId，避免被clearCurrentTaskId清除
 
                 function readStream() {
                     reader.read().then(({ done, value }) => {
@@ -833,8 +834,8 @@ function executeConfig() {
                                 }
                             });
                             document.getElementById('loading-spinner-api').style.display = 'none';
-                            // 自动下载输出文件
-                            setTimeout(() => autoDownloadOutputFiles('api_comparison', 2), 1000);
+                            // 自动下载输出文件，使用保存的taskId
+                            setTimeout(() => autoDownloadOutputFiles('api_comparison', 2, savedTaskId), 1000);
                             return;
                         }
 
@@ -867,8 +868,11 @@ function executeConfig() {
                             if (data.type === 'start') {
                                 appendOutput(data.message, 'info', tab);
                                 // 保存task_id并显示停止按钮
-                                if (data.task_id && typeof setCurrentTaskId === 'function') {
-                                    setCurrentTaskId(data.task_id);
+                                if (data.task_id) {
+                                    savedTaskId = data.task_id; // 保存到局部变量
+                                    if (typeof setCurrentTaskId === 'function') {
+                                        setCurrentTaskId(data.task_id);
+                                    }
                                 }
                             } else if (data.type === 'output') {
                                 appendOutput(data.message, 'output', tab);

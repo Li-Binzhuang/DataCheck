@@ -1000,6 +1000,10 @@ async function executeOnlineScenario(scenarioId) {
                             const data = JSON.parse(line.substring(6));
                             if (data.type === 'start') {
                                 appendOutput(data.message, 'info', tab);
+                                // 保存task_id
+                                if (data.task_id) {
+                                    window._currentOnlineTaskId = data.task_id;
+                                }
                             } else if (data.type === 'output') {
                                 appendOutput(data.message, 'output', tab);
                             } else if (data.type === 'error') {
@@ -1040,8 +1044,9 @@ async function executeOnlineScenario(scenarioId) {
                             if (savedLoadingSpinner) {
                                 savedLoadingSpinner.style.display = 'none';
                             }
-                            // 自动下载输出文件
-                            setTimeout(() => autoDownloadOutputFiles('online_comparison', 2), 1000);
+                            // 自动下载输出文件，并传入taskId
+                            const taskId = window._currentOnlineTaskId || null;
+                            setTimeout(() => autoDownloadOutputFiles('online_comparison', 2, taskId), 1000);
                             return;
                         }
 
@@ -1521,8 +1526,9 @@ function executeOnlineConfig() {
                             appendOutput('🎉 任务执行完成！', 'success', 'online');
                             document.getElementById('execute-btn-online').disabled = false;
                             document.getElementById('loading-spinner-online').style.display = 'none';
-                            // 自动下载输出文件
-                            setTimeout(() => autoDownloadOutputFiles('online_comparison', 2), 1000);
+                            // 自动下载输出文件，并传入taskId
+                            const taskId = window._currentOnlineTaskId || null;
+                            setTimeout(() => autoDownloadOutputFiles('online_comparison', 2, taskId), 1000);
                             return;
                         }
 
@@ -1555,6 +1561,10 @@ function executeOnlineConfig() {
                             const data = JSON.parse(line.substring(6));
                             if (data.type === 'start') {
                                 appendOutput(data.message, 'info', tab);
+                                // 保存task_id
+                                if (data.task_id) {
+                                    window._currentOnlineTaskId = data.task_id;
+                                }
                             } else if (data.type === 'output') {
                                 const message = data.message;
                                 appendOutput(message, 'output', tab);

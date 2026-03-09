@@ -5,21 +5,65 @@
  * 2. 弹出提醒让用户下载
  */
 
-// 已提醒过的任务ID集合（避免重复提醒）
-const NOTIFIED_TASKS_KEY = 'myDataCheck_notifiedTasks';
+// 已下载任务的localStorage key
+const DOWNLOADED_TASKS_KEY = 'myDataCheck_downloadedTasks';
 
-// 获取已提醒的任务列表
-function getNotifiedTasks() {
-    const data = localStorage.getItem(NOTIFIED_TASKS_KEY);
-    return data ? JSON.parse(data) : [];
+// 获取已下载的任务列表
+function getDownloadedTasks() {
+    try {
+        const data = localStorage.getItem(DOWNLOADED_TASKS_KEY);
+        return data ? JSON.parse(data) : {};
+    } catch (e) {
+        return {};
+    }
 }
 
-// 标记任务已提醒
-function markTaskNotified(taskId) {
-    const notified = getNotifiedTasks();
-    if (!notified.includes(taskId)) {
-        notified.push(taskId);
-        localStorage.setItem(NOTIFIED_TASKS_KEY, JSON.stringify(notified));
+// 标记任务已下载
+function markTaskDownloaded(taskId) {
+    try {
+        console.log(`[TaskNotification] 标记任务为已下载: ${taskId}`);
+        const downloaded = getDownloadedTasks();
+        downloaded[taskId] = {
+            taskId,
+            downloadTime: new Date().toISOString()
+        };
+        localStorage.setItem(DOWNLOADED_TASKS_KEY, JSON.stringify(downloaded));
+        console.log(`[TaskNotification] 任务已保存到 localStorage:`, downloaded[taskId]);
+    } catch (e) {
+        console.error('保存任务下载记录失败:', e);
+    }
+}
+
+// 检查任务是否已下载
+function isTaskDownloaded(taskId) {
+    const downloaded = getDownloadedTasks();
+    return !!downloaded[taskId];
+}
+
+// 清理过期的任务下载记录（超过30天）
+function cleanupTaskDownloadHistory() {
+    try {
+        const downloaded = getDownloadedTasks();
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        let cleaned = false;
+        for (const taskId in downloaded) {
+            const record = downloaded[taskId];
+            if (record.downloadTime) {
+                const downloadTime = new Date(record.downloadTime);
+                if (downloadTime < thirtyDaysAgo) {
+                    delete downloaded[taskId];
+                    cleaned = true;
+                }
+            }
+        }
+
+        if (cleaned) {
+            localStorage.setItem(DOWNLOADED_TASKS_KEY, JSON.stringify(downloaded));
+        }
+    } catch (e) {
+        console.error('清理任务下载记录失败:', e);
     }
 }
 
@@ -29,22 +73,36 @@ async function checkCompletedTasks() {
     if (!userId) return;
 
     try {
+        console.log(`[TaskNotification] 检查用户 ${userId} 的已完成任务...`);
+
         const response = await fetch(`/api/tasks?user_id=${encodeURIComponent(userId)}&status=completed`);
         const data = await response.json();
 
         if (data.success && data.tasks && data.tasks.length > 0) {
-            const notifiedTasks = getNotifiedTasks();
+            console.log(`[TaskNotification] 找到 ${data.tasks.length} 个已完成任务`);
 
-            // 过滤出未提醒的已完成任务
-            const unnotifiedTasks = data.tasks.filter(task =>
-                !notifiedTasks.includes(task.task_id) &&
-                task.status === 'completed'
-            );
+            // 获取已下载的任务记录
+            const downloadedTasks = getDownloadedTasks();
+            console.log(`[TaskNotification] 已下载任务记录:`, downloadedTasks);
 
-            if (unnotifiedTasks.length > 0) {
-                showTaskNotificationModal(unnotifiedTasks);
+            // 过滤出未下载的已完成任务
+            const undownloadedTasks = data.tasks.filter(task => {
+                const isDownloaded = isTaskDownloaded(task.task_id);
+                console.log(`[TaskNotification] 任务 ${task.task_id}: ${isDownloaded ? '已下载' : '未下载'}`);
+                return !isDownloaded && task.status === 'completed';
+            });
+
+            console.log(`[TaskNotification] 未下载任务数: ${undownloadedTasks.length}`);
+
+            if (undownloadedTasks.length > 0) {
+                showTaskNotificationModal(undownloadedTasks);
             }
+        } else {
+            console.log(`[TaskNotification] 没有找到已完成任务`);
         }
+
+        // 清理过期记录
+        cleanupTaskDownloadHistory();
     } catch (error) {
         console.error('检查已完成任务失败:', error);
     }
@@ -88,7 +146,7 @@ function showTaskNotificationModal(tasks) {
         </div>
         <div class="task-notification-footer">
             <button class="btn-later" onclick="dismissTaskNotification()">稍后提醒</button>
-            <button class="btn-download-all" onclick="downloadAllTaskFiles()">全部下载</button>
+            <button class="btn-download-all" onclick="confirmDownloadNotification()">下载提醒</button>
         </div>
     `;
 
@@ -135,8 +193,8 @@ async function downloadTaskFiles(taskId) {
                 await sleep(500); // 间隔500ms避免浏览器阻止
             }
 
-            // 标记任务已提醒
-            markTaskNotified(taskId);
+            // 标记任务已下载
+            markTaskDownloaded(taskId);
 
             // 更新UI
             const taskItem = document.querySelector(`.task-notification-item[data-task-id="${taskId}"]`);
@@ -167,9 +225,24 @@ async function downloadAllTaskFiles() {
     closeTaskNotificationModal();
 }
 
-// 稍后提醒（关闭弹窗但不标记已提醒）
+// 稍后提醒（关闭弹窗但不标记已下载）
 function dismissTaskNotification() {
     closeTaskNotificationModal();
+}
+
+// 点击"下载提醒"按钮时，标记所有任务为已下载并关闭弹窗
+function confirmDownloadNotification() {
+    const tasks = window._pendingNotificationTasks || [];
+
+    // 标记所有任务为已下载
+    for (const task of tasks) {
+        markTaskDownloaded(task.task_id);
+    }
+
+    // 关闭弹窗
+    closeTaskNotificationModal();
+
+    console.log(`[TaskNotification] 已标记 ${tasks.length} 个任务为已下载`);
 }
 
 // 下载文件

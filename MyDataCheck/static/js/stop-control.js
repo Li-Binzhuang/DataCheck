@@ -20,7 +20,7 @@ let currentTaskId = null;
 function setCurrentTaskId(taskId) {
     currentTaskId = taskId;
     console.log('[StopControl] 任务ID已设置:', taskId);
-    
+
     // 显示停止按钮
     showStopButton();
 }
@@ -31,9 +31,17 @@ function setCurrentTaskId(taskId) {
 function clearCurrentTaskId() {
     console.log('[StopControl] 任务ID已清除:', currentTaskId);
     currentTaskId = null;
-    
+
     // 隐藏停止按钮
     hideStopButton();
+}
+
+/**
+ * 获取当前任务ID
+ * @returns {string|null} 当前任务ID
+ */
+function getCurrentTaskId() {
+    return currentTaskId;
 }
 
 /**
@@ -66,33 +74,33 @@ async function stopCurrentTask() {
         console.warn('[StopControl] 没有正在运行的任务');
         return;
     }
-    
+
     const stopBtn = document.getElementById('btn-stop-task');
     if (stopBtn) {
         stopBtn.disabled = true;
         stopBtn.textContent = '停止中...';
     }
-    
+
     try {
         console.log('[StopControl] 发送停止请求:', currentTaskId);
-        
+
         const response = await fetch(`/api/stop/task/${currentTaskId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             console.log('[StopControl] 停止信号已发送');
-            
+
             // 显示提示
             if (typeof showAlert === 'function') {
                 showAlert('停止信号已发送，任务将在下一个检查点停止', 'info');
             }
-            
+
             // 更新按钮状态
             if (stopBtn) {
                 stopBtn.textContent = '已发送停止信号';
@@ -100,11 +108,11 @@ async function stopCurrentTask() {
             }
         } else {
             console.error('[StopControl] 停止失败:', result.message);
-            
+
             if (typeof showAlert === 'function') {
                 showAlert(`停止失败: ${result.message}`, 'error');
             }
-            
+
             // 恢复按钮
             if (stopBtn) {
                 stopBtn.textContent = '停止执行';
@@ -113,11 +121,11 @@ async function stopCurrentTask() {
         }
     } catch (error) {
         console.error('[StopControl] 停止请求失败:', error);
-        
+
         if (typeof showAlert === 'function') {
             showAlert(`停止请求失败: ${error.message}`, 'error');
         }
-        
+
         // 恢复按钮
         if (stopBtn) {
             stopBtn.textContent = '停止执行';
@@ -133,7 +141,7 @@ async function getAllTasks() {
     try {
         const response = await fetch('/api/stop/tasks');
         const result = await response.json();
-        
+
         if (result.success) {
             console.log('[StopControl] 任务列表:', result.tasks);
             return result.tasks;
@@ -155,9 +163,9 @@ async function clearCompletedTasks() {
         const response = await fetch('/api/stop/clear', {
             method: 'POST'
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             console.log('[StopControl] 已清理任务:', result.cleared_count);
             return result.cleared_count;
@@ -172,12 +180,12 @@ async function clearCompletedTasks() {
 }
 
 // 页面加载时初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('[StopControl] 停止控制模块已加载');
-    
+
     // 隐藏停止按钮
     hideStopButton();
-    
+
     // 绑定停止按钮事件
     const stopBtn = document.getElementById('btn-stop-task');
     if (stopBtn) {

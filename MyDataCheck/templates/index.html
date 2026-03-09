@@ -37,21 +37,28 @@
                     <span class="icon">🌐</span>
                     <span>线上灰度落数对比</span>
                 </div>
+                <div class="menu-item" onclick="switchPage('batch-run')">
+                    <span class="icon">🚀</span>
+                    <span>跑数</span>
+                </div>
                 <div class="menu-item" onclick="switchPage('compare')">
                     <span class="icon">📊</span>
                     <span>csv数据对比</span>
                 </div>
-                <div class="menu-item" onclick="switchPage('decimal')">
-                    <span class="icon">�</span>
-                    <span>小数处理工具</span>
+                <div class="menu-item menu-parent" onclick="toggleSubmenu(event, 'tools')">
+                    <span class="icon">🛠️</span>
+                    <span>小工具集合</span>
+                    <span class="submenu-arrow">▼</span>
                 </div>
-                <div class="menu-item" onclick="switchPage('pkl')">
-                    <span class="icon">�</span>
-                    <span>PKL文件解析</span>
-                </div>
-                <div class="menu-item" onclick="switchPage('batch-run')">
-                    <span class="icon">🚀</span>
-                    <span>跑数</span>
+                <div class="submenu" id="submenu-tools">
+                    <div class="menu-item submenu-item" onclick="switchPage('decimal')">
+                        <span class="icon">🔢</span>
+                        <span>小数处理工具</span>
+                    </div>
+                    <div class="menu-item submenu-item" onclick="switchPage('pkl')">
+                        <span class="icon">📦</span>
+                        <span>PKL文件解析</span>
+                    </div>
                 </div>
             </div>
         </div>

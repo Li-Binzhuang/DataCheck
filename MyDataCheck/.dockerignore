@@ -43,8 +43,8 @@ env/
 logs/
 
 # 测试数据
-# inputdata/
-# outputdata/
+inputdata/
+outputdata/
 
 # 文档
 docs/
@@ -70,3 +70,9 @@ build/
 # 大型数据文件（可根据需要调整）
 *.csv
 *.xlsx
+*.xls
+*.json.bak
+*.json.old
+
+# MyDataCheck 日志和输出
+MyDataCheck/logs/

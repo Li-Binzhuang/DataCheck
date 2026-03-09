@@ -18,6 +18,7 @@ download_bp = Blueprint('download_routes', __name__)
 # 获取项目根目录
 SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BATCH_RUN_OUTPUT_DIR = os.path.join(SCRIPT_DIR, "outputdata", "batch_run")
+MERGE_CSV_OUTPUT_DIR = os.path.join(SCRIPT_DIR, "outputdata", "merge_csv")
 
 # 输出目录映射
 OUTPUT_DIRS = {
@@ -25,6 +26,7 @@ OUTPUT_DIRS = {
     'online_comparison': ONLINE_OUTPUT_DIR,
     'data_comparison': COMPARE_OUTPUT_DIR,
     'batch_run': BATCH_RUN_OUTPUT_DIR,
+    'merge_csv': MERGE_CSV_OUTPUT_DIR,
 }
 
 

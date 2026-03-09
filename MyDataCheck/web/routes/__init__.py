@@ -17,6 +17,7 @@ def register_blueprints(app):
     from .stop_routes import stop_bp
     from .batch_run_routes import batch_run_bp
     from .download_routes import download_bp
+    from .merge_csv_routes import merge_csv_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
@@ -26,3 +27,4 @@ def register_blueprints(app):
     app.register_blueprint(stop_bp)
     app.register_blueprint(batch_run_bp)
     app.register_blueprint(download_bp)
+    app.register_blueprint(merge_csv_bp)

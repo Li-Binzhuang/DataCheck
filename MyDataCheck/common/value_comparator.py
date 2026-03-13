@@ -43,7 +43,7 @@ def _normalize_scientific_notation(value: Any) -> Any:
         return value
 
 
-def compare_values(csv_value: Any, api_value: Any, header: str = "", ignore_default_fill: bool = False) -> bool:
+def compare_values(csv_value: Any, api_value: Any, header: str = "", ignore_default_fill: bool = False, ignore_zero_nan: bool = False, enable_tolerance: bool = False, tolerance_value: float = 0.000001) -> bool:
     """
     比较CSV值和接口值是否一致
 
@@ -52,6 +52,9 @@ def compare_values(csv_value: Any, api_value: Any, header: str = "", ignore_defa
         api_value: 接口返回的值
         header: 字段名（用于特殊处理）
         ignore_default_fill: 是否忽略默认填充值（-999和null视为一致）
+        ignore_zero_nan: 是否忽略0和NaN（0和NaN/空值视为一致）
+        enable_tolerance: 是否启用容错对比（差值在容错范围内视为一致）
+        tolerance_value: 容错值（默认0.000001）
 
     Returns:
         如果一致返回True，否则返回False
@@ -62,6 +65,40 @@ def compare_values(csv_value: Any, api_value: Any, header: str = "", ignore_defa
 
     api_str_check = str(api_value).strip().lower() if api_value is not None else ""
     api_null = api_value is None or api_str_check in ["null", "none", ""]
+
+    # 如果启用了忽略0和NaN选项
+    if ignore_zero_nan:
+        # 检查是否为0或NaN/空值
+        csv_is_zero_or_nan = False
+        api_is_zero_or_nan = False
+        
+        # 检查CSV值是否为 0 或 NaN/空值
+        if csv_null or csv_str_check in ["nan", "na", "n/a"]:
+            csv_is_zero_or_nan = True
+        else:
+            try:
+                csv_num = float(str(csv_value).strip())
+                # 检查是否为0或NaN
+                if csv_num == 0 or (csv_num != csv_num):  # csv_num != csv_num 用于检测NaN
+                    csv_is_zero_or_nan = True
+            except (ValueError, TypeError):
+                pass
+        
+        # 检查API值是否为 0 或 NaN/空值
+        if api_null or api_str_check in ["nan", "na", "n/a"]:
+            api_is_zero_or_nan = True
+        else:
+            try:
+                api_num = float(str(api_value).strip())
+                # 检查是否为0或NaN
+                if api_num == 0 or (api_num != api_num):  # api_num != api_num 用于检测NaN
+                    api_is_zero_or_nan = True
+            except (ValueError, TypeError):
+                pass
+        
+        # 如果两个值都是0或NaN/空值，则认为一致
+        if csv_is_zero_or_nan and api_is_zero_or_nan:
+            return True
 
     # 如果启用了忽略默认填充值选项
     if ignore_default_fill:
@@ -112,9 +149,17 @@ def compare_values(csv_value: Any, api_value: Any, header: str = "", ignore_defa
         # api_value已经是数字，尝试将csv_value也转换为数字进行比较
         try:
             csv_num = float(str(csv_value_normalized).strip()) if not isinstance(csv_value_normalized, (int, float)) else csv_value_normalized
-            # 使用小的误差范围来处理浮点数精度问题
-            if abs(csv_num - api_value_normalized) < 1e-10:
-                return True
+            
+            # 如果启用容错对比
+            if enable_tolerance:
+                # 差值在容错范围内视为一致
+                if abs(csv_num - api_value_normalized) <= tolerance_value:
+                    return True
+            else:
+                # 精确对比：使用小的误差范围来处理浮点数精度问题
+                if abs(csv_num - api_value_normalized) < 1e-10:
+                    return True
+            
             # 如果两个数都是整数（或可以表示为整数），进行整数比较
             if csv_num == int(csv_num) and api_value_normalized == int(api_value_normalized):
                 return int(csv_num) == int(api_value_normalized)
@@ -133,10 +178,16 @@ def compare_values(csv_value: Any, api_value: Any, header: str = "", ignore_defa
         csv_num = float(csv_str)
         api_num = float(api_str)
         
-        # 优化数值比较：处理整数和浮点数表示相同数值的情况（如 8 和 8.0）
-        # 使用小的误差范围来处理浮点数精度问题
-        if abs(csv_num - api_num) < 1e-10:
-            return True
+        # 如果启用容错对比
+        if enable_tolerance:
+            # 差值在容错范围内视为一致
+            if abs(csv_num - api_num) <= tolerance_value:
+                return True
+        else:
+            # 精确对比：优化数值比较：处理整数和浮点数表示相同数值的情况（如 8 和 8.0）
+            # 使用小的误差范围来处理浮点数精度问题
+            if abs(csv_num - api_num) < 1e-10:
+                return True
         
         # 如果两个数都是整数（或可以表示为整数），进行整数比较
         if csv_num == int(csv_num) and api_num == int(api_num):

@@ -65,7 +65,20 @@ def execute_compare_flow(config: dict, output_queue: Queue, task_id: str = None)
         print(f"[INFO] 接口/灰度/从库特征表特征起始列: {config['feature_start_2']}")
         print(f"[INFO] 转换特征值为数值: {config.get('convert_feature_to_number', False)}")
         print(f"[INFO] 忽略默认填充值: {config.get('ignore_default_fill', False)}")
+        print(f"[INFO] 忽略0和NaN: {config.get('ignore_zero_nan', False)}")
         print(f"[INFO] 输出全量数据: {config.get('output_full_data', False)}")
+        
+        # 特征名称映射配置
+        enable_column_mapping = config.get('enable_column_mapping', False)
+        mapping_file = config.get('mapping_file', None)
+        mapping_prefix = config.get('mapping_prefix', '')
+        mapping_suffix = config.get('mapping_suffix', '')
+        
+        if enable_column_mapping:
+            print(f"[INFO] 启用特征名称映射: 是")
+            print(f"[INFO] 映射文件: {mapping_file}")
+            print(f"[INFO] 映射前缀: '{mapping_prefix}'")
+            print(f"[INFO] 映射后缀: '{mapping_suffix}'")
         
         # 构建文件路径 - 支持直接路径模式
         file1 = config['file1']
@@ -112,7 +125,14 @@ def execute_compare_flow(config: dict, output_queue: Queue, task_id: str = None)
             config['feature_start_1'],
             config['feature_start_2'],
             config.get('convert_feature_to_number', True),
-            config.get('ignore_default_fill', False)
+            config.get('ignore_default_fill', False),
+            config.get('enable_column_mapping', False),
+            config.get('mapping_file', None),
+            config.get('mapping_prefix', ''),
+            config.get('mapping_suffix', ''),
+            config.get('ignore_zero_nan', False),
+            config.get('enable_tolerance', False),
+            config.get('tolerance_value', 0.000001)
         )
         
         # 生成报告

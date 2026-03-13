@@ -83,6 +83,12 @@ def execute_comparison_from_config(config_path: str = None):
             convert_feature_to_number = scenario.get('convert_feature_to_number', 
                                                      global_config.get('default_convert_feature_to_number', True))
             output_prefix = scenario.get('output_prefix', 'compare')
+            ignore_default_fill = scenario.get('ignore_default_fill', False)
+            ignore_zero_nan = scenario.get('ignore_zero_nan', False)
+            enable_column_mapping = scenario.get('enable_column_mapping', False)
+            mapping_file = scenario.get('mapping_file', None)
+            mapping_prefix = scenario.get('mapping_prefix', '')
+            mapping_suffix = scenario.get('mapping_suffix', '')
             
             # 构建文件路径
             sql_file_path = os.path.join(input_dir, sql_file)
@@ -104,7 +110,14 @@ def execute_comparison_from_config(config_path: str = None):
             print(f"  Sql文件特征起始列: {sql_feature_start}")
             print(f"  接口文件特征起始列: {api_feature_start}")
             print(f"  转换特征值为数值: {convert_feature_to_number}")
+            print(f"  忽略默认填充值: {ignore_default_fill}")
+            print(f"  忽略0和NaN: {ignore_zero_nan}")
             print(f"  输出前缀: {output_prefix}")
+            if enable_column_mapping:
+                print(f"  启用特征名称映射: 是")
+                print(f"  映射文件: {mapping_file}")
+                print(f"  映射前缀: '{mapping_prefix}'")
+                print(f"  映射后缀: '{mapping_suffix}'")
             
             comparison_results = compare_two_files(
                 sql_file_path,
@@ -113,7 +126,15 @@ def execute_comparison_from_config(config_path: str = None):
                 api_key_column,
                 sql_feature_start,
                 api_feature_start,
-                convert_feature_to_number
+                convert_feature_to_number,
+                ignore_default_fill,
+                enable_column_mapping,
+                mapping_file,
+                mapping_prefix,
+                mapping_suffix,
+                ignore_zero_nan,
+                False,  # enable_tolerance
+                0.000001  # tolerance_value
             )
             
             # 生成报告

@@ -59,7 +59,14 @@ def compare_two_files(
     sql_feature_start: int = 1,
     api_feature_start: int = 1,
     convert_feature_to_number: bool = True,
-    ignore_default_fill: bool = False
+    ignore_default_fill: bool = False,
+    enable_column_mapping: bool = False,
+    mapping_file: str = None,
+    mapping_prefix: str = "",
+    mapping_suffix: str = "",
+    ignore_zero_nan: bool = False,
+    enable_tolerance: bool = False,
+    tolerance_value: float = 0.000001
 ):
     """
     对比两个CSV/XLSX文件（性能优化版）
@@ -79,6 +86,13 @@ def compare_two_files(
         api_feature_start: 接口文件特征列起始索引（从0开始）
         convert_feature_to_number: 是否转换特征值为数值类型（默认True）
         ignore_default_fill: 是否忽略默认填充值（-999和null视为一致，默认False）
+        enable_column_mapping: 是否启用特征名称映射（默认False）
+        mapping_file: 指定要映射的文件（'file1'或'file2'，默认None表示不映射）
+        mapping_prefix: 特征列名前缀（默认空字符串）
+        mapping_suffix: 特征列名后缀（默认空字符串）
+        ignore_zero_nan: 是否忽略0和NaN（0和NaN/空值视为一致，默认False）
+        enable_tolerance: 是否启用容错对比（默认False，精确对比）
+        tolerance_value: 容错值，差值在此范围内视为一致（默认0.000001）
     
     Returns:
         包含对比结果的字典
@@ -96,6 +110,15 @@ def compare_two_files(
     print(f"接口文件特征列起始索引: {api_feature_start}")
     print(f"转换特征值为数值: {convert_feature_to_number}")
     print(f"忽略默认填充值: {ignore_default_fill}")
+    print(f"忽略0和NaN: {ignore_zero_nan}")
+    print(f"启用容错对比: {enable_tolerance}")
+    if enable_tolerance:
+        print(f"容错值: {tolerance_value}")
+    print(f"启用特征名称映射: {enable_column_mapping}")
+    if enable_column_mapping:
+        print(f"映射文件: {mapping_file}")
+        print(f"映射前缀: '{mapping_prefix}'")
+        print(f"映射后缀: '{mapping_suffix}'")
     
     # 读取两个文件
     print("\n[1/5] 读取文件...")
@@ -120,6 +143,33 @@ def compare_two_files(
     # 获取特征列
     feature_cols_sql = headers_sql[sql_feature_start:] if len(headers_sql) > sql_feature_start else []
     feature_cols_api = headers_api[api_feature_start:] if len(headers_api) > api_feature_start else []
+    
+    # 应用特征名称映射（如果启用）
+    if enable_column_mapping and mapping_file:
+        print(f"\n[特征名称映射] 正在应用映射...")
+        
+        # 验证映射文件参数
+        if mapping_file not in ['file1', 'file2']:
+            print(f"  ⚠️  警告: 映射文件参数无效 '{mapping_file}'，应为 'file1' 或 'file2'")
+            print(f"  跳过映射，使用原始列名")
+        elif not mapping_prefix and not mapping_suffix:
+            print(f"  ⚠️  警告: 前缀和后缀都为空，映射无效")
+            print(f"  跳过映射，使用原始列名")
+        else:
+            if mapping_file == 'file1':
+                # 为file1（Sql文件）的特征列添加前缀/后缀
+                original_feature_cols_sql = feature_cols_sql.copy()
+                feature_cols_sql = [f"{mapping_prefix}{col}{mapping_suffix}" for col in feature_cols_sql]
+                print(f"  已为file1的 {len(feature_cols_sql)} 个特征列添加映射")
+                if len(original_feature_cols_sql) > 0:
+                    print(f"  示例: '{original_feature_cols_sql[0]}' -> '{feature_cols_sql[0]}'")
+            elif mapping_file == 'file2':
+                # 为file2（接口文件）的特征列添加前缀/后缀
+                original_feature_cols_api = feature_cols_api.copy()
+                feature_cols_api = [f"{mapping_prefix}{col}{mapping_suffix}" for col in feature_cols_api]
+                print(f"  已为file2的 {len(feature_cols_api)} 个特征列添加映射")
+                if len(original_feature_cols_api) > 0:
+                    print(f"  示例: '{original_feature_cols_api[0]}' -> '{feature_cols_api[0]}'")
     
     print(f"Sql文件特征列数: {len(feature_cols_sql)}")
     print(f"接口文件特征列数: {len(feature_cols_api)}")
@@ -306,7 +356,7 @@ def compare_two_files(
             # 判断差异（以Sql文件为基准）
             if sql_idx is not None and api_idx is not None:
                 # 特征在两个文件中都存在，比较值
-                if not compare_values(api_value, sql_value, feature_name, ignore_default_fill):
+                if not compare_values(api_value, sql_value, feature_name, ignore_default_fill, ignore_zero_nan, enable_tolerance, tolerance_value):
                     differences_dict[(key_value, feature_name)] = (api_value, sql_value, cust_no, time_value)
             elif sql_idx is not None:
                 # 特征在Sql文件中存在，在接口文件中不存在

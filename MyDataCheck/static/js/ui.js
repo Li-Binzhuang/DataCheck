@@ -59,6 +59,16 @@ function switchPage(pageName) {
     if (targetPage) {
         targetPage.classList.add('active');
         console.log('Showing page:', targetPage.id);
+
+        // 如果切换到数据对比页面，重新加载配置
+        if (pageName === 'compare') {
+            console.log('[INFO] 切换到数据对比页面，重新加载配置...');
+            setTimeout(() => {
+                if (typeof loadCompareConfig === 'function') {
+                    loadCompareConfig();
+                }
+            }, 100);
+        }
     } else {
         console.error('Page not found:', `page-${pageName}`);
     }

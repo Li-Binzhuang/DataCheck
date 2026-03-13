@@ -323,12 +323,89 @@
 
                         <div class="form-group">
                             <div class="checkbox-group">
+                                <input type="checkbox" id="compare-ignore-zero-nan">
+                                <label for="compare-ignore-zero-nan" style="margin: 0;">忽略0和NaN</label>
+                            </div>
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                                勾选后，0 和 NaN/空值 会被视为一致（默认不勾选）
+                            </p>
+                        </div>
+
+                        <!-- 容错配置 -->
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="compare-enable-tolerance" onchange="toggleToleranceConfig()">
+                                <label for="compare-enable-tolerance" style="margin: 0;">启用容错对比</label>
+                            </div>
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                                勾选后，差值在容错范围内的数值会被视为一致（默认不勾选，精确对比）
+                            </p>
+                        </div>
+
+                        <div id="tolerance-config-container"
+                            style="display: none; margin-left: 22px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <div class="form-group">
+                                <label>容错值（差值范围）:</label>
+                                <input type="number" id="compare-tolerance-value" value="0.000001" step="0.000001"
+                                    min="0" placeholder="0.000001">
+                                <p style="color: #666; font-size: 10px; margin-top: 3px; line-height: 1.4;">
+                                    <strong>说明：</strong>当两个数值的差值绝对值 ≤ 容错值时，视为一致<br>
+                                    <strong>示例：</strong>容错值为 0.000001 时，1.0000001 和 1.0 会被视为一致
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-group">
                                 <input type="checkbox" id="compare-output-full">
                                 <label for="compare-output-full" style="margin: 0;">输出全量数据合并文件</label>
                             </div>
                             <p
                                 style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
                                 勾选后，会生成全量数据合并CSV文件（文件较大时会增加处理时间）
+                            </p>
+                        </div>
+
+                        <!-- 特征名称映射配置 -->
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="compare-enable-mapping" onchange="toggleMappingConfig()">
+                                <label for="compare-enable-mapping" style="margin: 0;">启用特征名称映射</label>
+                            </div>
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                                勾选后，可为指定文件的特征列名添加前缀和/或后缀，然后再进行对比
+                            </p>
+                        </div>
+
+                        <div id="mapping-config-container"
+                            style="display: none; margin-left: 22px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <div class="form-group">
+                                <label>映射文件:</label>
+                                <select id="compare-mapping-file">
+                                    <option value="">请选择</option>
+                                    <option value="file1">模型特征表 (file1)</option>
+                                    <option value="file2">接口/灰度/从库特征表 (file2)</option>
+                                </select>
+                                <p style="color: #666; font-size: 10px; margin-top: 3px;">
+                                    选择要添加前缀/后缀的文件
+                                </p>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>特征列名前缀:</label>
+                                    <input type="text" id="compare-mapping-prefix" placeholder="如: model_">
+                                </div>
+                                <div class="form-group">
+                                    <label>特征列名后缀:</label>
+                                    <input type="text" id="compare-mapping-suffix" placeholder="如: _v1">
+                                </div>
+                            </div>
+                            <p style="color: #666; font-size: 10px; margin-top: 3px; line-height: 1.4;">
+                                <strong>示例：</strong>特征列 "age" 添加前缀 "model_" 和后缀 "_v1" 后变为 "model_age_v1"<br>
+                                可以只添加前缀或后缀，也可以都添加
                             </p>
                         </div>
 

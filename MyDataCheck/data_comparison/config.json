@@ -17,7 +17,15 @@
       "sql_feature_start": 7,
       "api_feature_start": 2,
       "convert_feature_to_number": true,
-      "output_prefix": "sms_11"
+      "output_prefix": "sms_0311zz",
+      "ignore_default_fill": false,
+      "ignore_zero_nan": true,
+      "enable_column_mapping": true,
+      "mapping_file": "file1",
+      "mapping_prefix": "local_all_sms_",
+      "mapping_suffix": "_v3",
+      "enable_tolerance": true,
+      "tolerance_value": 1e-05
     }
   ],
   "global_config": {
@@ -33,5 +41,5 @@
     "default_sql_feature_start": 7,
     "default_api_feature_start": 2
   },
-  "last_updated": "2026-03-13 11:13:51"
+  "last_updated": "2026-03-13 13:21:50"
 }

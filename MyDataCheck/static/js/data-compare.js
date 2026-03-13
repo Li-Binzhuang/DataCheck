@@ -235,8 +235,39 @@ async function executeCompare() {
             output_prefix: document.getElementById('compare-output-prefix').value || 'compare',
             convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
             ignore_default_fill: document.getElementById('compare-ignore-default-fill').checked,
-            output_full_data: document.getElementById('compare-output-full').checked
+            ignore_zero_nan: document.getElementById('compare-ignore-zero-nan').checked,
+            output_full_data: document.getElementById('compare-output-full').checked,
+            // 特征名称映射配置
+            enable_column_mapping: document.getElementById('compare-enable-mapping').checked,
+            mapping_file: document.getElementById('compare-mapping-file').value,
+            mapping_prefix: document.getElementById('compare-mapping-prefix').value || '',
+            mapping_suffix: document.getElementById('compare-mapping-suffix').value || '',
+            // 容错配置
+            enable_tolerance: document.getElementById('compare-enable-tolerance').checked,
+            tolerance_value: parseFloat(document.getElementById('compare-tolerance-value').value) || 0.000001
         };
+
+        // 验证映射配置
+        if (config.enable_column_mapping) {
+            if (!config.mapping_file) {
+                showAlert('⚠️ 启用了特征名称映射，但未选择映射文件', 'warning', 'compare');
+                isExecutingCompare = false;
+                executeBtn.disabled = false;
+                statusIndicator.className = 'status-indicator';
+                statusText.textContent = '就绪';
+                loadingSpinner.style.display = 'none';
+                return;
+            }
+            if (!config.mapping_prefix && !config.mapping_suffix) {
+                showAlert('⚠️ 启用了特征名称映射，但前缀和后缀都为空', 'warning', 'compare');
+                isExecutingCompare = false;
+                executeBtn.disabled = false;
+                statusIndicator.className = 'status-indicator';
+                statusText.textContent = '就绪';
+                loadingSpinner.style.display = 'none';
+                return;
+            }
+        }
 
         // 获取当前用户标识
         const userId = getUserId() || 'anonymous';
@@ -357,7 +388,17 @@ async function saveCompareConfig() {
                 sql_feature_start: parseInt(document.getElementById('compare-feature-start-1').value) || 1,
                 api_feature_start: parseInt(document.getElementById('compare-feature-start-2').value) || 1,
                 convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
-                output_prefix: document.getElementById('compare-output-prefix').value || 'compare'
+                output_prefix: document.getElementById('compare-output-prefix').value || 'compare',
+                ignore_default_fill: document.getElementById('compare-ignore-default-fill').checked,
+                ignore_zero_nan: document.getElementById('compare-ignore-zero-nan').checked,
+                // 特征名称映射配置
+                enable_column_mapping: document.getElementById('compare-enable-mapping').checked,
+                mapping_file: document.getElementById('compare-mapping-file').value,
+                mapping_prefix: document.getElementById('compare-mapping-prefix').value || '',
+                mapping_suffix: document.getElementById('compare-mapping-suffix').value || '',
+                // 容错配置
+                enable_tolerance: document.getElementById('compare-enable-tolerance').checked,
+                tolerance_value: parseFloat(document.getElementById('compare-tolerance-value').value) || 0.000001
             }],
             global_config: {
                 default_convert_feature_to_number: document.getElementById('compare-convert-feature').checked,
@@ -403,7 +444,13 @@ async function loadCompareConfig(forceLoad = false) {
         console.log('[DEBUG] 开始加载配置... forceLoad:', forceLoad);
 
         const response = await fetch('/api/compare/config/load', {
-            method: 'GET'
+            method: 'GET',
+            // 添加缓存控制，防止浏览器缓存旧配置
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
         });
 
         console.log('[DEBUG] 响应状态:', response.status);
@@ -480,6 +527,66 @@ async function loadCompareConfig(forceLoad = false) {
                     document.getElementById('compare-convert-feature').checked = scenario.convert_feature_to_number;
                     console.log('[DEBUG] 设置特征转换:', scenario.convert_feature_to_number);
                 }
+                if (scenario.ignore_default_fill !== undefined) {
+                    document.getElementById('compare-ignore-default-fill').checked = scenario.ignore_default_fill;
+                    console.log('[DEBUG] 设置忽略默认填充值:', scenario.ignore_default_fill);
+                }
+                if (scenario.ignore_zero_nan !== undefined) {
+                    document.getElementById('compare-ignore-zero-nan').checked = scenario.ignore_zero_nan;
+                    console.log('[DEBUG] 设置忽略0和NaN:', scenario.ignore_zero_nan);
+                }
+
+                // 加载特征名称映射配置
+                if (scenario.enable_column_mapping !== undefined) {
+                    document.getElementById('compare-enable-mapping').checked = scenario.enable_column_mapping;
+                    toggleMappingConfig(); // 更新显示状态
+                    console.log('[DEBUG] 设置启用映射:', scenario.enable_column_mapping);
+                }
+                if (scenario.mapping_file) {
+                    document.getElementById('compare-mapping-file').value = scenario.mapping_file;
+                    console.log('[DEBUG] 设置映射文件:', scenario.mapping_file);
+                }
+                if (scenario.mapping_prefix !== undefined) {
+                    document.getElementById('compare-mapping-prefix').value = scenario.mapping_prefix;
+                    console.log('[DEBUG] 设置映射前缀:', scenario.mapping_prefix);
+                }
+                if (scenario.mapping_suffix !== undefined) {
+                    document.getElementById('compare-mapping-suffix').value = scenario.mapping_suffix;
+                    console.log('[DEBUG] 设置映射后缀:', scenario.mapping_suffix);
+                }
+
+                // 加载容错配置
+                if (scenario.enable_tolerance !== undefined) {
+                    const enableToleranceCheckbox = document.getElementById('compare-enable-tolerance');
+                    if (enableToleranceCheckbox) {
+                        enableToleranceCheckbox.checked = scenario.enable_tolerance;
+                        console.log('[DEBUG] 设置启用容错:', scenario.enable_tolerance, '实际值:', enableToleranceCheckbox.checked);
+                        toggleToleranceConfig(); // 更新显示状态
+                    } else {
+                        console.error('[ERROR] 找不到容错启用复选框元素');
+                    }
+                }
+                if (scenario.tolerance_value !== undefined) {
+                    const toleranceValueInput = document.getElementById('compare-tolerance-value');
+                    if (toleranceValueInput) {
+                        // 确保容错值正确显示（处理科学计数法）
+                        toleranceValueInput.value = scenario.tolerance_value;
+                        console.log('[DEBUG] 设置容错值:', scenario.tolerance_value, '显示值:', toleranceValueInput.value, '输入框可见:', toleranceValueInput.offsetParent !== null);
+                    } else {
+                        console.error('[ERROR] 找不到容错值输入框元素');
+                    }
+                }
+
+                // 验证容错配置是否正确加载
+                setTimeout(() => {
+                    const enableToleranceCheckbox = document.getElementById('compare-enable-tolerance');
+                    const toleranceValueInput = document.getElementById('compare-tolerance-value');
+                    const toleranceContainer = document.getElementById('tolerance-config-container');
+                    console.log('[VERIFY] 容错配置验证:');
+                    console.log('  - 启用容错:', enableToleranceCheckbox ? enableToleranceCheckbox.checked : 'N/A');
+                    console.log('  - 容错值:', toleranceValueInput ? toleranceValueInput.value : 'N/A');
+                    console.log('  - 容错配置区域可见:', toleranceContainer ? (toleranceContainer.style.display !== 'none') : 'N/A');
+                }, 100);
 
                 // 如果两个文件都存在，启用执行按钮
                 if (compareFile1 && compareFile2) {
@@ -513,6 +620,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 500);
     }
 });
+
+// 添加一个全局函数，用于在页面切换时重新加载配置
+window.reloadCompareConfig = function () {
+    console.log('[INFO] 手动重新加载数据对比配置...');
+    loadCompareConfig();
+};
 
 
 // ========== 小数位数处理相关函数 ==========
@@ -952,3 +1065,38 @@ if (document.readyState === 'loading') {
         loadDecimalConfig();
     }, 500);
 }
+
+
+// ========== 特征名称映射配置 ==========
+
+/**
+ * 切换映射配置显示/隐藏
+ */
+function toggleMappingConfig() {
+    const enableMapping = document.getElementById('compare-enable-mapping').checked;
+    const mappingContainer = document.getElementById('mapping-config-container');
+
+    if (enableMapping) {
+        mappingContainer.style.display = 'block';
+    } else {
+        mappingContainer.style.display = 'none';
+    }
+}
+
+
+// ========== 容错配置 ==========
+
+/**
+ * 切换容错配置显示/隐藏
+ */
+function toggleToleranceConfig() {
+    const enableTolerance = document.getElementById('compare-enable-tolerance').checked;
+    const toleranceContainer = document.getElementById('tolerance-config-container');
+
+    if (enableTolerance) {
+        toleranceContainer.style.display = 'block';
+    } else {
+        toleranceContainer.style.display = 'none';
+    }
+}
+

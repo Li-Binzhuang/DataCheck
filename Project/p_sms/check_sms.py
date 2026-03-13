@@ -92,12 +92,15 @@ def format_value(value):
 
 def main():
     # 文件路径
-    sample_file = 'sms_v3_all_merged_0311_v1.csv'  # DataBox 合并后文件
-    api_file = '0311new_api_03122134_sss.csv' #接口跑数的文件
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    sample_file = os.path.join(script_dir, 'sms_v3_all_merged_0311_v1.csv')  # DataBox 合并后文件
+    api_file = os.path.join(script_dir, '0311new_api_03122134_sss.csv') #接口跑数的文件
 
     # 输出文件
-    abnormal_features_file = 'abnormal_features_detail_0311.csv'
-    summary_file = 'comparison_summary_0311.csv'
+    abnormal_features_file = os.path.join(script_dir, 'abnormal_features_detail_0311.csv')
+    summary_file = os.path.join(script_dir, 'comparison_summary_0311.csv')
     
     # 设置容差
     TOLERANCE = 0.00001

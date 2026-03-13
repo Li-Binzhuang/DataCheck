@@ -1,0 +1,29 @@
+{
+    "scenarios": [
+        {
+            "name": "测试配置-100行",
+            "enabled": true,
+            "description": "测试多列主键显示",
+            "sql_file": "test_file1_100.csv",
+            "api_file": "test_file2_100.csv",
+            "sql_key_column": [
+                0,
+                2
+            ],
+            "api_key_column": [
+                0,
+                1
+            ],
+            "sql_feature_start": 7,
+            "api_feature_start": 2,
+            "column_prefix": "local_all_sms_",
+            "column_suffix": "_v3",
+            "convert_feature_to_number": true,
+            "ignore_default_fill": true,
+            "ignore_zero_nan": true,
+            "ignore_decimal_diff": true,
+            "decimal_threshold": 0.0001,
+            "output_prefix": "test_multikey"
+        }
+    ]
+}

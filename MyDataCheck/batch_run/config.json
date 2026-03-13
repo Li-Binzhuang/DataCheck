@@ -1,19 +1,19 @@
 {
-  "api_url": "http://10.129.2.25:8082/riskanalysis/in-loan-order/features",
-  "input_csv_file": "dd3f90e0-57a0-48b1-ac2c-b2941a7b86f3-1.csv",
-  "output_file_prefix": "444",
+  "api_url": "http://10.129.2.25:8080/riskanalysis/feature/sms/getSmsFeatureV3",
+  "input_csv_file": "0311_newbasedata.csv",
+  "output_file_prefix": "0311new_api",
   "thread_count": 100,
-  "timeout": 10,
+  "timeout": 60,
   "api_params": [
     {
       "param_name": "custNo",
-      "column_index": 1,
+      "column_index": 0,
       "is_time_field": false,
       "use_t_separator": false
     },
     {
-      "param_name": "dateTimeStr",
-      "column_index": 0,
+      "param_name": "baseTime",
+      "column_index": 1,
       "is_time_field": true,
       "use_t_separator": false
     }

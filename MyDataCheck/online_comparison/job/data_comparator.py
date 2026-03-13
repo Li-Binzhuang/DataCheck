@@ -73,7 +73,9 @@ def compare_csv_files(
     online_feature_start_column: int = 3,
     offline_feature_start_column: int = 3,
     original_online_file_path: str = None,
-    convert_feature_to_number: bool = False
+    convert_feature_to_number: bool = False,
+    enable_tolerance: bool = False,
+    tolerance_value: float = 0.000001
 ):
     """
     对比两个CSV文件，以离线文件为基准
@@ -87,6 +89,8 @@ def compare_csv_files(
         offline_feature_start_column: 离线文件特征列起始索引（从0开始）
         original_online_file_path: 原始线上文件路径（用于获取时间字段原值，可选）
         convert_feature_to_number: 是否转换特征值为数值类型（默认False）
+        enable_tolerance: 是否启用容错对比（默认False）
+        tolerance_value: 容错值（默认0.000001）
     
     Returns:
         (differences_dict, matches_dict, all_features, feature_stats, matched_count,
@@ -104,6 +108,9 @@ def compare_csv_files(
     print(f"在线文件特征列起始索引: {online_feature_start_column}")
     print(f"离线文件特征列起始索引: {offline_feature_start_column}")
     print(f"转换特征值为数值: {convert_feature_to_number}")
+    print(f"启用容错对比: {enable_tolerance}")
+    if enable_tolerance:
+        print(f"容错值: {tolerance_value}")
     
     # 读取两个文件
     headers_online, rows_online = read_csv_with_encoding(online_file_path)
@@ -390,8 +397,16 @@ def compare_csv_files(
             
             if offline_idx is not None and online_idx is not None:
                 # 特征在两个文件中都存在，比较值
-                if compare_values(offline_value, online_value, feature_name):
-                    is_match = True
+                if enable_tolerance:
+                    # 启用容错对比
+                    is_match = compare_values(offline_value, online_value, feature_name, False, False, True, tolerance_value)
+                else:
+                    # 精确对比（使用默认参数，保持之前的行为）
+                    is_match = compare_values(offline_value, online_value, feature_name)
+                
+                if is_match:
+                    # 值一致，不记录差异
+                    pass
                 else:
                     has_diff = True
             elif offline_idx is not None and online_idx is None:

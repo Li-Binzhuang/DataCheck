@@ -61,7 +61,9 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
         offline_key_column: 1,
         online_feature_start_column: 3,
         offline_feature_start_column: 3,
-        convert_string_to_number: false
+        convert_string_to_number: false,
+        enable_tolerance: false,
+        tolerance_value: 0.000001
     };
 
     const isFirstScenario = isFirst || (onlineScenarioCount === 1 && !scenarioData);
@@ -202,6 +204,18 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
                     <input type="number" class="online-scenario-offline-feature-start" value="${offlineFeatureStart}" min="0">
                 </div>
             </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <div class="checkbox-group">
+                    <input type="checkbox" class="online-scenario-enable-tolerance" ${scenario.enable_tolerance ? 'checked' : ''} onchange="toggleOnlineToleranceInput('${scenarioId}')">
+                    <label style="margin: 0;">启用容错对比</label>
+                </div>
+                <div id="tolerance-input-${scenarioId}" style="margin-top: 10px; display: ${scenario.enable_tolerance ? 'block' : 'none'};">
+                    <label>容错值（差值在此范围内视为一致）:</label>
+                    <input type="number" class="online-scenario-tolerance-value" value="${scenario.tolerance_value || 0.000001}" step="0.000001" min="0" placeholder="默认: 0.000001">
+                    <small style="display: block; margin-top: 5px; color: #666;">例如: 0.000001 表示差值小于等于 0.000001 时认为一致</small>
+                </div>
+            </div>
         </div>
         </div>
     `;
@@ -230,6 +244,17 @@ function toggleOnlineScenario(scenarioId) {
         card.classList.add('enabled');
     } else {
         card.classList.remove('enabled');
+    }
+}
+
+// 切换容错输入框显示（线上灰度落数对比）
+function toggleOnlineToleranceInput(scenarioId) {
+    const card = document.getElementById(scenarioId);
+    const enableTolerance = card.querySelector('.online-scenario-enable-tolerance').checked;
+    const toleranceInput = document.getElementById(`tolerance-input-${scenarioId}`);
+
+    if (toleranceInput) {
+        toleranceInput.style.display = enableTolerance ? 'block' : 'none';
     }
 }
 
@@ -412,6 +437,14 @@ function collectOnlineConfig() {
             const elem = card.querySelector(selector);
             return elem ? elem.checked : defaultValue;
         };
+        const getFloatValue = (selector, defaultValue) => {
+            const elem = card.querySelector(selector);
+            if (!elem) return defaultValue;
+            const val = elem.value;
+            if (val === '' || val === null || val === undefined) return defaultValue;
+            const parsed = parseFloat(val);
+            return isNaN(parsed) ? defaultValue : parsed;
+        };
         const getFileValue = (filenameSelector, fileSelector) => {
             const filenameElem = card.querySelector(filenameSelector);
             const fileElem = card.querySelector(fileSelector);
@@ -436,7 +469,9 @@ function collectOnlineConfig() {
             offline_key_column: getIntValue('.online-scenario-offline-key-column', 1),
             online_feature_start_column: getIntValue('.online-scenario-online-feature-start', 3),
             offline_feature_start_column: getIntValue('.online-scenario-offline-feature-start', 3),
-            convert_string_to_number: getChecked('.online-scenario-convert-string', false)
+            convert_string_to_number: getChecked('.online-scenario-convert-string', false),
+            enable_tolerance: getChecked('.online-scenario-enable-tolerance', false),
+            tolerance_value: getFloatValue('.online-scenario-tolerance-value', 0.000001)
         };
         scenarios.push(scenario);
     });

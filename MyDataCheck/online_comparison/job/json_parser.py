@@ -209,7 +209,14 @@ def parse_json_to_csv(
             # 检查json_obj是否为None或不是字典类型
             if json_obj is None or not isinstance(json_obj, dict):
                 if json_obj is not None:
-                    print(f"警告: 第 {row_index + 2} 行JSON解析结果不是字典类型: {type(json_obj)}，跳过该行")
+                    # 获取前三列数据和字段名
+                    first_three_cols = []
+                    for i in range(min(3, len(base_headers))):
+                        col_name = base_headers[i]
+                        col_value = row[i] if i < len(row) else ""
+                        first_three_cols.append(f"{col_name}={col_value}")
+                    cols_info = ", ".join(first_three_cols)
+                    print(f"警告: 第 {row_index + 2} 行JSON解析结果不是字典类型: {type(json_obj)}，跳过该行 [{cols_info}]")
                 continue
             
             # 从data中提取特征（如果存在features字段则解析features，否则直接使用data）
@@ -226,10 +233,24 @@ def parse_json_to_csv(
             parsed_data[apply_id] = merged_data
             
         except json.JSONDecodeError as e:
-            print(f"警告: 第 {row_index + 2} 行JSON解析失败: {str(e)}，跳过该行")
+            # 获取前三列数据和字段名
+            first_three_cols = []
+            for i in range(min(3, len(base_headers))):
+                col_name = base_headers[i]
+                col_value = row[i] if i < len(row) else ""
+                first_three_cols.append(f"{col_name}={col_value}")
+            cols_info = ", ".join(first_three_cols)
+            print(f"警告: 第 {row_index + 2} 行JSON解析失败: {str(e)}，跳过该行 [{cols_info}]")
             continue
         except Exception as e:
-            print(f"警告: 第 {row_index + 2} 行处理JSON时发生错误: {str(e)}，跳过该行")
+            # 获取前三列数据和字段名
+            first_three_cols = []
+            for i in range(min(3, len(base_headers))):
+                col_name = base_headers[i]
+                col_value = row[i] if i < len(row) else ""
+                first_three_cols.append(f"{col_name}={col_value}")
+            cols_info = ", ".join(first_three_cols)
+            print(f"警告: 第 {row_index + 2} 行处理JSON时发生错误: {str(e)}，跳过该行 [{cols_info}]")
             continue
     
     print(f"\n解析完成，共发现 {len(all_feature_keys)} 个特征字段，共 {len(parsed_data)} 行数据")

@@ -295,6 +295,8 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
             offline_feature_start_column = config_data.get("feature_start_column", 3)
         convert_string_to_number = config_data.get("convert_string_to_number", False)
         output_prefix = config_data.get("output_prefix", "")
+        enable_tolerance = config_data.get("enable_tolerance", False)
+        tolerance_value = config_data.get("tolerance_value", 0.000001)
         
         # 生成时间戳后缀
         now = datetime.now()
@@ -322,6 +324,9 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
         print(f"在线文件特征列起始索引: {online_feature_start_column}")
         print(f"离线文件特征列起始索引: {offline_feature_start_column}")
         print(f"字符串转数值: {convert_string_to_number}")
+        print(f"启用容错对比: {enable_tolerance}")
+        if enable_tolerance:
+            print(f"容错值: {tolerance_value}")
         print(f"输出文件前缀: {output_prefix}")
         print(f"时间戳后缀: {timestamp_suffix}")
         
@@ -405,7 +410,9 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
             offline_key_column_index,
             online_feature_start_column,
             offline_feature_start_column,
-            original_online_file_path=online_file_path  # 传递原始线上文件路径
+            original_online_file_path=online_file_path,  # 传递原始线上文件路径
+            enable_tolerance=enable_tolerance,
+            tolerance_value=tolerance_value
         )
         
         # 步骤3：生成报告
@@ -587,6 +594,8 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
                     offline_feature_start_column = scenario.get("feature_start_column", 3)
                 convert_string_to_number = scenario.get("convert_string_to_number", False)
                 output_prefix = scenario.get("output_prefix", "")
+                enable_tolerance = scenario.get("enable_tolerance", False)
+                tolerance_value = scenario.get("tolerance_value", 0.000001)
                 
                 # 构建文件路径（从inputdata目录读取）
                 online_file_path = os.path.join(online_input_dir, online_file)
@@ -649,7 +658,9 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
                     offline_key_column_index,
                     online_feature_start_column,
                     offline_feature_start_column,
-                    original_online_file_path=online_file_path  # 传递原始线上文件路径
+                    original_online_file_path=online_file_path,  # 传递原始线上文件路径
+                    enable_tolerance=enable_tolerance,
+                    tolerance_value=tolerance_value
                 )
                 
                 # 步骤3：生成报告

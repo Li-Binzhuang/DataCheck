@@ -4,8 +4,8 @@
       "name": "当前配置",
       "enabled": true,
       "description": "通过Web界面保存的配置",
-      "sql_file": "file1_sms_v3_all_merged_0311_v1.csv",
-      "api_file": "file2_0311new_api_03122134_sss.csv",
+      "sql_file": "file1_sms_v3_all_merged_0312_v1.csv",
+      "api_file": "file2_0312_apidata_03131838_zlf.csv",
       "sql_key_column": [
         0,
         2
@@ -17,14 +17,14 @@
       "sql_feature_start": 7,
       "api_feature_start": 2,
       "convert_feature_to_number": true,
-      "output_prefix": "sms_0311_排除PT_",
+      "output_prefix": "sms_0312",
       "ignore_default_fill": false,
       "ignore_zero_nan": true,
       "enable_column_mapping": true,
       "mapping_file": "file1",
       "mapping_prefix": "local_all_sms_",
       "mapping_suffix": "_v3",
-      "compare_common_features_only": false,
+      "compare_common_features_only": true,
       "enable_tolerance": true,
       "tolerance_value": 1e-05
     }
@@ -42,5 +42,5 @@
     "default_sql_feature_start": 7,
     "default_api_feature_start": 2
   },
-  "last_updated": "2026-03-13 14:04:44"
+  "last_updated": "2026-03-13 19:00:10"
 }

@@ -12,7 +12,7 @@ from pathlib import Path
 
 # 定义路径（相对于脚本文件位置）
 script_dir = Path(__file__).parent
-input_dir = script_dir / "sms_v3/limit5"
+input_dir = script_dir / "sms_v3/0312"
 output_dir = script_dir / "sms_v3_merged"
 output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -53,7 +53,7 @@ print(f"\n合并后总列数: {len(merged_df.columns)}")
 print(f"合并后总行数: {len(merged_df)}")
 
 # 保存合并后的文件
-output_file = output_dir / "sms_v3_limit5_merged_0311_v1.csv"
+output_file = output_dir / "sms_v3_all_merged_0312_v1.csv"
 merged_df.to_csv(output_file, index=False)
 print(f"已保存合并文件: {output_file}")
 

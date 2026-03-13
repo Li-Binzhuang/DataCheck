@@ -1,7 +1,7 @@
 {
   "api_url": "http://10.129.2.25:8080/riskanalysis/feature/sms/getSmsFeatureV3",
-  "input_csv_file": "0311_newbasedata.csv",
-  "output_file_prefix": "0311new_api",
+  "input_csv_file": "sms_basedata_0312.csv",
+  "output_file_prefix": "0312_apidata",
   "thread_count": 100,
   "timeout": 60,
   "api_params": [

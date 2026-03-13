@@ -7,7 +7,11 @@ CSV工具模块
 
 import csv
 import os
+import sys
 from typing import List, Tuple, Iterator, Optional
+
+# 增加CSV字段大小限制，支持大JSON字段
+csv.field_size_limit(sys.maxsize)
 
 
 def read_csv_with_encoding(file_path: str) -> Tuple[List[str], List[List[str]]]:
@@ -56,6 +60,8 @@ def read_csv_with_encoding(file_path: str) -> Tuple[List[str], List[List[str]]]:
     # CSV文件，尝试多种编码方式
     encodings = ["utf-8", "gbk", "gb2312", "latin-1", "cp1252", "utf-8-sig"]
     
+    last_error = None
+    last_encoding = None
     for encoding in encodings:
         try:
             headers = []
@@ -70,12 +76,27 @@ def read_csv_with_encoding(file_path: str) -> Tuple[List[str], List[List[str]]]:
             
             print(f"CSV文件读取成功: {file_path}, 使用编码: {encoding}, 共 {len(rows)} 行")
             return headers, rows
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as e:
+            # 编码错误，继续尝试下一个
             continue
+        except StopIteration:
+            # 空文件
+            raise Exception(f"CSV文件为空或格式错误: {file_path}")
         except Exception as e:
+            # 保存最后一个非编码错误，可能是真正的问题
+            last_error = e
+            last_encoding = encoding
+            # 如果是CSV格式错误或其他严重错误，记录详细信息
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"尝试编码 {encoding} 时出错: {str(e)}")
             continue
     
-    raise Exception(f"读取CSV文件失败: 尝试了多种编码方式({', '.join(encodings)})均失败")
+    # 如果有非编码错误，优先报告
+    if last_error:
+        raise Exception(f"读取CSV文件失败 (最后尝试编码: {last_encoding}): {str(last_error)}")
+    else:
+        raise Exception(f"读取CSV文件失败: 尝试了多种编码方式({', '.join(encodings)})均失败")
 
 
 def write_csv_file(file_path: str, headers: List[str], rows: List[List[str]]):

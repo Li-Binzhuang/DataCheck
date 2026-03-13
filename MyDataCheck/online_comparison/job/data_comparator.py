@@ -75,7 +75,8 @@ def compare_csv_files(
     original_online_file_path: str = None,
     convert_feature_to_number: bool = False,
     enable_tolerance: bool = False,
-    tolerance_value: float = 0.000001
+    tolerance_value: float = 0.000001,
+    compare_common_features_only: bool = False
 ):
     """
     对比两个CSV文件，以离线文件为基准
@@ -91,6 +92,7 @@ def compare_csv_files(
         convert_feature_to_number: 是否转换特征值为数值类型（默认False）
         enable_tolerance: 是否启用容错对比（默认False）
         tolerance_value: 容错值（默认0.000001）
+        compare_common_features_only: 是否仅对比共有特征（默认False，保持现有逻辑）
     
     Returns:
         (differences_dict, matches_dict, all_features, feature_stats, matched_count,
@@ -111,6 +113,7 @@ def compare_csv_files(
     print(f"启用容错对比: {enable_tolerance}")
     if enable_tolerance:
         print(f"容错值: {tolerance_value}")
+    print(f"仅对比共有特征: {compare_common_features_only}")
     
     # 读取两个文件
     headers_online, rows_online = read_csv_with_encoding(online_file_path)
@@ -411,10 +414,14 @@ def compare_csv_files(
                     has_diff = True
             elif offline_idx is not None and online_idx is None:
                 # 特征在离线文件中存在但在在线文件中不存在
-                has_diff = True
+                if not compare_common_features_only:
+                    # 仅当未启用"仅对比共有特征"时，才记录为差异
+                    has_diff = True
             elif offline_idx is None and online_idx is not None:
                 # 特征在在线文件中存在但在离线文件中不存在
-                has_diff = True
+                if not compare_common_features_only:
+                    # 仅当未启用"仅对比共有特征"时，才记录为差异
+                    has_diff = True
             
             # 如果一致，记录到一致字典中
             if is_match:

@@ -8,8 +8,8 @@ import pandas as pd
 from pathlib import Path
 
 # 文件路径
-CSV_FILE = Path(__file__).parent / "pkl_20260204.csv"
-PKL_FILE = Path(__file__).parent / "pkl_20260204.pkl"
+CSV_FILE = Path(__file__).parent / "cdc灰度验证800001575242.csv"
+PKL_FILE = Path(__file__).parent / "cdc灰度验证800001575242.pkl"
 
 def main():
     print(f"读取 CSV 文件: {CSV_FILE}")

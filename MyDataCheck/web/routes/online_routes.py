@@ -297,6 +297,7 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
         output_prefix = config_data.get("output_prefix", "")
         enable_tolerance = config_data.get("enable_tolerance", False)
         tolerance_value = config_data.get("tolerance_value", 0.000001)
+        compare_common_features_only = config_data.get("compare_common_features_only", False)
         
         # 生成时间戳后缀
         now = datetime.now()
@@ -327,6 +328,7 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
         print(f"启用容错对比: {enable_tolerance}")
         if enable_tolerance:
             print(f"容错值: {tolerance_value}")
+        print(f"仅对比共有特征: {compare_common_features_only}")
         print(f"输出文件前缀: {output_prefix}")
         print(f"时间戳后缀: {timestamp_suffix}")
         
@@ -412,7 +414,8 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
             offline_feature_start_column,
             original_online_file_path=online_file_path,  # 传递原始线上文件路径
             enable_tolerance=enable_tolerance,
-            tolerance_value=tolerance_value
+            tolerance_value=tolerance_value,
+            compare_common_features_only=compare_common_features_only
         )
         
         # 步骤3：生成报告
@@ -596,6 +599,7 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
                 output_prefix = scenario.get("output_prefix", "")
                 enable_tolerance = scenario.get("enable_tolerance", False)
                 tolerance_value = scenario.get("tolerance_value", 0.000001)
+                compare_common_features_only = scenario.get("compare_common_features_only", False)
                 
                 # 构建文件路径（从inputdata目录读取）
                 online_file_path = os.path.join(online_input_dir, online_file)
@@ -660,7 +664,8 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
                     offline_feature_start_column,
                     original_online_file_path=online_file_path,  # 传递原始线上文件路径
                     enable_tolerance=enable_tolerance,
-                    tolerance_value=tolerance_value
+                    tolerance_value=tolerance_value,
+                    compare_common_features_only=compare_common_features_only
                 )
                 
                 # 步骤3：生成报告

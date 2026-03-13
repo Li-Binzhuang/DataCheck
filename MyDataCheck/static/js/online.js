@@ -63,7 +63,8 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
         offline_feature_start_column: 3,
         convert_string_to_number: false,
         enable_tolerance: false,
-        tolerance_value: 0.000001
+        tolerance_value: 0.000001,
+        compare_common_features_only: false
     };
 
     const isFirstScenario = isFirst || (onlineScenarioCount === 1 && !scenarioData);
@@ -215,6 +216,14 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
                     <input type="number" class="online-scenario-tolerance-value" value="${scenario.tolerance_value || 0.000001}" step="0.000001" min="0" placeholder="默认: 0.000001">
                     <small style="display: block; margin-top: 5px; color: #666;">例如: 0.000001 表示差值小于等于 0.000001 时认为一致</small>
                 </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <div class="checkbox-group">
+                    <input type="checkbox" class="online-scenario-compare-common-only" ${scenario.compare_common_features_only ? 'checked' : ''}>
+                    <label style="margin: 0;">仅对比共有特征</label>
+                </div>
+                <small style="display: block; margin-top: 5px; color: #666;">勾选后只对比两个文件中都存在的特征列，未勾选则对比所有特征（缺失特征视为差异）</small>
             </div>
         </div>
         </div>
@@ -471,7 +480,8 @@ function collectOnlineConfig() {
             offline_feature_start_column: getIntValue('.online-scenario-offline-feature-start', 3),
             convert_string_to_number: getChecked('.online-scenario-convert-string', false),
             enable_tolerance: getChecked('.online-scenario-enable-tolerance', false),
-            tolerance_value: getFloatValue('.online-scenario-tolerance-value', 0.000001)
+            tolerance_value: getFloatValue('.online-scenario-tolerance-value', 0.000001),
+            compare_common_features_only: getChecked('.online-scenario-compare-common-only', false)
         };
         scenarios.push(scenario);
     });

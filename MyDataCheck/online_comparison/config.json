@@ -2,7 +2,7 @@
   "scenarios": [
     {
       "name": "hd数据数据",
-      "enabled": false,
+      "enabled": true,
       "description": "local_loan_order_feature",
       "output_prefix": "hd_0311",
       "online_file": "HD_01_json.csv",
@@ -14,11 +14,12 @@
       "offline_feature_start_column": 3,
       "convert_string_to_number": false,
       "enable_tolerance": false,
-      "tolerance_value": 1e-06
+      "tolerance_value": 1e-06,
+      "compare_common_features_only": false
     },
     {
       "name": "bl_cdc_consultas_v3",
-      "enabled": true,
+      "enabled": false,
       "description": "cdc_consultas_v3",
       "output_prefix": "consultas_v1",
       "online_file": "json_consultas_0301_0312.csv",
@@ -30,7 +31,25 @@
       "offline_feature_start_column": 2,
       "convert_string_to_number": false,
       "enable_tolerance": true,
-      "tolerance_value": 0.0001
+      "tolerance_value": 0.0001,
+      "compare_common_features_only": false
+    },
+    {
+      "name": "bl_cdc_creditos_v3",
+      "enabled": false,
+      "description": "cdc_creditos_v3",
+      "output_prefix": "creditos_0305",
+      "online_file": "cdc_creditos_v3_75242.csv",
+      "offline_file": "creditos_features_cdc_v3_800001575242.csv",
+      "json_column": "cdc_creditos_v3",
+      "online_key_column": 1,
+      "offline_key_column": 1,
+      "online_feature_start_column": 3,
+      "offline_feature_start_column": 1,
+      "convert_string_to_number": false,
+      "enable_tolerance": true,
+      "tolerance_value": 1e-06,
+      "compare_common_features_only": true
     }
   ]
 }

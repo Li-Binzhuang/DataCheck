@@ -132,7 +132,8 @@ def execute_compare_flow(config: dict, output_queue: Queue, task_id: str = None)
             config.get('mapping_suffix', ''),
             config.get('ignore_zero_nan', False),
             config.get('enable_tolerance', False),
-            config.get('tolerance_value', 0.000001)
+            config.get('tolerance_value', 0.000001),
+            config.get('compare_common_features_only', False)
         )
         
         # 生成报告

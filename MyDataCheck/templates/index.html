@@ -61,7 +61,7 @@
                     </div>
                     <div class="menu-item submenu-item" onclick="switchPage('merge-csv')">
                         <span class="icon">📑</span>
-                        <span>合并表格文件</span>
+                        <span>合并表格文件(待调试)</span>
                     </div>
                 </div>
             </div>
@@ -409,6 +409,18 @@
                             </p>
                         </div>
 
+                        <!-- 只对比共同特征配置 -->
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="compare-common-features-only">
+                                <label for="compare-common-features-only" style="margin: 0;">只对比共同特征</label>
+                            </div>
+                            <p
+                                style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
+                                勾选后，只对比两个文件中都存在的特征列，自动忽略单边存在的列
+                            </p>
+                        </div>
+
                         <div class="button-group">
                             <button class="btn-primary" onclick="executeCompare()" id="btn-execute-compare" disabled
                                 style="flex: 1;">▶️ 执行对比</button>
@@ -704,7 +716,7 @@
             <!-- 合并表格文件页面 -->
             <div id="page-merge-csv" class="content-section">
                 <div class="page-header">
-                    <h2>📑 合并表格文件</h2>
+                    <h2>📑 合并表格文件(待调试)</h2>
                     <p>上传多个CSV文件，合并为一个CSV文件</p>
                 </div>
 

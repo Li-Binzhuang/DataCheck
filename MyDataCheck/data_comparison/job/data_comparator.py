@@ -66,7 +66,8 @@ def compare_two_files(
     mapping_suffix: str = "",
     ignore_zero_nan: bool = False,
     enable_tolerance: bool = False,
-    tolerance_value: float = 0.000001
+    tolerance_value: float = 0.000001,
+    compare_common_features_only: bool = False
 ):
     """
     对比两个CSV/XLSX文件（性能优化版）
@@ -93,6 +94,7 @@ def compare_two_files(
         ignore_zero_nan: 是否忽略0和NaN（0和NaN/空值视为一致，默认False）
         enable_tolerance: 是否启用容错对比（默认False，精确对比）
         tolerance_value: 容错值，差值在此范围内视为一致（默认0.000001）
+        compare_common_features_only: 是否只对比共同特征（默认False，对比所有特征）
     
     Returns:
         包含对比结果的字典
@@ -119,6 +121,7 @@ def compare_two_files(
         print(f"映射文件: {mapping_file}")
         print(f"映射前缀: '{mapping_prefix}'")
         print(f"映射后缀: '{mapping_suffix}'")
+    print(f"只对比共同特征: {compare_common_features_only}")
     
     # 读取两个文件
     print("\n[1/5] 读取文件...")
@@ -174,6 +177,44 @@ def compare_two_files(
     print(f"Sql文件特征列数: {len(feature_cols_sql)}")
     print(f"接口文件特征列数: {len(feature_cols_api)}")
     
+    # 筛选共同特征（如果启用）
+    # 注意：需要保留原始索引，避免列错位
+    if compare_common_features_only:
+        print(f"\n[特征列筛选] 只对比共同特征: 启用")
+        
+        # 计算两个文件特征列的交集
+        feature_set_sql = set(feature_cols_sql)
+        feature_set_api = set(feature_cols_api)
+        common_features = feature_set_sql & feature_set_api
+        
+        # 找出独有的列
+        sql_only_features = feature_set_sql - feature_set_api
+        api_only_features = feature_set_api - feature_set_sql
+        
+        print(f"  file1特征列数: {len(feature_cols_sql)}")
+        print(f"  file2特征列数: {len(feature_cols_api)}")
+        print(f"  共同特征列数: {len(common_features)}")
+        
+        if sql_only_features:
+            print(f"  file1独有列 ({len(sql_only_features)}个): {', '.join(sorted(list(sql_only_features))[:5])}" + 
+                  (f" ... (还有{len(sql_only_features)-5}个)" if len(sql_only_features) > 5 else ""))
+        else:
+            print(f"  file1独有列: (无)")
+        
+        if api_only_features:
+            print(f"  file2独有列 ({len(api_only_features)}个): {', '.join(sorted(list(api_only_features))[:5])}" + 
+                  (f" ... (还有{len(api_only_features)-5}个)" if len(api_only_features) > 5 else ""))
+        else:
+            print(f"  file2独有列: (无)")
+        
+        if not common_features:
+            raise ValueError("错误: 两个文件没有共同的特征列，无法进行对比！请检查特征名称映射配置。")
+        
+        print(f"  将只对比 {len(common_features)} 个共同特征列")
+    else:
+        print(f"\n[特征列筛选] 只对比共同特征: 未启用，将对比所有特征列")
+        common_features = None  # 不筛选，对比所有特征
+    
     # [优化1] 构建Sql文件的索引字典 - O(n)时间复杂度
     print("\n[2/5] 构建索引...")
     sql_index = {}  # {key_value: row}
@@ -224,6 +265,10 @@ def compare_two_files(
     # 以Sql文件（第一个文件）为基准
     # 只对比Sql文件中存在的特征，忽略只在接口文件中存在的特征
     for idx, feature_sql in enumerate(feature_cols_sql):
+        # 如果启用了"只对比共同特征"，跳过不在共同特征集合中的列
+        if common_features is not None and feature_sql not in common_features:
+            continue
+        
         actual_sql_idx = sql_feature_start + idx
         actual_api_idx = api_feature_index.get(feature_sql)  # O(1) 查找
         

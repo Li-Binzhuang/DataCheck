@@ -242,6 +242,8 @@ async function executeCompare() {
             mapping_file: document.getElementById('compare-mapping-file').value,
             mapping_prefix: document.getElementById('compare-mapping-prefix').value || '',
             mapping_suffix: document.getElementById('compare-mapping-suffix').value || '',
+            // 只对比共同特征配置
+            compare_common_features_only: document.getElementById('compare-common-features-only').checked,
             // 容错配置
             enable_tolerance: document.getElementById('compare-enable-tolerance').checked,
             tolerance_value: parseFloat(document.getElementById('compare-tolerance-value').value) || 0.000001
@@ -396,6 +398,8 @@ async function saveCompareConfig() {
                 mapping_file: document.getElementById('compare-mapping-file').value,
                 mapping_prefix: document.getElementById('compare-mapping-prefix').value || '',
                 mapping_suffix: document.getElementById('compare-mapping-suffix').value || '',
+                // 只对比共同特征配置
+                compare_common_features_only: document.getElementById('compare-common-features-only').checked,
                 // 容错配置
                 enable_tolerance: document.getElementById('compare-enable-tolerance').checked,
                 tolerance_value: parseFloat(document.getElementById('compare-tolerance-value').value) || 0.000001
@@ -553,6 +557,12 @@ async function loadCompareConfig(forceLoad = false) {
                 if (scenario.mapping_suffix !== undefined) {
                     document.getElementById('compare-mapping-suffix').value = scenario.mapping_suffix;
                     console.log('[DEBUG] 设置映射后缀:', scenario.mapping_suffix);
+                }
+
+                // 加载只对比共同特征配置
+                if (scenario.compare_common_features_only !== undefined) {
+                    document.getElementById('compare-common-features-only').checked = scenario.compare_common_features_only;
+                    console.log('[DEBUG] 设置只对比共同特征:', scenario.compare_common_features_only);
                 }
 
                 // 加载容错配置

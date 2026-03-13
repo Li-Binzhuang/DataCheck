@@ -89,6 +89,7 @@ def execute_comparison_from_config(config_path: str = None):
             mapping_file = scenario.get('mapping_file', None)
             mapping_prefix = scenario.get('mapping_prefix', '')
             mapping_suffix = scenario.get('mapping_suffix', '')
+            compare_common_features_only = scenario.get('compare_common_features_only', False)
             
             # 构建文件路径
             sql_file_path = os.path.join(input_dir, sql_file)
@@ -118,6 +119,7 @@ def execute_comparison_from_config(config_path: str = None):
                 print(f"  映射文件: {mapping_file}")
                 print(f"  映射前缀: '{mapping_prefix}'")
                 print(f"  映射后缀: '{mapping_suffix}'")
+            print(f"  只对比共同特征: {compare_common_features_only}")
             
             comparison_results = compare_two_files(
                 sql_file_path,
@@ -134,7 +136,8 @@ def execute_comparison_from_config(config_path: str = None):
                 mapping_suffix,
                 ignore_zero_nan,
                 False,  # enable_tolerance
-                0.000001  # tolerance_value
+                0.000001,  # tolerance_value
+                compare_common_features_only
             )
             
             # 生成报告

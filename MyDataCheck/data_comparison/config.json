@@ -17,13 +17,14 @@
       "sql_feature_start": 7,
       "api_feature_start": 2,
       "convert_feature_to_number": true,
-      "output_prefix": "sms_0311zz",
+      "output_prefix": "sms_0311_排除PT_",
       "ignore_default_fill": false,
       "ignore_zero_nan": true,
       "enable_column_mapping": true,
       "mapping_file": "file1",
       "mapping_prefix": "local_all_sms_",
       "mapping_suffix": "_v3",
+      "compare_common_features_only": false,
       "enable_tolerance": true,
       "tolerance_value": 1e-05
     }
@@ -41,5 +42,5 @@
     "default_sql_feature_start": 7,
     "default_api_feature_start": 2
   },
-  "last_updated": "2026-03-13 13:21:50"
+  "last_updated": "2026-03-13 14:04:44"
 }

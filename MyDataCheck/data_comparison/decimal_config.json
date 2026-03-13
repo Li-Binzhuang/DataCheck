@@ -1,11 +1,11 @@
 {
-  "file_path": "",
-  "source_column": "22",
-  "reference_column": "33",
+  "file_path": "decimal_sms_0312_03132058_zlf_.csv",
+  "source_column": "接口/灰度/从库值",
+  "reference_column": "模型特征样本值",
   "decimal_method": "round",
   "compare_mode": "exact",
   "tolerance_value": 0.01,
-  "output_prefix": "333",
+  "output_prefix": "data_",
   "output_full_data": false,
   "file_input_mode": "upload"
 }

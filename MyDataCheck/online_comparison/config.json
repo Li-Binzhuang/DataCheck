@@ -1,8 +1,8 @@
 {
   "scenarios": [
     {
-      "name": "对比数据",
-      "enabled": true,
+      "name": "hd数据数据",
+      "enabled": false,
       "description": "local_loan_order_feature",
       "output_prefix": "hd_0311",
       "online_file": "HD_01_json.csv",
@@ -12,6 +12,20 @@
       "offline_key_column": 2,
       "online_feature_start_column": 3,
       "offline_feature_start_column": 3,
+      "convert_string_to_number": false
+    },
+    {
+      "name": "bl_cdc_consultas_v3",
+      "enabled": true,
+      "description": "cdc_consultas_v3",
+      "output_prefix": "consultas_v1",
+      "online_file": "consultas_json_0309.csv",
+      "offline_file": "consultas_features_cdc_v3.csv",
+      "json_column": "cdc_consultas_v3",
+      "online_key_column": 0,
+      "offline_key_column": 0,
+      "online_feature_start_column": 3,
+      "offline_feature_start_column": 2,
       "convert_string_to_number": false
     }
   ]

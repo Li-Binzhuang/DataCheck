@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>CSV合并测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        #output {
+            background: #f5f5f5;
+            padding: 10px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .info {
+            color: blue;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>CSV合并功能测试</h1>
+
+    <div class="section">
+        <h3>1. 测试服务端点</h3>
+        <button onclick="testEndpoint()">测试 /merge-csv/test</button>
+        <div id="endpoint-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. 选择文件</h3>
+        <input type="file" id="files" multiple accept=".csv">
+        <div id="file-info"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. 合并配置</h3>
+        <label>
+            <input type="radio" name="mode" value="vertical" checked> 纵向合并
+        </label>
+        <label>
+            <input type="radio" name="mode" value="horizontal"> 横向合并
+        </label>
+        <br><br>
+        <label>主键列（横向合并）: <input type="text" id="key_columns" placeholder="user_id"></label>
+        <br><br>
+        <button onclick="executeMerge()">执行合并</button>
+    </div>
+
+    <div class="section">
+        <h3>4. 输出</h3>
+        <button onclick="clearOutput()">清空输出</button>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        async function testEndpoint() {
+            const resultDiv = document.getElementById('endpoint-result');
+            try {
+                log('测试服务端点...', 'info');
+                const response = await fetch('/merge-csv/test');
+                const data = await response.json();
+                resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log('✅ 服务端点正常', 'success');
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+                log(`❌ 服务端点错误: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('files').addEventListener('change', function (e) {
+            const files = Array.from(e.target.files);
+            const info = document.getElementById('file-info');
+            if (files.length > 0) {
+                info.innerHTML = `已选择 ${files.length} 个文件：<br>${files.map(f => f.name).join('<br>')}`;
+                log(`已选择 ${files.length} 个文件`, 'info');
+            } else {
+                info.innerHTML = '未选择文件';
+            }
+        });
+
+        async function executeMerge() {
+            const filesInput = document.getElementById('files');
+            const files = filesInput.files;
+
+            if (files.length < 2) {
+                alert('请至少选择2个CSV文件');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const keyColumns = document.getElementById('key_columns').value.trim();
+
+            clearOutput();
+            log(`开始合并 ${files.length} 个文件...`, 'info');
+            log(`合并方式: ${mode === 'vertical' ? '纵向' : '横向'}`, 'info');
+            if (mode === 'horizontal' && keyColumns) {
+                log(`主键列: ${keyColumns}`, 'info');
+            }
+
+            try {
+                const formData = new FormData();
+                for (let file of files) {
+                    formData.append('files', file);
+                }
+                formData.append('merge_mode', mode);
+                formData.append('output_filename', 'test_merged');
+                formData.append('key_columns', keyColumns);
+
+                log('正在上传文件...', 'info');
+
+                const response = await fetch('/merge-csv/execute', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const contentType = response.headers.get('content-type');
+                log(`响应类型: ${contentType}`, 'info');
+
+                if (contentType && contentType.includes('text/event-stream')) {
+                    log('使用SSE流式处理...', 'info');
+                    await handleSSE(response);
+                } else {
+                    log('使用JSON响应...', 'info');
+                    const result = await response.json();
+                    handleResult(result);
+                }
+
+            } catch (error) {
+                log(`❌ 错误: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function handleSSE(response) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
+
+                            if (data.type === 'progress') {
+                                log(`[${data.percent}%] ${data.message}`, 'info');
+                            } else if (data.type === 'success') {
+                                log('✅ 合并成功！', 'success');
+                                log(`输出文件: ${data.output_file}`, 'info');
+                                log(`总行数: ${data.total_rows.toLocaleString()}`, 'info');
+                                log(`总列数: ${data.total_columns}`, 'info');
+                                if (data.removed_columns && data.removed_columns.length > 0) {
+                                    log(`已移除重复列: ${data.removed_columns.join(', ')}`, 'info');
+                                }
+                                if (data.download_url) {
+                                    log('正在下载...', 'info');
+                                    window.location.href = data.download_url;
+                                }
+                            } else if (data.type === 'error') {
+                                log(`❌ 错误: ${data.message}`, 'error');
+                            }
+                        } catch (e) {
+                            console.error('解析SSE消息失败:', e, line);
+                        }
+                    }
+                }
+            }
+        }
+
+        function handleResult(result) {
+            if (result.success) {
+                log('✅ 合并成功！', 'success');
+                log(`输出文件: ${result.output_file}`, 'info');
+                log(`总行数: ${result.total_rows}`, 'info');
+                log(`总列数: ${result.total_columns}`, 'info');
+            } else {
+                log(`❌ 失败: ${result.error}`, 'error');
+            }
+        }
+
+        // 页面加载时自动测试端点
+        window.addEventListener('load', function () {
+            log('页面加载完成', 'info');
+            testEndpoint();
+        });
+    </script>
+</body>
+
+</html>

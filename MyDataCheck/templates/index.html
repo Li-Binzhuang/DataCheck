@@ -756,22 +756,12 @@
                         <div id="horizontal-merge-options"
                             style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
                             <div class="form-group" style="margin-bottom: 10px;">
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="remove-duplicate-columns" checked>
-                                    <label for="remove-duplicate-columns" style="margin: 0;">自动移除重复列</label>
-                                </div>
-                                <p
-                                    style="color: #666; font-size: 10px; margin-top: 3px; margin-left: 22px; line-height: 1.4;">
-                                    💡 勾选后，横向合并时会自动移除后续文件中与第一个文件重复的列（如主键列）
-                                </p>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 12px;">指定重复列名（可选）:</label>
-                                <input type="text" id="duplicate-column-names" placeholder="如: user_id,order_id"
+                                <label style="font-size: 12px;">主键列名（用于匹配合并）:</label>
+                                <input type="text" id="key-column-names" placeholder="如: user_id 或 user_id,order_id"
                                     style="width: 100%; font-size: 12px;">
                                 <p style="color: #666; font-size: 10px; margin-top: 3px; line-height: 1.4;">
-                                    💡 留空则自动检测所有重复列；填写则只移除指定的列（多个列名用逗号分隔）
+                                    💡 指定1个或多个主键列，按主键进行匹配合并（多个列名用逗号分隔）<br>
+                                    💡 留空则按列直接拼接（要求所有文件行数相同）
                                 </p>
                             </div>
                         </div>

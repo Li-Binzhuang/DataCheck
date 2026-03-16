@@ -393,6 +393,8 @@ async function saveCompareConfig() {
                 output_prefix: document.getElementById('compare-output-prefix').value || 'compare',
                 ignore_default_fill: document.getElementById('compare-ignore-default-fill').checked,
                 ignore_zero_nan: document.getElementById('compare-ignore-zero-nan').checked,
+                // 输出全量数据合并文件
+                output_full_data: document.getElementById('compare-output-full').checked,
                 // 特征名称映射配置
                 enable_column_mapping: document.getElementById('compare-enable-mapping').checked,
                 mapping_file: document.getElementById('compare-mapping-file').value,
@@ -538,6 +540,12 @@ async function loadCompareConfig(forceLoad = false) {
                 if (scenario.ignore_zero_nan !== undefined) {
                     document.getElementById('compare-ignore-zero-nan').checked = scenario.ignore_zero_nan;
                     console.log('[DEBUG] 设置忽略0和NaN:', scenario.ignore_zero_nan);
+                }
+
+                // 加载输出全量数据合并文件配置
+                if (scenario.output_full_data !== undefined) {
+                    document.getElementById('compare-output-full').checked = scenario.output_full_data;
+                    console.log('[DEBUG] 设置输出全量数据:', scenario.output_full_data);
                 }
 
                 // 加载特征名称映射配置

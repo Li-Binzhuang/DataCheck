@@ -298,6 +298,7 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
         enable_tolerance = config_data.get("enable_tolerance", False)
         tolerance_value = config_data.get("tolerance_value", 0.000001)
         compare_common_features_only = config_data.get("compare_common_features_only", False)
+        output_full_data = config_data.get("output_full_data", False)
         
         # 生成时间戳后缀
         now = datetime.now()
@@ -329,6 +330,7 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
         if enable_tolerance:
             print(f"容错值: {tolerance_value}")
         print(f"仅对比共有特征: {compare_common_features_only}")
+        print(f"输出全量数据合并: {output_full_data}")
         print(f"输出文件前缀: {output_prefix}")
         print(f"时间戳后缀: {timestamp_suffix}")
         
@@ -439,7 +441,8 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
             offline_key_column_index,
             online_key_column_index,
             offline_feature_start_column,
-            online_feature_start_column
+            online_feature_start_column,
+            output_full_data=output_full_data
         )
         
         print(f"\n{'='*80}")
@@ -450,7 +453,8 @@ def execute_online_comparison_flow(config_json_str: str, output_queue: Queue, ta
         print(f"  2. 差异特征汇总: {output_base_path}_差异特征汇总.csv")
         print(f"  3. 差异数据明细: {output_base_path}_差异数据明细.csv")
         print(f"  4. 特征统计: {output_base_path}_特征统计.csv")
-        print(f"  5. 全量数据合并: {output_base_path}_全量数据合并.csv")
+        if output_full_data:
+            print(f"  5. 全量数据合并: {output_base_path}_全量数据合并.csv")
         
         if unmatched_count > 0:
             print(f"  6. 仅在离线表中的数据: {output_base_path}_仅在离线表中的数据.csv (共 {unmatched_count} 条)")
@@ -600,8 +604,7 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
                 enable_tolerance = scenario.get("enable_tolerance", False)
                 tolerance_value = scenario.get("tolerance_value", 0.000001)
                 compare_common_features_only = scenario.get("compare_common_features_only", False)
-                
-                # 构建文件路径（从inputdata目录读取）
+                output_full_data = scenario.get("output_full_data", False)
                 online_file_path = os.path.join(online_input_dir, online_file)
                 offline_file_path = os.path.join(online_input_dir, offline_file)
                 
@@ -688,7 +691,8 @@ def execute_online_multi_scenario_flow(config_data: dict, output_queue: Queue, t
                     offline_key_column_index,
                     online_key_column_index,
                     offline_feature_start_column,
-                    online_feature_start_column
+                    online_feature_start_column,
+                    output_full_data=output_full_data
                 )
                 
                 print(f"✅ 场景 {scenario.get('name', f'场景{i}')} 执行成功")

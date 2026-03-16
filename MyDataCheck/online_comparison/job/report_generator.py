@@ -168,6 +168,7 @@ def generate_reports(
     online_key_column_index: int = None,
     offline_feature_start_column: int = None,
     online_feature_start_column: int = None,
+    output_full_data: bool = False,
 ):
     """
     生成差异特征汇总和差异数据明细文件（CSV格式）
@@ -219,8 +220,8 @@ def generate_reports(
     if online_only_rows and headers_online:
         write_online_only_data(base_path, online_only_rows, headers_online)
     
-    # 生成全量数据合并文件
-    if (rows_offline and rows_online and headers_offline and headers_online and
+    # 生成全量数据合并文件（根据配置决定是否输出）
+    if output_full_data and (rows_offline and rows_online and headers_offline and headers_online and
         offline_key_column_index is not None and online_key_column_index is not None):
         merged_data_path = f"{base_path}_全量数据合并.csv"
         write_merged_data_csv_online(
@@ -236,6 +237,8 @@ def generate_reports(
             feature_start_column1=offline_feature_start_column,
             feature_start_column2=online_feature_start_column,
         )
+    elif not output_full_data:
+        print(f"⏭️  全量数据合并文件已跳过（未勾选输出选项）")
 
 
 def write_csv_reports(

@@ -64,7 +64,8 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
         convert_string_to_number: false,
         enable_tolerance: false,
         tolerance_value: 0.000001,
-        compare_common_features_only: false
+        compare_common_features_only: false,
+        output_full_data: false
     };
 
     const isFirstScenario = isFirst || (onlineScenarioCount === 1 && !scenarioData);
@@ -231,6 +232,14 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
                     <label style="margin: 0;">仅对比共有特征</label>
                 </div>
                 <small style="display: block; margin-top: 5px; color: #666;">勾选后只对比两个文件中都存在的特征列，未勾选则对比所有特征（缺失特征视为差异）</small>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <div class="checkbox-group">
+                    <input type="checkbox" class="online-scenario-output-full-data" ${scenario.output_full_data ? 'checked' : ''}>
+                    <label style="margin: 0;">输出全量数据合并文件</label>
+                </div>
+                <small style="display: block; margin-top: 5px; color: #666;">勾选后会生成全量数据合并CSV文件（文件较大时会增加处理时间，默认不输出）</small>
             </div>
         </div>
         </div>
@@ -503,7 +512,8 @@ function collectOnlineConfig() {
             convert_string_to_number: getChecked('.online-scenario-convert-string', false),
             enable_tolerance: getChecked('.online-scenario-enable-tolerance', false),
             tolerance_value: getFloatValue('.online-scenario-tolerance-value', 0.000001),
-            compare_common_features_only: getChecked('.online-scenario-compare-common-only', false)
+            compare_common_features_only: getChecked('.online-scenario-compare-common-only', false),
+            output_full_data: getChecked('.online-scenario-output-full-data', false)
         };
         scenarios.push(scenario);
     });
@@ -1028,7 +1038,11 @@ async function executeOnlineScenario(scenarioId) {
             offline_key_column: parseKeyColumn('.online-scenario-offline-key-column', 1),
             online_feature_start_column: getIntValue('.online-scenario-online-feature-start', 3),
             offline_feature_start_column: getIntValue('.online-scenario-offline-feature-start', 3),
-            convert_string_to_number: getChecked('.online-scenario-convert-string', false)
+            convert_string_to_number: getChecked('.online-scenario-convert-string', false),
+            enable_tolerance: getChecked('.online-scenario-enable-tolerance', false),
+            tolerance_value: parseFloat(card.querySelector('.online-scenario-tolerance-value')?.value) || 0.000001,
+            compare_common_features_only: getChecked('.online-scenario-compare-common-only', false),
+            output_full_data: getChecked('.online-scenario-output-full-data', false)
         };
 
         if (!config.online_file) {

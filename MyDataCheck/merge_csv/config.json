@@ -1,0 +1,14 @@
+{
+  "merge_mode": "horizontal",
+  "output_filename": "mergedaad",
+  "key_columns": "create_time",
+  "vertical": {
+    "output_filename": "merged_zx_",
+    "key_columns": ""
+  },
+  "last_mode": "horizontal",
+  "horizontal": {
+    "output_filename": "merged_hx",
+    "key_columns": "cust_no"
+  }
+}

@@ -743,10 +743,10 @@ async function parseOnlineScenarioJSON(scenarioId) {
                         try {
                             const data = JSON.parse(line.substring(6));
                             if (data.type === 'start') {
-                                appendOutput(data.message, 'info', tab);
+                                appendOutput(tab, data.message, 'info');
                             } else if (data.type === 'output') {
                                 const message = data.message;
-                                appendOutput(message, 'output', tab);
+                                appendOutput(tab, message, 'output');
 
                                 // 检测列名信息
                                 if (tab === 'online') {
@@ -797,7 +797,7 @@ async function parseOnlineScenarioJSON(scenarioId) {
                                     }
                                 }
                             } else if (data.type === 'error') {
-                                appendOutput(data.message, 'error', tab);
+                                appendOutput(tab, data.message, 'error');
                             } else if (data.type === 'end') {
                                 if (tab === 'online') {
                                     // 在解析完成时，确保显示所有已提取的列名
@@ -813,7 +813,7 @@ async function parseOnlineScenarioJSON(scenarioId) {
                                         displayArea.style.display = 'block';
                                     }
                                 }
-                                appendOutput(data.message, 'success', tab);
+                                appendOutput(tab, data.message, 'success');
                             }
                         } catch (e) {
                             // 忽略解析错误
@@ -932,7 +932,7 @@ async function parseOnlineScenarioJSON(scenarioId) {
 
                         readStream();
                     }).catch(error => {
-                        appendOutput('错误: ' + error.message, 'error', 'online');
+                        appendOutput('online', '错误: ' + error.message, 'error');
                         if (currentParseBtn) {
                             currentParseBtn.disabled = false;
                         }
@@ -1101,17 +1101,17 @@ async function executeOnlineScenario(scenarioId) {
                         try {
                             const data = JSON.parse(line.substring(6));
                             if (data.type === 'start') {
-                                appendOutput(data.message, 'info', tab);
+                                appendOutput(tab, data.message, 'info');
                                 // 保存task_id
                                 if (data.task_id) {
                                     window._currentOnlineTaskId = data.task_id;
                                 }
                             } else if (data.type === 'output') {
-                                appendOutput(data.message, 'output', tab);
+                                appendOutput(tab, data.message, 'output');
                             } else if (data.type === 'error') {
-                                appendOutput(data.message, 'error', tab);
+                                appendOutput(tab, data.message, 'error');
                             } else if (data.type === 'end') {
-                                appendOutput(data.message, 'success', tab);
+                                appendOutput(tab, data.message, 'success');
                             }
                         } catch (e) {
                             // 忽略解析错误
@@ -1139,7 +1139,7 @@ async function executeOnlineScenario(scenarioId) {
                             updateStatus('success', '执行完成', 'online');
                             showAlert('🎉 线上灰度对比执行完成！', 'success', 'online');
                             // 添加完成提示到输出面板
-                            appendOutput('🎉 任务执行完成！', 'success', 'online');
+                            appendOutput('online', '🎉 任务执行完成！', 'success');
                             if (savedExecuteBtn) {
                                 savedExecuteBtn.disabled = false;
                             }
@@ -1162,7 +1162,7 @@ async function executeOnlineScenario(scenarioId) {
 
                         readStream();
                     }).catch(error => {
-                        appendOutput('错误: ' + error.message, 'error', 'online');
+                        appendOutput('online', '错误: ' + error.message, 'error');
                         isExecutingOnline = false;
                         updateStatus('error', '执行失败', 'online');
                         if (savedExecuteBtn) {
@@ -1321,10 +1321,10 @@ function parseOnlineJSON() {
                         try {
                             const data = JSON.parse(line.substring(6));
                             if (data.type === 'start') {
-                                appendOutput(data.message, 'info', tab);
+                                appendOutput(tab, data.message, 'info');
                             } else if (data.type === 'output') {
                                 const message = data.message;
-                                appendOutput(message, 'output', tab);
+                                appendOutput(tab, message, 'output');
 
                                 // 检测列名信息
                                 if (tab === 'online') {
@@ -1387,7 +1387,7 @@ function parseOnlineJSON() {
                                     }
                                 }
                             } else if (data.type === 'error') {
-                                appendOutput(data.message, 'error', tab);
+                                appendOutput(tab, data.message, 'error');
                             } else if (data.type === 'end') {
                                 // 结束时处理剩余的列名
                                 if (tab === 'online') {
@@ -1399,7 +1399,7 @@ function parseOnlineJSON() {
                                         isOnlineParsed = true;
                                     }
                                 }
-                                appendOutput(data.message, 'success', tab);
+                                appendOutput(tab, data.message, 'success');
                             }
                         } catch (e) {
                             // 忽略解析错误
@@ -1524,7 +1524,7 @@ function parseOnlineJSON() {
 
                         readStream();
                     }).catch(error => {
-                        appendOutput('错误: ' + error.message, 'error', 'online');
+                        appendOutput('online', '错误: ' + error.message, 'error');
                         isParsingOnline = false;
                         updateStatus('error', '解析失败', 'online');
                         document.getElementById('parse-btn-online').disabled = false;
@@ -1535,7 +1535,7 @@ function parseOnlineJSON() {
                 readStream();
             })
             .catch(error => {
-                appendOutput('解析错误: ' + error.message, 'error', 'online');
+                appendOutput('online', '解析错误: ' + error.message, 'error');
                 isParsingOnline = false;
                 updateStatus('error', '解析失败', 'online');
                 document.getElementById('parse-btn-online').disabled = false;
@@ -1625,7 +1625,7 @@ function executeOnlineConfig() {
                             isExecutingOnline = false;
                             updateStatus('success', '执行完成', 'online');
                             showAlert('🎉 线上灰度对比执行完成！', 'success', 'online');
-                            appendOutput('🎉 任务执行完成！', 'success', 'online');
+                            appendOutput('online', '🎉 任务执行完成！', 'success');
                             document.getElementById('execute-btn-online').disabled = false;
                             document.getElementById('loading-spinner-online').style.display = 'none';
                             // 自动下载输出文件，并传入taskId
@@ -1644,7 +1644,7 @@ function executeOnlineConfig() {
 
                         readStream();
                     }).catch(error => {
-                        appendOutput('错误: ' + error.message, 'error', 'online');
+                        appendOutput('online', '错误: ' + error.message, 'error');
                         isExecutingOnline = false;
                         updateStatus('error', '执行失败', 'online');
                         document.getElementById('execute-btn-online').disabled = false;
@@ -1662,14 +1662,14 @@ function executeOnlineConfig() {
                         try {
                             const data = JSON.parse(line.substring(6));
                             if (data.type === 'start') {
-                                appendOutput(data.message, 'info', tab);
+                                appendOutput(tab, data.message, 'info');
                                 // 保存task_id
                                 if (data.task_id) {
                                     window._currentOnlineTaskId = data.task_id;
                                 }
                             } else if (data.type === 'output') {
                                 const message = data.message;
-                                appendOutput(message, 'output', tab);
+                                appendOutput(tab, message, 'output');
 
                                 // 检测列名信息（线上灰度落数对比）
                                 if (tab === 'online') {
@@ -1708,7 +1708,7 @@ function executeOnlineConfig() {
                                     }
                                 }
                             } else if (data.type === 'error') {
-                                appendOutput(data.message, 'error', tab);
+                                appendOutput(tab, data.message, 'error');
                             } else if (data.type === 'end') {
                                 // 结束时处理剩余的列名
                                 if (tab === 'online') {
@@ -1720,7 +1720,7 @@ function executeOnlineConfig() {
                                         extractAndDisplayOfflineColumns(offlineColumnsBuffer);
                                     }
                                 }
-                                appendOutput(data.message, 'success', tab);
+                                appendOutput(tab, data.message, 'success');
                             }
                         } catch (e) {
                             // 忽略解析错误
@@ -1783,7 +1783,7 @@ function executeOnlineConfig() {
                 readStream();
             })
             .catch(error => {
-                appendOutput('执行错误: ' + error.message, 'error', 'online');
+                appendOutput('online', '执行错误: ' + error.message, 'error');
                 isExecutingOnline = false;
                 updateStatus('error', '执行失败', 'online');
                 document.getElementById('execute-btn-online').disabled = false;

@@ -302,3 +302,56 @@ def execute_merge():
                     print(f"清理临时文件失败: {temp_file}, 错误: {e}")
     
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
+
+
+# 配置文件路径
+CONFIG_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MERGE_CSV_CONFIG_PATH = os.path.join(CONFIG_DIR, 'merge_csv', 'config.json')
+
+
+@merge_csv_bp.route('/config/load', methods=['GET'])
+def load_merge_csv_config():
+    """加载合并表格配置"""
+    try:
+        if os.path.exists(MERGE_CSV_CONFIG_PATH):
+            with open(MERGE_CSV_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+            return jsonify({'success': True, 'config': config_data})
+        else:
+            return jsonify({'success': False, 'error': '配置文件不存在'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@merge_csv_bp.route('/config/save', methods=['POST'])
+def save_merge_csv_config():
+    """保存合并表格配置（按合并方式分开存储，互不覆盖）"""
+    try:
+        config_data = request.json.get('config')
+        if not config_data:
+            return jsonify({'success': False, 'error': '配置数据为空'})
+
+        merge_mode = config_data.get('merge_mode', 'vertical')
+
+        # 读取已有配置，保留另一种合并方式的配置
+        existing = {}
+        if os.path.exists(MERGE_CSV_CONFIG_PATH):
+            with open(MERGE_CSV_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                existing = json.load(f)
+
+        # 按合并方式分开存储
+        existing[merge_mode] = {
+            'output_filename': config_data.get('output_filename', 'merged'),
+            'key_columns': config_data.get('key_columns', '')
+        }
+        existing['last_mode'] = merge_mode
+
+        # 确保目录存在
+        os.makedirs(os.path.dirname(MERGE_CSV_CONFIG_PATH), exist_ok=True)
+
+        with open(MERGE_CSV_CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(existing, f, ensure_ascii=False, indent=2)
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})

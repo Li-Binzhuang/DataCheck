@@ -927,6 +927,20 @@ function clearOutput(tab = 'api') {
 }
 
 function appendOutput(message, type = 'output', tab = 'api') {
+    // 兼容 ui.js 格式的调用: appendOutput(tabId, message, type)
+    // 当前函数签名: appendOutput(message, type, tab)
+    // 判断：如果第一个参数能匹配到 output-panel，说明是 ui.js 格式调用
+    const altPanel = document.getElementById(`output-panel-${message}`);
+    if (altPanel && typeof type === 'string' && !document.getElementById(`output-panel-${tab}`)) {
+        // 参数翻转：message 实际是 tabId，type 实际是 message，tab 实际是 type
+        const realTab = message;
+        const realMessage = type;
+        const realType = tab;
+        message = realMessage;
+        type = realType;
+        tab = realTab;
+    }
+
     // 初始化计数器
     if (!outputCounters[tab]) {
         outputCounters[tab] = 0;
@@ -934,6 +948,7 @@ function appendOutput(message, type = 'output', tab = 'api') {
     outputCounters[tab]++;
 
     const outputPanel = document.getElementById(`output-panel-${tab}`);
+    if (!outputPanel) return;
 
     // 创建输出行
     const line = document.createElement('div');

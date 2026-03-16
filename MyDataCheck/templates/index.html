@@ -737,12 +737,12 @@
                             <div class="radio-group" style="display: flex; gap: 20px; margin-top: 5px;">
                                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
                                     <input type="radio" name="merge-mode" value="vertical" checked
-                                        onchange="toggleHorizontalOptions()">
+                                        onchange="onMergeModeChange()">
                                     <span>纵向合并（追加行）</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
                                     <input type="radio" name="merge-mode" value="horizontal"
-                                        onchange="toggleHorizontalOptions()">
+                                        onchange="onMergeModeChange()">
                                     <span>横向合并（追加列）</span>
                                 </label>
                             </div>
@@ -774,6 +774,8 @@
                         <div class="button-group">
                             <button class="btn-primary" onclick="executeMergeCsv()" id="btn-execute-merge-csv" disabled
                                 style="flex: 1;">▶️ 执行合并</button>
+                            <button class="btn-success" onclick="saveMergeCsvConfig()">💾 保存配置</button>
+                            <button class="btn-secondary" onclick="loadMergeCsvConfig()">📂 加载配置</button>
                             <button class="btn-danger" onclick="clearMergeCsvFiles()">🗑️ 清空文件</button>
                         </div>
                     </div>

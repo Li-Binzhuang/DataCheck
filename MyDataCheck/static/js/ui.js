@@ -115,7 +115,22 @@ function switchTab(tabName) {
 
 // 输出相关函数
 function appendOutput(tabId, message, type = 'info') {
-    const outputDiv = document.getElementById(`output-panel-${tabId}`);
+    // 兼容两种调用格式：
+    // 格式1 (ui.js): appendOutput(tabId, message, type)
+    // 格式2 (api-compare等): appendOutput(message, type, tabId)
+    // 判断依据：如果第一个参数对应不到 output-panel，则认为是格式2
+    let outputDiv = document.getElementById(`output-panel-${tabId}`);
+    if (!outputDiv && typeof message === 'string') {
+        // 尝试格式2：第三个参数是tabId
+        const altDiv = document.getElementById(`output-panel-${type}`);
+        if (altDiv) {
+            outputDiv = altDiv;
+            const realTab = type;
+            type = message;
+            message = tabId;
+            tabId = realTab;
+        }
+    }
     if (!outputDiv) return;
 
     // 初始化计数器

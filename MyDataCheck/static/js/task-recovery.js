@@ -42,12 +42,12 @@ function checkRunningTasks() {
  */
 function showTaskRecoveryPrompt(task) {
     const message = `检测到有正在执行的任务:\n\n` +
-                   `任务名称: ${task.task_name}\n` +
-                   `任务状态: ${getStatusText(task.status)}\n` +
-                   `当前进度: ${task.progress}/${task.total}\n` +
-                   `当前步骤: ${task.current_step || '无'}\n\n` +
-                   `是否恢复查看该任务的执行进度？`;
-    
+        `任务名称: ${task.task_name}\n` +
+        `任务状态: ${getStatusText(task.status)}\n` +
+        `当前进度: ${task.progress}/${task.total}\n` +
+        `当前步骤: ${task.current_step || '无'}\n\n` +
+        `是否恢复查看该任务的执行进度？`;
+
     if (confirm(message)) {
         recoverTask(task);
     }
@@ -79,21 +79,21 @@ function recoverTaskById(taskId) {
 function recoverTask(task) {
     const taskId = task.task_id;
     const tab = getTabForTaskType(task.task_type || 'api_comparison');
-    
+
     currentRecoveredTaskId = taskId;
     currentRecoveredTab = tab;
-    
+
     // 切换到对应页面
     if (typeof switchPage === 'function') {
         switchPage(tab);
     }
-    
+
     // 清空输出面板
     clearOutput(tab);
-    
+
     // 显示恢复提示
     appendOutput('正在恢复任务...', 'info', tab);
-    
+
     // 获取任务信息
     fetch(`/api/tasks/${taskId}`)
         .then(response => response.json())
@@ -102,7 +102,7 @@ function recoverTask(task) {
                 const taskData = data.task;
                 const taskTab = getTabForTaskType(taskData.task_type || 'api_comparison');
                 currentRecoveredTab = taskTab;
-                
+
                 // 显示任务信息
                 appendOutput(`任务名称: ${taskData.task_name}`, 'info', taskTab);
                 appendOutput(`任务状态: ${getStatusText(taskData.status)}`, 'info', taskTab);
@@ -114,15 +114,15 @@ function recoverTask(task) {
                 appendOutput('='.repeat(60), 'info', taskTab);
                 appendOutput('历史日志:', 'info', taskTab);
                 appendOutput('='.repeat(60), 'info', taskTab);
-                
+
                 // 加载历史日志
                 loadTaskLogs(taskId, null, taskTab);
-                
+
                 // 如果任务还在运行，开始轮询新日志
                 if (taskData.status === 'running') {
                     startLogPolling(taskId, taskTab);
                     updateStatus('running', '执行中（已恢复）', taskTab);
-                    
+
                     // 显示停止按钮（仅接口对比支持）
                     if (typeof setCurrentTaskId === 'function' && taskTab === 'api') {
                         setCurrentTaskId(taskId);
@@ -151,7 +151,7 @@ function loadTaskLogs(taskId, lastN = null, tab = null) {
     if (lastN) {
         url += `&last_n=${lastN}`;
     }
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -159,7 +159,7 @@ function loadTaskLogs(taskId, lastN = null, tab = null) {
                 data.logs.forEach(log => {
                     appendOutput(log.message, log.level, outputTab);
                 });
-                
+
                 if (data.logs.length > 0) {
                     appendOutput('', 'info', outputTab);
                     appendOutput('='.repeat(60), 'info', outputTab);
@@ -181,35 +181,35 @@ function loadTaskLogs(taskId, lastN = null, tab = null) {
 function startLogPolling(taskId, tab = null) {
     const outputTab = tab || currentRecoveredTab || 'api';
     let lastLogCount = 0;
-    
+
     if (logPollingInterval) {
         clearInterval(logPollingInterval);
     }
-    
+
     logPollingInterval = setInterval(() => {
         fetch(`/api/tasks/${taskId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.task) {
                     const task = data.task;
-                    
+
                     if (task.progress !== undefined && task.total !== undefined) {
                         const progressText = `进度: ${task.progress}/${task.total}`;
                         updateStatus('running', progressText, outputTab);
                     }
-                    
+
                     if (task.status !== 'running') {
                         stopLogPolling();
                         updateStatus(task.status, getStatusText(task.status), outputTab);
-                        
+
                         if (typeof clearCurrentTaskId === 'function' && outputTab === 'api') {
                             clearCurrentTaskId();
                         }
-                        
+
                         loadNewLogs(taskId, lastLogCount, outputTab);
                         return;
                     }
-                    
+
                     loadNewLogs(taskId, lastLogCount, outputTab, (newCount) => {
                         lastLogCount = newCount;
                     });
@@ -231,7 +231,7 @@ function startLogPolling(taskId, tab = null) {
 function loadNewLogs(taskId, skipCount, tab, callback) {
     const outputTab = (typeof tab === 'function') ? (currentRecoveredTab || 'api') : (tab || currentRecoveredTab || 'api');
     const cb = (typeof tab === 'function') ? tab : callback;
-    
+
     fetch(`/api/tasks/${taskId}/logs?from_file=true`)
         .then(response => response.json())
         .then(data => {
@@ -316,12 +316,12 @@ function displayTaskHistoryModal(tasks) {
                         </thead>
                         <tbody>
     `;
-    
+
     tasks.forEach(task => {
-        const statusClass = task.status === 'completed' ? 'success' : 
-                           task.status === 'failed' ? 'error' : 
-                           task.status === 'running' ? 'running' : 'info';
-        
+        const statusClass = task.status === 'completed' ? 'success' :
+            task.status === 'failed' ? 'error' :
+                task.status === 'running' ? 'running' : 'info';
+
         html += `
             <tr>
                 <td>${task.task_name}</td>
@@ -334,7 +334,7 @@ function displayTaskHistoryModal(tasks) {
             </tr>
         `;
     });
-    
+
     html += `
                         </tbody>
                     </table>
@@ -342,7 +342,7 @@ function displayTaskHistoryModal(tasks) {
             </div>
         </div>
     `;
-    
+
     // 添加到页面
     document.body.insertAdjacentHTML('beforeend', html);
 }
@@ -374,12 +374,12 @@ function formatDateTime(isoString) {
 }
 
 // 页面加载时自动检查
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 延迟1秒检查，确保页面完全加载
     setTimeout(checkRunningTasks, 1000);
 });
 
 // 页面卸载时停止轮询
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     stopLogPolling();
 });

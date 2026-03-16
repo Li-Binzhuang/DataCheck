@@ -262,3 +262,128 @@ function showAlert(pageId, message, type = 'info') {
         container.innerHTML = '';
     }, 3000);
 }
+
+/**
+ * 收集当前合并配置（按合并方式分开存储）
+ */
+function collectMergeCsvConfig() {
+    const mergeMode = document.querySelector('input[name="merge-mode"]:checked').value;
+    const outputFilename = document.getElementById('merge-output-filename').value.trim() || 'merged';
+    const keyColumns = document.getElementById('key-column-names').value.trim();
+
+    return {
+        merge_mode: mergeMode,
+        output_filename: outputFilename,
+        key_columns: keyColumns
+    };
+}
+
+/**
+ * 保存合并配置到服务器（仅保存当前合并方式的配置，不覆盖另一种）
+ */
+async function saveMergeCsvConfig() {
+    try {
+        const config = collectMergeCsvConfig();
+
+        const response = await fetch('/merge-csv/config/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: config })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            const modeLabel = config.merge_mode === 'vertical' ? '纵向合并' : '横向合并';
+            showAlert('merge-csv', `${modeLabel}配置已保存`, 'success');
+        } else {
+            showAlert('merge-csv', '保存配置失败: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showAlert('merge-csv', '保存配置失败: ' + error.message, 'error');
+    }
+}
+
+/**
+ * 从服务器加载合并配置并应用到表单
+ */
+async function loadMergeCsvConfig(silent) {
+    try {
+        const response = await fetch('/merge-csv/config/load');
+        const data = await response.json();
+
+        if (data.success) {
+            const config = data.config;
+            applyMergeCsvConfig(config);
+            if (!silent) {
+                showAlert('merge-csv', '配置已加载', 'success');
+            }
+        } else {
+            if (!silent) {
+                showAlert('merge-csv', '加载配置失败: ' + data.error, 'error');
+            }
+        }
+    } catch (error) {
+        if (!silent) {
+            showAlert('merge-csv', '加载配置失败: ' + error.message, 'error');
+        }
+    }
+}
+
+/**
+ * 将配置应用到表单
+ */
+function applyMergeCsvConfig(config) {
+    // 恢复当前选中的合并方式（默认纵向）
+    const lastMode = config.last_mode || 'vertical';
+    const radio = document.querySelector(`input[name="merge-mode"][value="${lastMode}"]`);
+    if (radio) {
+        radio.checked = true;
+        toggleHorizontalOptions();
+    }
+
+    // 根据当前合并方式恢复对应配置
+    const modeConfig = config[lastMode] || {};
+
+    if (modeConfig.output_filename) {
+        document.getElementById('merge-output-filename').value = modeConfig.output_filename;
+    }
+
+    if (lastMode === 'horizontal' && modeConfig.key_columns !== undefined) {
+        document.getElementById('key-column-names').value = modeConfig.key_columns;
+    }
+}
+
+/**
+ * 切换合并方式时，从配置中恢复对应方式的参数
+ */
+async function onMergeModeChange() {
+    toggleHorizontalOptions();
+
+    // 尝试从已保存的配置中恢复当前方式的参数
+    try {
+        const response = await fetch('/merge-csv/config/load');
+        const data = await response.json();
+        if (data.success) {
+            const config = data.config;
+            const currentMode = document.querySelector('input[name="merge-mode"]:checked').value;
+            const modeConfig = config[currentMode] || {};
+
+            if (modeConfig.output_filename) {
+                document.getElementById('merge-output-filename').value = modeConfig.output_filename;
+            }
+            if (currentMode === 'horizontal' && modeConfig.key_columns !== undefined) {
+                document.getElementById('key-column-names').value = modeConfig.key_columns;
+            }
+        }
+    } catch (e) {
+        // 静默失败
+    }
+}
+
+// ========== 页面加载时自动加载配置 ==========
+document.addEventListener('DOMContentLoaded', function () {
+    const mergePage = document.getElementById('page-merge-csv');
+    if (mergePage) {
+        setTimeout(() => loadMergeCsvConfig(true), 300);
+    }
+});

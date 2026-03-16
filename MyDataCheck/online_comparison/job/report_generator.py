@@ -445,14 +445,32 @@ def write_online_only_data(
     print(f"仅在线上文件中的数据文件写入完成: {online_only_path}，共 {len(online_only_rows)} 行数据")
 
 
+def _normalize_key_column_index(key_column_index):
+    """将主键列索引统一转换为列表格式"""
+    if isinstance(key_column_index, list):
+        return key_column_index
+    return [key_column_index]
+
+
+def _build_composite_key(row, key_indices):
+    """根据多列索引构建组合主键值，多列用 | 拼接"""
+    parts = []
+    for idx in key_indices:
+        if idx < len(row) and row[idx] is not None:
+            parts.append(str(row[idx]).strip())
+        else:
+            parts.append("")
+    return "|".join(parts)
+
+
 def write_merged_data_csv_online(
     output_path: str,
     headers1: List[str],
     rows1: List[List[str]],
     headers2: List[str],
     rows2: List[List[str]],
-    key_column1: int,
-    key_column2: int,
+    key_column1,
+    key_column2,
     suffix1: str = "_离线",
     suffix2: str = "_在线",
     feature_start_column1: int = None,
@@ -484,19 +502,23 @@ def write_merged_data_csv_online(
         except Exception as e:
             print(f"创建目录失败: {output_dir}, 错误: {e}")
     
-    # 构建第二个文件的索引（以主键为key）
+    # 统一转换为列表格式，兼容单列和多列
+    key_indices1 = _normalize_key_column_index(key_column1)
+    key_indices2 = _normalize_key_column_index(key_column2)
+    
+    # 构建第二个文件的索引（以组合主键为key）
     file2_index = {}
     for i, row in enumerate(rows2):
-        if key_column2 < len(row) and row[key_column2] is not None:
-            key_value = str(row[key_column2]).strip()
-            if key_value:
-                file2_index[key_value] = row
+        key_value = _build_composite_key(row, key_indices2)
+        empty_key = "|".join([""] * len(key_indices2))
+        if key_value and key_value != empty_key:
+            file2_index[key_value] = row
     
     # 确定特征列起始位置
     if feature_start_column1 is None:
-        feature_start_column1 = key_column1 + 1
+        feature_start_column1 = max(key_indices1) + 1
     if feature_start_column2 is None:
-        feature_start_column2 = key_column2 + 1
+        feature_start_column2 = max(key_indices2) + 1
     
     # 分离非特征列和特征列
     non_feature_headers1 = headers1[:feature_start_column1]
@@ -589,7 +611,10 @@ def write_merged_data_csv_online(
             
             # 遍历第一个文件的所有行
             for row1 in rows1:
-                if key_column1 >= len(row1) or row1[key_column1] is None:
+                key_value = _build_composite_key(row1, key_indices1)
+                empty_key = "|".join([""] * len(key_indices1))
+                
+                if not key_value or key_value == empty_key:
                     # 如果主键为空，构建合并行
                     merged_row = []
                     for source_file, source_idx in merged_column_mapping:
@@ -600,12 +625,8 @@ def write_merged_data_csv_online(
                     writer.writerow(merged_row)
                     continue
                 
-                key_value = str(row1[key_column1]).strip()
-                
                 # 查找第二个文件中匹配的行
-                row2 = None
-                if key_value in file2_index:
-                    row2 = file2_index[key_value]
+                row2 = file2_index.get(key_value)
                 
                 # 根据列映射构建合并行
                 merged_row = []
@@ -628,15 +649,15 @@ def write_merged_data_csv_online(
             # 处理第二个文件中独有的记录（在第一个文件中不存在的）
             file1_keys = set()
             for row1 in rows1:
-                if key_column1 < len(row1) and row1[key_column1] is not None:
-                    key_value = str(row1[key_column1]).strip()
-                    if key_value:
-                        file1_keys.add(key_value)
+                key_value = _build_composite_key(row1, key_indices1)
+                empty_key = "|".join([""] * len(key_indices1))
+                if key_value and key_value != empty_key:
+                    file1_keys.add(key_value)
             
             for row2 in rows2:
-                if key_column2 < len(row2) and row2[key_column2] is not None:
-                    key_value = str(row2[key_column2]).strip()
-                    if key_value and key_value not in file1_keys:
+                key_value = _build_composite_key(row2, key_indices2)
+                empty_key = "|".join([""] * len(key_indices2))
+                if key_value and key_value != empty_key and key_value not in file1_keys:
                         # 构建合并行（第一个文件的数据用空值）
                         merged_row = []
                         for source_file, source_idx in merged_column_mapping:

@@ -67,8 +67,8 @@ def main():
         online_file = config.get("online_file")
         offline_file = config.get("offline_file")
         json_column = config.get("json_column")
-        online_key_column_index = config.get("online_key_column", 0)  # A列=0，B列=1
-        offline_key_column_index = config.get("offline_key_column", 1)  # A列=0，B列=1
+        online_key_column_index = config.get("online_key_column", 0)  # 支持 int 或 list[int]
+        offline_key_column_index = config.get("offline_key_column", 1)  # 支持 int 或 list[int]
         # 支持分别设置两个文件的特征起始列索引
         online_feature_start_column = config.get("online_feature_start_column")
         offline_feature_start_column = config.get("offline_feature_start_column")
@@ -98,8 +98,8 @@ def main():
         print(f"线上文件: {online_file_path}")
         print(f"离线文件: {offline_file_path}")
         print(f"JSON列: {json_column}")
-        print(f"在线文件主键列索引: {online_key_column_index} (A列=0, B列=1)")
-        print(f"离线文件主键列索引: {offline_key_column_index} (A列=0, B列=1)")
+        print(f"在线文件主键列索引: {online_key_column_index} ({'组合主键' if isinstance(online_key_column_index, list) else '单主键'})")
+        print(f"离线文件主键列索引: {offline_key_column_index} ({'组合主键' if isinstance(offline_key_column_index, list) else '单主键'})")
         print(f"在线文件特征列起始索引: {online_feature_start_column}")
         print(f"离线文件特征列起始索引: {offline_feature_start_column}")
         print(f"字符串转数值: {convert_string_to_number}")

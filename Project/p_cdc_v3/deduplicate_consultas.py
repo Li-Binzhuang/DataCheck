@@ -15,7 +15,7 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
     # 定义输入输出文件
-    input_file = os.path.join(script_dir, 'creditos_v3_json_0305.csv')
+    input_file = os.path.join(script_dir, 'creditos_v3_json_0302.csv')
     output_file = input_file.replace('.csv', '_dedup.csv')
 
     print("=" * 60)

@@ -63,7 +63,7 @@ def merge_csv_files(input_folder=None):
     
     # 生成输出文件名（带时间戳）
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_file = f'hdpart2_all_{timestamp}.csv'
+    output_file = f'creditos_02_14_{timestamp}.csv'
     
     # 保存合并后的文件
     print(f"保存到 {output_file}...")

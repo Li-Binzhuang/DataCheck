@@ -77,8 +77,15 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
         return isNaN(parsed) ? defaultValue : parsed;
     };
 
-    const onlineKeyCol = getIntValue(scenario.online_key_column, 0);
-    const offlineKeyCol = getIntValue(scenario.offline_key_column, 1);
+    // 解析主键列配置：支持单列(int)或多列(数组)
+    const formatKeyColumnDisplay = (val, defaultValue) => {
+        if (val === '' || val === null || val === undefined) return String(defaultValue);
+        if (Array.isArray(val)) return val.join(',');
+        return String(val);
+    };
+
+    const onlineKeyColDisplay = formatKeyColumnDisplay(scenario.online_key_column, 0);
+    const offlineKeyColDisplay = formatKeyColumnDisplay(scenario.offline_key_column, 1);
     const onlineFeatureStart = getIntValue(scenario.online_feature_start_column, 3);
     const offlineFeatureStart = getIntValue(scenario.offline_feature_start_column, 3);
 
@@ -179,12 +186,12 @@ function addOnlineScenario(scenarioData = null, isFirst = false) {
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>在线文件主键列索引 (A列=0):</label>
-                    <input type="number" class="online-scenario-online-key-column" value="${onlineKeyCol}" min="0">
+                    <label>在线文件主键列索引 (A列=0，多列用逗号分隔如0,1):</label>
+                    <input type="text" class="online-scenario-online-key-column" value="${onlineKeyColDisplay}" placeholder="例如: 0 或 0,1">
                 </div>
                 <div class="form-group">
-                    <label>离线文件主键列索引 (A列=0):</label>
-                    <input type="number" class="online-scenario-offline-key-column" value="${offlineKeyCol}" min="0">
+                    <label>离线文件主键列索引 (A列=0，多列用逗号分隔如0,1):</label>
+                    <input type="text" class="online-scenario-offline-key-column" value="${offlineKeyColDisplay}" placeholder="例如: 1 或 0,1">
                 </div>
             </div>
             
@@ -466,6 +473,21 @@ function collectOnlineConfig() {
             return '';
         };
 
+        // 解析主键列配置：支持单列(int)或多列(逗号分隔)
+        const getKeyColumnValue = (selector, defaultValue) => {
+            const elem = card.querySelector(selector);
+            if (!elem) return defaultValue;
+            const val = (elem.value || '').trim();
+            if (!val) return defaultValue;
+            // 如果包含逗号，解析为数组
+            if (val.includes(',')) {
+                const parts = val.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                return parts.length > 0 ? parts : defaultValue;
+            }
+            const parsed = parseInt(val);
+            return isNaN(parsed) ? defaultValue : parsed;
+        };
+
         const scenario = {
             name: getNameInput(),
             enabled: getEnabled(),
@@ -474,8 +496,8 @@ function collectOnlineConfig() {
             online_file: getFileValue('.online-scenario-online-filename', '.online-scenario-online-file'),
             offline_file: getFileValue('.online-scenario-offline-filename', '.online-scenario-offline-file'),
             json_column: getValue('.online-scenario-json-column'),
-            online_key_column: getIntValue('.online-scenario-online-key-column', 0),
-            offline_key_column: getIntValue('.online-scenario-offline-key-column', 1),
+            online_key_column: getKeyColumnValue('.online-scenario-online-key-column', 0),
+            offline_key_column: getKeyColumnValue('.online-scenario-offline-key-column', 1),
             online_feature_start_column: getIntValue('.online-scenario-online-feature-start', 3),
             offline_feature_start_column: getIntValue('.online-scenario-offline-feature-start', 3),
             convert_string_to_number: getChecked('.online-scenario-convert-string', false),
@@ -630,7 +652,16 @@ async function parseOnlineScenarioJSON(scenarioId) {
             online_file: getFileValue('.online-scenario-online-filename', '.online-scenario-online-file'),
             offline_file: getFileValue('.online-scenario-offline-filename', '.online-scenario-offline-file'),
             json_column: getValue('.online-scenario-json-column'),
-            online_key_column: getIntValue('.online-scenario-online-key-column', 0),
+            online_key_column: (() => {
+                const val = (card.querySelector('.online-scenario-online-key-column')?.value || '').trim();
+                if (!val) return 0;
+                if (val.includes(',')) {
+                    const parts = val.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                    return parts.length > 0 ? parts : 0;
+                }
+                const parsed = parseInt(val);
+                return isNaN(parsed) ? 0 : parsed;
+            })(),
             convert_string_to_number: getChecked('.online-scenario-convert-string', false)
         };
 
@@ -976,13 +1007,25 @@ async function executeOnlineScenario(scenarioId) {
             return '';
         };
 
+        // 解析主键列：支持单列或逗号分隔的多列
+        const parseKeyColumn = (selector, defaultValue) => {
+            const val = (card.querySelector(selector)?.value || '').trim();
+            if (!val) return defaultValue;
+            if (val.includes(',')) {
+                const parts = val.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                return parts.length > 0 ? parts : defaultValue;
+            }
+            const parsed = parseInt(val);
+            return isNaN(parsed) ? defaultValue : parsed;
+        };
+
         const config = {
             output_prefix: getValue('.online-scenario-output-prefix'),
             online_file: getFileValue('.online-scenario-online-filename', '.online-scenario-online-file'),
             offline_file: getFileValue('.online-scenario-offline-filename', '.online-scenario-offline-file'),
             json_column: getValue('.online-scenario-json-column'),
-            online_key_column: getIntValue('.online-scenario-online-key-column', 0),
-            offline_key_column: getIntValue('.online-scenario-offline-key-column', 1),
+            online_key_column: parseKeyColumn('.online-scenario-online-key-column', 0),
+            offline_key_column: parseKeyColumn('.online-scenario-offline-key-column', 1),
             online_feature_start_column: getIntValue('.online-scenario-online-feature-start', 3),
             offline_feature_start_column: getIntValue('.online-scenario-offline-feature-start', 3),
             convert_string_to_number: getChecked('.online-scenario-convert-string', false)

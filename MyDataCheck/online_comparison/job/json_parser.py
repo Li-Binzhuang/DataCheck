@@ -123,7 +123,7 @@ def parse_json_to_csv(
     input_csv_path: str,
     output_csv_path: str,
     json_column: str,
-    key_column_index: int = 0,
+    key_column_index = 0,
     convert_string_to_number: bool = False
 ):
     """
@@ -133,17 +133,23 @@ def parse_json_to_csv(
         input_csv_path: 输入CSV文件路径
         output_csv_path: 输出CSV文件路径
         json_column: JSON列名
-        key_column_index: 主键列索引（用于标识每一行，从0开始，A列=0，B列=1）
+        key_column_index: 主键列索引（支持 int 或 list[int]，用于标识每一行）
         convert_string_to_number: 是否将JSON中的字符串值转换为数值
     
     Returns:
         输出文件路径
     """
+    # 统一转换为列表格式
+    if isinstance(key_column_index, list):
+        key_indices = key_column_index
+    else:
+        key_indices = [key_column_index]
+    
     print(f"步骤1: 开始解析JSON数据")
     print(f"输入文件: {input_csv_path}")
     print(f"输出文件: {output_csv_path}")
     print(f"JSON列: {json_column}")
-    print(f"主键列索引: {key_column_index}")
+    print(f"主键列索引: {key_indices} ({'组合主键' if len(key_indices) > 1 else '单主键'})")
     print(f"字符串转数值: {convert_string_to_number}")
     
     # 读取CSV文件
@@ -164,12 +170,13 @@ def parse_json_to_csv(
         raise ValueError(f"未找到JSON列: {json_column}")
     
     # 验证主键列索引是否有效
-    if key_column_index < 0 or key_column_index >= len(base_headers):
-        raise ValueError(f"主键列索引无效: {key_column_index}，文件共有 {len(base_headers)} 列")
+    for idx in key_indices:
+        if idx < 0 or idx >= len(base_headers):
+            raise ValueError(f"主键列索引无效: {idx}，文件共有 {len(base_headers)} 列")
     
-    key_column_name = base_headers[key_column_index]
+    key_column_names = [base_headers[idx] for idx in key_indices]
     print(f"JSON列索引: {json_column_index} ({json_column})")
-    print(f"主键列索引: {key_column_index} ({key_column_name})")
+    print(f"主键列: {', '.join([f'索引{idx}({name})' for idx, name in zip(key_indices, key_column_names)])}")
     
     # 解析JSON并收集所有特征字段
     all_feature_keys = set()
@@ -180,12 +187,17 @@ def parse_json_to_csv(
         if row_index % 1000 == 0:
             print(f"已处理: {row_index}/{len(rows)}")
         
-        # 获取主键值（apply_id）
-        if key_column_index >= len(row):
-            continue
+        # 构建组合主键值（支持多列）
+        key_parts = []
+        for idx in key_indices:
+            if idx >= len(row):
+                key_parts.append("")
+            else:
+                key_parts.append(row[idx].strip() if row[idx] else "")
+        apply_id = "|".join(key_parts)
         
-        apply_id = row[key_column_index].strip() if row[key_column_index] else ""
-        if not apply_id:
+        # 如果所有主键列都为空，跳过
+        if all(p == "" for p in key_parts):
             continue
         
         # 获取基础信息（除了JSON列）

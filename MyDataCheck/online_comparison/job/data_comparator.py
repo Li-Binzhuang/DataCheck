@@ -65,11 +65,46 @@ def _convert_string_to_number(value: Any) -> Any:
         return str_value
 
 
+def _normalize_key_column_index(key_column_index):
+    """
+    将主键列索引统一转换为列表格式，兼容单列（int）和多列（list）配置
+    
+    Args:
+        key_column_index: 主键列索引，可以是 int 或 list[int]
+    
+    Returns:
+        list[int]: 主键列索引列表
+    """
+    if isinstance(key_column_index, list):
+        return key_column_index
+    return [key_column_index]
+
+
+def _build_composite_key(row, key_indices):
+    """
+    根据多列索引构建组合主键值，多列用 | 拼接
+    
+    Args:
+        row: 数据行
+        key_indices: 主键列索引列表
+    
+    Returns:
+        str: 组合主键值
+    """
+    parts = []
+    for idx in key_indices:
+        if idx < len(row) and row[idx] is not None:
+            parts.append(str(row[idx]).strip())
+        else:
+            parts.append("")
+    return "|".join(parts)
+
+
 def compare_csv_files(
     online_file_path: str,
     offline_file_path: str,
-    online_key_column_index: int,
-    offline_key_column_index: int,
+    online_key_column_index,
+    offline_key_column_index,
     online_feature_start_column: int = 3,
     offline_feature_start_column: int = 3,
     original_online_file_path: str = None,
@@ -84,8 +119,8 @@ def compare_csv_files(
     Args:
         online_file_path: 在线文件路径（第一步生成的CSV）
         offline_file_path: 离线文件路径
-        online_key_column_index: 在线文件的主键列索引（从0开始，A列=0，B列=1）
-        offline_key_column_index: 离线文件的主键列索引（从0开始，A列=0，B列=1）
+        online_key_column_index: 在线文件的主键列索引（从0开始，支持 int 或 list[int] 组合主键）
+        offline_key_column_index: 离线文件的主键列索引（从0开始，支持 int 或 list[int] 组合主键）
         online_feature_start_column: 在线文件特征列起始索引（从0开始）
         offline_feature_start_column: 离线文件特征列起始索引（从0开始）
         original_online_file_path: 原始线上文件路径（用于获取时间字段原值，可选）
@@ -100,13 +135,17 @@ def compare_csv_files(
          total_comparisons, match_count, diff_count, match_ratio,
          online_only_rows, online_only_count, rows_online, rows_offline)
     """
+    # 统一转换为列表格式，兼容单列和多列
+    online_key_indices = _normalize_key_column_index(online_key_column_index)
+    offline_key_indices = _normalize_key_column_index(offline_key_column_index)
+    
     print(f"\n步骤2: 开始对比两个CSV文件")
     print(f"在线文件: {online_file_path}")
     print(f"离线文件: {offline_file_path}")
     if original_online_file_path:
         print(f"原始线上文件: {original_online_file_path}")
-    print(f"在线文件主键列索引: {online_key_column_index}")
-    print(f"离线文件主键列索引: {offline_key_column_index}")
+    print(f"在线文件主键列索引: {online_key_indices} ({'组合主键' if len(online_key_indices) > 1 else '单主键'})")
+    print(f"离线文件主键列索引: {offline_key_indices} ({'组合主键' if len(offline_key_indices) > 1 else '单主键'})")
     print(f"在线文件特征列起始索引: {online_feature_start_column}")
     print(f"离线文件特征列起始索引: {offline_feature_start_column}")
     print(f"转换特征值为数值: {convert_feature_to_number}")
@@ -138,28 +177,26 @@ def compare_csv_files(
                     print(f"找到原始线上文件时间列: 索引{original_time_idx} ({header})")
                     break
         
-        # 构建主键到原始行的映射
+        # 构建主键到原始行的映射（支持组合主键）
         for row in original_online_rows:
-            if online_key_column_index < len(row) and row[online_key_column_index] is not None:
-                key_value = str(row[online_key_column_index]).strip()
-                if key_value:
-                    original_online_rows_map[key_value] = row
+            key_value = _build_composite_key(row, online_key_indices)
+            if key_value and key_value != "|".join([""] * len(online_key_indices)):
+                original_online_rows_map[key_value] = row
     
     # 验证主键列索引是否有效
-    if online_key_column_index < 0 or online_key_column_index >= len(headers_online):
-        raise ValueError(f"在线文件主键列索引无效: {online_key_column_index}，文件共有 {len(headers_online)} 列")
+    for idx in online_key_indices:
+        if idx < 0 or idx >= len(headers_online):
+            raise ValueError(f"在线文件主键列索引无效: {idx}，文件共有 {len(headers_online)} 列")
     
-    if offline_key_column_index < 0 or offline_key_column_index >= len(headers_offline):
-        raise ValueError(f"离线文件主键列索引无效: {offline_key_column_index}，文件共有 {len(headers_offline)} 列")
+    for idx in offline_key_indices:
+        if idx < 0 or idx >= len(headers_offline):
+            raise ValueError(f"离线文件主键列索引无效: {idx}，文件共有 {len(headers_offline)} 列")
     
-    online_key_idx = online_key_column_index
-    offline_key_idx = offline_key_column_index
+    online_key_names = [headers_online[idx] for idx in online_key_indices]
+    offline_key_names = [headers_offline[idx] for idx in offline_key_indices]
     
-    online_key_name = headers_online[online_key_idx]
-    offline_key_name = headers_offline[offline_key_idx]
-    
-    print(f"\n在线文件主键列: 索引{online_key_idx} ({online_key_name})")
-    print(f"离线文件主键列: 索引{offline_key_idx} ({offline_key_name})")
+    print(f"\n在线文件主键列: {', '.join([f'索引{idx}({name})' for idx, name in zip(online_key_indices, online_key_names)])}")
+    print(f"离线文件主键列: {', '.join([f'索引{idx}({name})' for idx, name in zip(offline_key_indices, offline_key_names)])}")
     
     # 获取特征列（分别使用不同的起始索引）
     feature_cols_online = headers_online[online_feature_start_column:] if len(headers_online) > online_feature_start_column else []
@@ -172,16 +209,24 @@ def compare_csv_files(
     print(f"在线文件特征列数: {len(feature_cols_online)}")
     print(f"离线文件特征列数: {len(feature_cols_offline)}")
     
-    # 构建离线文件的索引字典（以离线文件为基准）
+    # 构建离线文件的索引字典（以离线文件为基准，支持组合主键）
     offline_index = {}  # {key_value: (row_idx, row)}
     
     for row_idx, row in enumerate(rows_offline):
-        if offline_key_idx < len(row) and row[offline_key_idx] is not None:
-            key_value = str(row[offline_key_idx]).strip()
-            if key_value:
-                offline_index[key_value] = (row_idx, row)
+        key_value = _build_composite_key(row, offline_key_indices)
+        empty_key = "|".join([""] * len(offline_key_indices))
+        if key_value and key_value != empty_key:
+            offline_index[key_value] = (row_idx, row)
     
     print(f"离线文件索引构建完成，共 {len(offline_index)} 条记录")
+    
+    # 构建在线文件的索引字典（支持组合主键，用于快速查找）
+    online_index = {}  # {key_value: row}
+    for row in rows_online:
+        key_value = _build_composite_key(row, online_key_indices)
+        empty_key = "|".join([""] * len(online_key_indices))
+        if key_value and key_value != empty_key:
+            online_index[key_value] = row
     
     # 构建特征名映射：以离线文件为基准
     feature_mapping = {}  # {feature_name: (offline_idx, online_idx)}
@@ -289,27 +334,16 @@ def compare_csv_files(
         if row_idx_offline % 500 == 0:
             print(f"已处理: {row_idx_offline}/{len(rows_offline)}")
         
-        if offline_key_idx >= len(row_offline):
-            continue
+        key_value_offline = _build_composite_key(row_offline, offline_key_indices)
+        empty_key = "|".join([""] * len(offline_key_indices))
         
-        key_value_offline = str(row_offline[offline_key_idx]).strip() if row_offline[offline_key_idx] is not None else ""
-        
-        if not key_value_offline:
+        if not key_value_offline or key_value_offline == empty_key:
             unmatched_count += 1
             unmatched_rows.append(row_offline)
             continue
         
-        # 在在线文件中查找匹配的记录
-        if key_value_offline not in offline_index:
-            # 这种情况不应该发生，因为我们在遍历离线文件
-            continue
-        
-        # 查找在线文件中对应的记录
-        online_row = None
-        for row_online in rows_online:
-            if online_key_idx < len(row_online) and str(row_online[online_key_idx]).strip() == key_value_offline:
-                online_row = row_online
-                break
+        # 在在线文件中查找匹配的记录（使用索引字典快速查找）
+        online_row = online_index.get(key_value_offline)
         
         if online_row is None:
             unmatched_count += 1
@@ -319,14 +353,8 @@ def compare_csv_files(
         matched_count += 1
         matched_keys.add(key_value_offline)  # 记录匹配的key值
         
-        # 获取主键值：优先从在线文件（Sql文件）获取，如果没有则从离线文件（接口文件）获取
-        key_value = ""
-        if online_row and online_key_idx < len(online_row) and online_row[online_key_idx] is not None:
-            key_value = str(online_row[online_key_idx]).strip()
-        
-        # 如果在线文件中没有主键值，使用离线文件的主键值
-        if not key_value:
-            key_value = key_value_offline
+        # 组合主键值直接使用（已经是 | 拼接的格式）
+        key_value = key_value_offline
         
         # 获取cust_no（优先从在线文件/Sql文件获取，如果没有则从离线文件/接口文件获取）
         cust_no = ""
@@ -435,16 +463,11 @@ def compare_csv_files(
     online_only_rows = []
     online_only_count = 0
     
-    # 遍历在线文件，找出在离线文件中不存在的记录
-    # 如果key不在matched_keys中，说明在离线文件中没有找到匹配的记录
-    # 但还需要检查是否在offline_index中（因为可能主键为空或其他原因未匹配）
     for row_online in rows_online:
-        if online_key_idx >= len(row_online):
-            continue
+        key_value_online = _build_composite_key(row_online, online_key_indices)
+        empty_key = "|".join([""] * len(online_key_indices))
         
-        key_value_online = str(row_online[online_key_idx]).strip() if row_online[online_key_idx] is not None else ""
-        
-        if not key_value_online:
+        if not key_value_online or key_value_online == empty_key:
             continue
         
         # 如果这个key在离线文件的索引中不存在，则记录为仅在在线文件中的数据

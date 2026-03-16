@@ -1,11 +1,11 @@
 {
-  "file_path": "decimal_sms_0312_03132058_zlf_.csv",
-  "source_column": "接口/灰度/从库值",
-  "reference_column": "模型特征样本值",
-  "decimal_method": "round",
+  "file_path": "decimal_consultas_02_14_all.csv",
+  "source_column": "json值",
+  "reference_column": "Sql值",
+  "decimal_method": "double_round",
   "compare_mode": "exact",
   "tolerance_value": 0.01,
-  "output_prefix": "data_",
+  "output_prefix": "consultas_02_14_",
   "output_full_data": false,
   "file_input_mode": "upload"
 }

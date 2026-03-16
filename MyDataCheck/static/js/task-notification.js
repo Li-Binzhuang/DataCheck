@@ -8,6 +8,24 @@
 // 已下载任务的localStorage key
 const DOWNLOADED_TASKS_KEY = 'myDataCheck_downloadedTasks';
 
+/**
+ * 通知服务端标记任务为已下载，刷新页面后不再提醒
+ * @param {string} taskId - 任务ID
+ */
+function markTaskDownloadedOnServer(taskId) {
+    if (!taskId) return;
+    fetch(`/api/tasks/${taskId}/mark-downloaded`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).then(resp => resp.json()).then(data => {
+        if (data.success) {
+            console.log(`[TaskNotification] 服务端已标记任务为已下载: ${taskId}`);
+        }
+    }).catch(err => {
+        console.error('[TaskNotification] 服务端标记失败:', err);
+    });
+}
+
 // 获取已下载的任务列表
 function getDownloadedTasks() {
     try {
@@ -195,6 +213,7 @@ async function downloadTaskFiles(taskId) {
 
             // 标记任务已下载
             markTaskDownloaded(taskId);
+            markTaskDownloadedOnServer(taskId);
 
             // 更新UI
             const taskItem = document.querySelector(`.task-notification-item[data-task-id="${taskId}"]`);
@@ -237,6 +256,7 @@ function confirmDownloadNotification() {
     // 标记所有任务为已下载
     for (const task of tasks) {
         markTaskDownloaded(task.task_id);
+        markTaskDownloadedOnServer(task.task_id);
     }
 
     // 关闭弹窗

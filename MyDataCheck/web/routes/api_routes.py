@@ -312,6 +312,31 @@ def get_task_logs(task_id):
         })
 
 
+@api_bp.route('/api/tasks/<task_id>/mark-downloaded', methods=['POST'])
+def mark_task_downloaded(task_id):
+    """标记任务为已下载，后续不再提醒"""
+    try:
+        from common.task_manager import TaskManager
+        
+        success = TaskManager.update_task(task_id, status='downloaded')
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': '任务已标记为已下载'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': '任务不存在'
+            })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
 @api_bp.route('/api/tasks/<task_id>/cleanup', methods=['POST'])
 def cleanup_task_logs(task_id):
     """清理指定任务的日志"""

@@ -111,6 +111,7 @@ async function autoDownloadOutputFiles(module, minutes = 2, taskId = null) {
                 } else {
                     console.error('[AutoDownload] markTaskDownloaded 函数不存在');
                 }
+                markTaskDownloadedOnServer(taskId);
             }
             return;
         }
@@ -128,6 +129,7 @@ async function autoDownloadOutputFiles(module, minutes = 2, taskId = null) {
                 } else {
                     console.error('[AutoDownload] markTaskDownloaded 函数不存在');
                 }
+                markTaskDownloadedOnServer(taskId);
             }
             return;
         }
@@ -154,6 +156,7 @@ async function autoDownloadOutputFiles(module, minutes = 2, taskId = null) {
             } else {
                 console.error('[AutoDownload] markTaskDownloaded 函数不存在');
             }
+            markTaskDownloadedOnServer(taskId);
         } else {
             console.warn('[AutoDownload] 未提供 taskId，无法标记任务为已下载');
         }

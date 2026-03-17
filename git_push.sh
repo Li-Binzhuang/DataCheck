@@ -20,8 +20,8 @@ echo "准备提交项目到 Git 仓库"
 echo "=========================================="
 echo "仓库结构: daizhonghuankuan_part1/"
 echo "  ├── MyDataCheck/"
-echo "  ├── Mytest/"
-echo "  └── CDC/"
+echo "  ├── Project/"
+echo "  └── Project/"
 echo ""
 
 # 检查 MyDataCheck 目录是否存在
@@ -30,20 +30,20 @@ if [ ! -d "MyDataCheck" ]; then
     exit 1
 fi
 
-# 检查 Mytest 目录是否存在
-if [ ! -d "Mytest" ]; then
-    echo "警告: Mytest 目录不存在"
+# 检查 Project 目录是否存在
+if [ ! -d "Project" ]; then
+    echo "警告: Project 目录不存在"
 fi
 
-# 检查 CDC 目录是否存在
-if [ ! -d "CDC" ]; then
-    echo "警告: CDC 目录不存在"
+# 检查 Project 目录是否存在
+if [ ! -d "Project" ]; then
+    echo "警告: Project 目录不存在"
 fi
 
 # 显示将要提交的目录
 DIRS_TO_COMMIT="MyDataCheck"
-[ -d "Mytest" ] && DIRS_TO_COMMIT="$DIRS_TO_COMMIT, Mytest"
-[ -d "CDC" ] && DIRS_TO_COMMIT="$DIRS_TO_COMMIT, CDC"
+[ -d "Project" ] && DIRS_TO_COMMIT="$DIRS_TO_COMMIT, Project"
+[ -d "Project" ] && DIRS_TO_COMMIT="$DIRS_TO_COMMIT, Project"
 echo "将提交以下目录到远程仓库: $DIRS_TO_COMMIT"
 echo ""
 
@@ -140,61 +140,61 @@ else
     git add MyDataCheck/
 fi
 
-# 添加 Mytest 目录（如果存在且不是子模块）
-if [ -d "Mytest" ]; then
-    if [ -f "Mytest/.git" ] || [ -d "Mytest/.git" ]; then
-        echo "检测到 Mytest 是 Git 子模块"
+# 添加 Project 目录（如果存在且不是子模块）
+if [ -d "Project" ]; then
+    if [ -f "Project/.git" ] || [ -d "Project/.git" ]; then
+        echo "检测到 Project 是 Git 子模块"
         echo "先提交子模块内的变更..."
         
         # 进入子模块并提交变更
-        cd Mytest
+        cd Project
         if [ -n "$(git status --porcelain)" ]; then
-            echo "Mytest 子模块内有未提交的变更，正在提交..."
+            echo "Project 子模块内有未提交的变更，正在提交..."
             git add -A
-            git commit -m "chore: 更新 Mytest 子模块内容
+            git commit -m "chore: 更新 Project 子模块内容
 
-- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')" || echo "Mytest 子模块提交完成或无需提交"
+- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')" || echo "Project 子模块提交完成或无需提交"
         else
-            echo "Mytest 子模块内无变更"
+            echo "Project 子模块内无变更"
         fi
         cd ..
         
         # 更新父仓库中的子模块引用
-        echo "更新父仓库中的 Mytest 子模块引用..."
-        git add Mytest
+        echo "更新父仓库中的 Project 子模块引用..."
+        git add Project
     else
         # 如果不是子模块，按普通目录处理
-        echo "添加 Mytest 目录到 Git..."
-        git add Mytest/
+        echo "添加 Project 目录到 Git..."
+        git add Project/
     fi
 fi
 
-# 添加 CDC 目录（如果存在且不是子模块）
-if [ -d "CDC" ]; then
-    if [ -f "CDC/.git" ] || [ -d "CDC/.git" ]; then
-        echo "检测到 CDC 是 Git 子模块"
+# 添加 Project 目录（如果存在且不是子模块）
+if [ -d "Project" ]; then
+    if [ -f "Project/.git" ] || [ -d "Project/.git" ]; then
+        echo "检测到 Project 是 Git 子模块"
         echo "先提交子模块内的变更..."
         
         # 进入子模块并提交变更
-        cd CDC
+        cd Project
         if [ -n "$(git status --porcelain)" ]; then
-            echo "CDC 子模块内有未提交的变更，正在提交..."
+            echo "Project 子模块内有未提交的变更，正在提交..."
             git add -A
-            git commit -m "chore: 更新 CDC 子模块内容
+            git commit -m "chore: 更新 Project 子模块内容
 
-- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')" || echo "CDC 子模块提交完成或无需提交"
+- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')" || echo "Project 子模块提交完成或无需提交"
         else
-            echo "CDC 子模块内无变更"
+            echo "Project 子模块内无变更"
         fi
         cd ..
         
         # 更新父仓库中的子模块引用
-        echo "更新父仓库中的 CDC 子模块引用..."
-        git add CDC
+        echo "更新父仓库中的 Project 子模块引用..."
+        git add Project
     else
         # 如果不是子模块，按普通目录处理
-        echo "添加 CDC 目录到 Git..."
-        git add CDC/
+        echo "添加 Project 目录到 Git..."
+        git add Project/
     fi
 fi
 
@@ -226,18 +226,18 @@ if ! git diff --staged --quiet 2>/dev/null; then
 "
     [ -d "MyDataCheck" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 MyDataCheck 项目的所有文件
 "
-    [ -d "Mytest" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 Mytest 项目的所有文件
+    [ -d "Project" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 Project 项目的所有文件
 "
-    [ -d "CDC" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 CDC 项目的所有文件
+    [ -d "Project" ] && COMMIT_MSG="${COMMIT_MSG}- 包含 Project 项目的所有文件
 "
     COMMIT_MSG="${COMMIT_MSG}
 项目位置:
 "
     [ -d "MyDataCheck" ] && COMMIT_MSG="${COMMIT_MSG}- MyDataCheck 位于 daizhonghuankuan_part1/MyDataCheck/
 "
-    [ -d "Mytest" ] && COMMIT_MSG="${COMMIT_MSG}- Mytest 位于 daizhonghuankuan_part1/Mytest/
+    [ -d "Project" ] && COMMIT_MSG="${COMMIT_MSG}- Project 位于 daizhonghuankuan_part1/Project/
 "
-    [ -d "CDC" ] && COMMIT_MSG="${COMMIT_MSG}- CDC 位于 daizhonghuankuan_part1/CDC/
+    [ -d "Project" ] && COMMIT_MSG="${COMMIT_MSG}- Project 位于 daizhonghuankuan_part1/Project/
 "
     COMMIT_MSG="${COMMIT_MSG}- 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
     
@@ -336,8 +336,8 @@ if [ $PUSH_EXIT_CODE -eq 0 ]; then
     
     # 显示已提交的目录
     COMMITTED_DIRS="MyDataCheck/"
-    [ -d "Mytest" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Mytest/"
-    [ -d "CDC" ] && COMMITTED_DIRS="$COMMITTED_DIRS, CDC/"
+    [ -d "Project" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Project/"
+    [ -d "Project" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Project/"
     echo "提交目录: $COMMITTED_DIRS"
     echo "当前分支: $CURRENT_BRANCH"
     echo ""
@@ -368,8 +368,8 @@ elif echo "$PUSH_OUTPUT" | grep -q "non-fast-forward"; then
         
         # 显示已提交的目录
         COMMITTED_DIRS="MyDataCheck/"
-        [ -d "Mytest" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Mytest/"
-        [ -d "CDC" ] && COMMITTED_DIRS="$COMMITTED_DIRS, CDC/"
+        [ -d "Project" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Project/"
+        [ -d "Project" ] && COMMITTED_DIRS="$COMMITTED_DIRS, Project/"
         echo "提交目录: $COMMITTED_DIRS"
         echo "当前分支: $CURRENT_BRANCH"
         echo ""

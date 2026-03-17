@@ -11,9 +11,6 @@ on:
       - 'MyDataCheck/**'
   workflow_dispatch:
 
-env:
-  IMAGE_NAME: mydatacheck
-
 permissions:
   contents: read
   packages: write
@@ -26,9 +23,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -37,26 +31,41 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=sha,prefix=
-            type=ref,event=branch
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Generate image tags
+        id: tags
+        run: |
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          TAGS="ghcr.io/${REPO_LOWER}:${SHA_SHORT}"
+          TAGS="${TAGS},ghcr.io/${REPO_LOWER}:${{ github.ref_name }}"
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.ref_name }}" = "master" ]; then
+            TAGS="${TAGS},ghcr.io/${REPO_LOWER}:latest"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+          echo "Generated tags: ${TAGS}"
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: ./MyDataCheck
-          file: ./MyDataCheck/Dockerfile
-          platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          provenance: false
-          sbom: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build Docker image
+        run: |
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.tags.outputs.tags }}"
+          BUILD_ARGS=""
+          for tag in "${TAG_ARRAY[@]}"; do
+            BUILD_ARGS="${BUILD_ARGS} -t ${tag}"
+          done
+          docker build ${BUILD_ARGS} -f ./MyDataCheck/Dockerfile ./MyDataCheck
+
+      - name: Verify image architecture
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "=== Image inspect ==="
+          docker inspect "ghcr.io/${REPO_LOWER}:${SHA_SHORT}" | grep -E "Architecture|Os"
+          echo "=== Verify binary is actually x86_64 ==="
+          docker run --rm "ghcr.io/${REPO_LOWER}:${SHA_SHORT}" python -c "import platform; print(f'Machine: {platform.machine()}, Arch: {platform.architecture()}')"
+
+      - name: Push Docker image
+        if: github.event_name != 'pull_request'
+        run: |
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.tags.outputs.tags }}"
+          for tag in "${TAG_ARRAY[@]}"; do
+            docker push "${tag}"
+          done

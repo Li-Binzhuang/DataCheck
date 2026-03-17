@@ -36,3 +36,8 @@ logs/
 *.csv
 *.xlsx
 *.pkl
+
+# git_push 临时目录
+.git_push_tmp/
+.git_restore_tmp/
+.git_backup_*/

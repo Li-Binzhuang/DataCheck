@@ -10,6 +10,9 @@
 #   ./git_push.sh MyDataCheck  # 只推送 MyDataCheck
 #   ./git_push.sh MyTool       # 只推送 MyTool
 #   ./git_push.sh Project      # 只推送 Project
+#
+# 日志:
+#   cat git_push.log           # 查看推送历史
 
 set -e
 
@@ -46,6 +49,19 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORK_DIR="$SCRIPT_DIR/.git_push_tmp"
+LOG_FILE="$SCRIPT_DIR/git_push.log"
+
+# 同时输出到终端和日志文件
+log() {
+    echo "$@" | tee -a "$LOG_FILE"
+}
+
+# 写入本次推送的分隔线
+echo "" >> "$LOG_FILE"
+log "================================================================"
+log "推送时间: $(date '+%Y-%m-%d %H:%M:%S')"
+log "推送目标: $TARGETS"
+log "================================================================"
 
 # 修复 macOS SSL
 if [ "$(uname)" = "Darwin" ]; then
@@ -65,17 +81,6 @@ collect_root_files() {
     done
 }
 
-echo "=========================================="
-echo "推送项目到 Git 仓库"
-echo "=========================================="
-echo ""
-echo "本次推送目标:"
-for t in $TARGETS; do
-    echo "  $t -> $(get_repo_name "$t").git"
-done
-echo "  根目录脚本 -> 同步到以上仓库"
-echo ""
-
 SUCCESS_COUNT=0
 FAIL_COUNT=0
 FAIL_LIST=""
@@ -87,24 +92,23 @@ for DIR_NAME in $TARGETS; do
     DISPLAY_URL="https://${BASE}/${REPO_NAME}.git"
     TMP_DIR="$WORK_DIR/$DIR_NAME"
 
-    echo "=========================================="
-    echo "[$DIR_NAME] -> $DISPLAY_URL"
-    echo "=========================================="
+    log "------------------------------------------"
+    log "[$DIR_NAME] -> $DISPLAY_URL"
+    log "------------------------------------------"
 
     if [ ! -d "$SCRIPT_DIR/$DIR_NAME" ]; then
-        echo "  ⚠ 目录 $DIR_NAME 不存在，跳过"
+        log "  ⚠ [$DIR_NAME] 目录不存在，跳过"
         FAIL_COUNT=$((FAIL_COUNT + 1))
         FAIL_LIST="$FAIL_LIST $DIR_NAME(目录不存在)"
-        echo ""
         continue
     fi
 
     rm -rf "$TMP_DIR"
 
-    # clone 远程仓库（完整历史）
-    echo "  拉取远程仓库..."
+    # clone 远程仓库
+    log "  拉取远程仓库..."
     if ! git clone "$REPO_URL" "$TMP_DIR" 2>/dev/null; then
-        echo "  远程仓库为空或不存在，初始化新仓库..."
+        log "  远程仓库为空，初始化新仓库..."
         mkdir -p "$TMP_DIR"
         (cd "$TMP_DIR" && git init -q && git checkout -b master 2>/dev/null || true)
     fi
@@ -113,12 +117,10 @@ for DIR_NAME in $TARGETS; do
     (cd "$TMP_DIR" && find . -maxdepth 1 ! -name '.' ! -name '.git' -exec rm -rf {} +)
 
     # 复制项目目录
-    echo "  复制 $DIR_NAME/ ..."
     cp -R "$SCRIPT_DIR/$DIR_NAME" "$TMP_DIR/$DIR_NAME"
     rm -rf "$TMP_DIR/$DIR_NAME/.git"
 
     # 复制根目录脚本
-    echo "  复制根目录脚本文件..."
     collect_root_files "$TMP_DIR"
 
     # 清理不需要的文件
@@ -130,89 +132,75 @@ for DIR_NAME in $TARGETS; do
     find "$TMP_DIR" -name ".vscode" -type d -exec rm -rf {} + 2>/dev/null || true
     find "$TMP_DIR" -name ".kiro" -type d -exec rm -rf {} + 2>/dev/null || true
 
-    # 提交并推送（在子 shell 中执行）
-    PUSH_RESULT=0
-    (
-        cd "$TMP_DIR"
-        git add -A
+    # 进入临时目录提交并推送
+    pushd "$TMP_DIR" > /dev/null
+    git add -A
 
-        if git diff --staged --quiet 2>/dev/null; then
-            echo "  ✓ 无变更，跳过提交"
-        else
-            CHANGED_FILES=$(git diff --staged --stat | tail -1)
-            echo "  变更: $CHANGED_FILES"
-            git commit -q -m "feat: 更新 $DIR_NAME 项目
+    if git diff --staged --quiet 2>/dev/null; then
+        log "  ✓ [$DIR_NAME] 无变更，跳过"
+        popd > /dev/null
+        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        continue
+    fi
+
+    CHANGED_FILES=$(git diff --staged --stat | tail -1)
+    log "  [$DIR_NAME] 变更: $CHANGED_FILES"
+    git commit -q -m "feat: 更新 $DIR_NAME 项目
 
 - 包含 $DIR_NAME 项目文件
 - 包含根目录脚本文件
 - 提交时间: $(date '+%Y-%m-%d %H:%M:%S')"
-            echo "  ✓ 已提交"
+    log "  ✓ [$DIR_NAME] 已提交"
+
+    git remote set-url origin "$REPO_URL" 2>/dev/null || git remote add origin "$REPO_URL"
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "master")
+
+    # 合并远程代码
+    if git ls-remote --heads origin "$CURRENT_BRANCH" 2>/dev/null | grep -q "$CURRENT_BRANCH"; then
+        PULL_OUTPUT=$(git pull --rebase origin "$CURRENT_BRANCH" 2>&1)
+        PULL_EXIT=$?
+        if [ $PULL_EXIT -ne 0 ]; then
+            git rebase --abort 2>/dev/null || true
+            log "  ✗ [$DIR_NAME] 合并冲突，请手动处理"
+            log "    $PULL_OUTPUT"
+            log "    临时目录: $TMP_DIR"
+            popd > /dev/null
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+            FAIL_LIST="$FAIL_LIST $DIR_NAME(冲突)"
+            SKIP_CLEANUP=1
+            continue
         fi
-
-        git remote set-url origin "$REPO_URL" 2>/dev/null || git remote add origin "$REPO_URL"
-        CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "master")
-
-        # 先拉取远程最新代码并合并
-        echo "  合并远程代码..."
-        if git ls-remote --heads origin "$CURRENT_BRANCH" 2>/dev/null | grep -q "$CURRENT_BRANCH"; then
-            PULL_OUTPUT=$(git pull --rebase origin "$CURRENT_BRANCH" 2>&1)
-            PULL_EXIT=$?
-
-            if [ $PULL_EXIT -ne 0 ]; then
-                git rebase --abort 2>/dev/null || true
-                echo "  ✗ 合并冲突，请手动处理:"
-                echo "    $PULL_OUTPUT"
-                echo ""
-                echo "  临时目录: $TMP_DIR"
-                echo "  处理步骤:"
-                echo "    1. cd $TMP_DIR"
-                echo "    2. git pull --rebase origin $CURRENT_BRANCH"
-                echo "    3. 解决冲突 -> git add <文件> -> git rebase --continue"
-                echo "    4. git push -u origin $CURRENT_BRANCH"
-                exit 1
-            fi
-            echo "  ✓ 已合并"
-        else
-            echo "  远程分支不存在，将创建新分支"
-        fi
-
-        echo "  推送中..."
-        PUSH_OUTPUT=$(git push -u origin "$CURRENT_BRANCH" 2>&1)
-        PUSH_EXIT=$?
-
-        if [ $PUSH_EXIT -eq 0 ]; then
-            echo "  ✓ 推送成功"
-        else
-            echo "  ✗ 推送失败:"
-            echo "    $PUSH_OUTPUT"
-            echo ""
-            echo "  临时目录: $TMP_DIR"
-            exit 1
-        fi
-    ) || PUSH_RESULT=1
-
-    if [ $PUSH_RESULT -eq 0 ]; then
-        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-    else
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-        FAIL_LIST="$FAIL_LIST $DIR_NAME"
-        SKIP_CLEANUP=1
+        log "  ✓ [$DIR_NAME] 已合并远程代码"
     fi
 
-    echo ""
+    # 推送
+    PUSH_OUTPUT=$(git push -u origin "$CURRENT_BRANCH" 2>&1)
+    PUSH_EXIT=$?
+    popd > /dev/null
+
+    if [ $PUSH_EXIT -eq 0 ]; then
+        log "  ✓ [$DIR_NAME] 推送成功"
+        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+    else
+        log "  ✗ [$DIR_NAME] 推送失败: $PUSH_OUTPUT"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        FAIL_LIST="$FAIL_LIST $DIR_NAME(推送失败)"
+        SKIP_CLEANUP=1
+    fi
 done
 
 # 清理临时目录
 if [ $SKIP_CLEANUP -eq 0 ]; then
     rm -rf "$WORK_DIR"
 else
-    echo "⚠ 临时目录已保留: $WORK_DIR"
-    echo "  请手动处理冲突后删除"
+    log "⚠ 临时目录已保留: $WORK_DIR"
 fi
 
-echo "=========================================="
-echo "推送完成: 成功 $SUCCESS_COUNT, 失败 $FAIL_COUNT"
+log "=========================================="
+log "推送完成: 成功 $SUCCESS_COUNT, 失败 $FAIL_COUNT"
 if [ $FAIL_COUNT -gt 0 ]; then
-    echo "失败项目:$FAIL_LIST"
+    log "失败项目:$FAIL_LIST"
 fi
-echo "=========================================="
+log "=========================================="
+echo ""
+echo "📋 查看推送日志: cat git_push.log"

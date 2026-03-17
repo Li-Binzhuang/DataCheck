@@ -41,3 +41,4 @@ logs/
 .git_push_tmp/
 .git_restore_tmp/
 .git_backup_*/
+git_push.log
